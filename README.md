@@ -1,16 +1,16 @@
-# SpreeCore v1.5.0 — Spree SMP
+# SpreeCore v1.5.1 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.5.0.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.5.1.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.5.0.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.5.1.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -33,6 +33,36 @@ At zero or Fractured, direct mace attacks against **players and mobs** are cance
 **Removed for now:** streak-dependent automatic Fire Resistance, Hero of the Village, Weaving, Speed, Glowing, potion upgrades, and all tentative item restrictions. Their old GUI categories and YAML settings are removed. This does **not** remove independent legendary weapon abilities, forge requirements, event-only Juggernaut health/glowing, or one-off event streak points. The old Spree Surge event, which relied on tier-based buffs, is paused pending the progression redesign.
 
 **Unchanged streak rules:** PvP and environmental deaths halve an existing positive streak, rounded down. Environmental death at 0 creates Fractured (`-1` in `players.yml` for migration compatibility); Fractured never goes below `-1`. The anti-farming cooldown, revenge bonus, item use, and death-token logic stay intact. `/spreeadmin giveitem <player> [1–64]` gives a Heart of the Sea Spree consumable; right click consumes one and adds exactly one killstreak. Original environmental-death tokens auto-claim on pickup using separate logic.
+
+## Kill rewards and TNT credit (v1.5.1)
+
+The original Skript limited kill rewards to **+2**, even when the victim had
+a 30 killstreak. That cap is removed: **a qualifying player kill now awards
+half of the victim's PRE-DEATH streak, rounded down, with a minimum of +1**.
+This rule is independent of the damage source.
+
+| Victim's streak before death | Killer gains | Victim after death |
+| --- | --- | --- |
+| 0 / Fractured | +1, subject to anti-farm restrictions | 0 / Fractured |
+| 3 | +1 | 1 |
+| 7 | +3 | 3 |
+| 10 | +5 | 5 |
+| 20 | +10 | 10 |
+| 30 | +15 | 15 |
+
+For a TNT kill credited to a **Fractured** player against a player at streak 30,
+the killer is set to **15**, not 2; the victim goes from 30 to 15. The anti-farm
+cooldown and ban on farming Fractured victims remain, as do event-specific
+bonuses and the configured maximum-streak cap. Environmental-death Spree
+Tokens use the same half-streak value and remain separate from the
+right-click **+1 Spree item**.
+
+When an explosion is attributed to an online player, the normal player-kill
+branch awards streak and does **not** drop an environmental-death token.
+Ownerless or ambiguous explosions stay uncredited, and a natural death can
+still drop a token. If TNT behavior differs during live testing, note whether
+you received a "for eliminating" message or picked up a dropped Spree Token;
+those distinguish credited player kills from environmental deaths.
 
 ## Current streak milestone buffs (v1.5.0)
 

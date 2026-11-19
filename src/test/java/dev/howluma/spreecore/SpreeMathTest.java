@@ -18,12 +18,34 @@ class SpreeMathTest {
         assertEquals(3, SpreeMath.deathStreak(7));
         assertEquals(15, SpreeMath.deathStreak(30));
     }
-    @Test void killRewardAndRecovery() {
+    @Test void killerReceivesHalfVictimStreakNotLegacyCap() {
+        assertEquals(1, SpreeMath.killGain(-1));
         assertEquals(1, SpreeMath.killGain(0));
+        assertEquals(1, SpreeMath.killGain(1));
         assertEquals(1, SpreeMath.killGain(3));
         assertEquals(2, SpreeMath.killGain(4));
-        assertEquals(2, SpreeMath.killGain(30));
-        assertEquals(1, SpreeMath.applyKill(-1, 1, 30));
+        assertEquals(3, SpreeMath.killGain(7));
+        assertEquals(4, SpreeMath.killGain(9));
+        assertEquals(5, SpreeMath.killGain(10));
+        assertEquals(7, SpreeMath.killGain(15));
+        assertEquals(10, SpreeMath.killGain(20));
+        assertEquals(14, SpreeMath.killGain(29));
+        assertEquals(15, SpreeMath.killGain(30));
+    }
+    @Test void thirtyStreakTntKillFromFracturedAwardsFifteen() {
+        // Combat attribution delivers the pre-death victim streak to killGain.
+        int victimOldStreak = 30;
+        int attackerOldStreak = -1;
+        int gained = SpreeMath.killGain(victimOldStreak);
+        assertEquals(15, gained);
+        assertEquals(15, SpreeMath.applyKill(attackerOldStreak, gained, 30));
+        assertEquals(15, SpreeMath.deathStreak(victimOldStreak));
+        // Positive streaks still respect the configured 30 cap.
+        assertEquals(30, SpreeMath.applyKill(20, gained, 30));
+    }
+    @Test void minimumRewardRecoversFractured() {
+        assertEquals(1, SpreeMath.applyKill(-1, SpreeMath.killGain(0), 30));
+        assertEquals(1, SpreeMath.applyKill(-1, SpreeMath.killGain(-1), 30));
     }
     @Test void halfHeartForEveryPositiveLevel() {
         assertEquals(20.0, SpreeMath.maxHealthPoints(-1, 10, 0.5));

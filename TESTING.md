@@ -1,6 +1,16 @@
-# SpreeCore v1.5 — test-server checklist
+# SpreeCore v1.5.1 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## TNT / Fractured streak reward regression (v1.5.1)
+
+- [ ] A Fractured player (-1) ignites TNT and gets a credited lethal hit on a victim with 30: killer becomes 15, victim becomes 15, killer receives +15 "for eliminating" message, no Spree Token drops.
+- [ ] A player with 30 streak dying to an unowned environmental TNT blast loses half (15); an environmental Spree Token worth +15 drops, but no one is given direct killer credit.
+- [ ] Melee, arrows, and attributed TNT all award the same victim-based reward: 7 -> +3, 10 -> +5, 20 -> +10, 30 -> +15 (no +2 cap).
+- [ ] Killing a victim at zero or Fractured awards at most the minimum +1, with existing anti-farm protections; farming Fractured victims remains blocked when configured.
+- [ ] Existing anti-farm repeat-victim cooldown still blocks repeated rewards regardless of TNT.
+- [ ] Large rewards respect the configured max killstreak (30 by default). The right-click Spree item remains exactly +1.
+- [ ] Test TNT directly ignited by flint & steel, TNT chains, and explosions from unknown/redstone sources; do not assign an arbitrary player if ownership cannot be proven.
 
 ## Milestone perk and current-buffs book regression (v1.5.0)
 

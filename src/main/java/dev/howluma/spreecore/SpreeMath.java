@@ -4,9 +4,14 @@ package dev.howluma.spreecore;
 public final class SpreeMath {
     private SpreeMath() {}
     public static int clamp(int streak, int limit) { return Math.max(-1, Math.min(limit, streak)); }
+    /**
+     * Credit a killer with half of the victim's pre-death killstreak
+     * (rounded down), with a minimum of one for low/Fractured victims.
+     * This rule is shared by melee/projectile/explosive credited kills
+     * and death tokens; there is no legacy +2 reward cap.
+     */
     public static int killGain(int victimStreak) {
-        if (victimStreak >= 10) return 2;
-        return Math.max(1, Math.min(2, Math.floorDiv(victimStreak, 2)));
+        return Math.max(1, Math.max(0, victimStreak) / 2);
     }
     public static int deathStreak(int oldStreak) {
         return oldStreak < 0 ? -1 : oldStreak / 2;
