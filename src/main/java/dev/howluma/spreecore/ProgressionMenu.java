@@ -1,6 +1,8 @@
 package dev.howluma.spreecore;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -58,6 +60,15 @@ public final class ProgressionMenu implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(Text.c(label));
         meta.setLore(Arrays.stream(lore).map(Text::c).toList());
+        if (type == Material.ECHO_SHARD) plugin.models().sigil(meta);
+        if (type == Material.HEART_OF_THE_SEA) plugin.models().token(meta);
+        if (type == Material.POTION && meta instanceof PotionMeta potion) {
+            String name = label.toLowerCase(Locale.ROOT);
+            int rgb = name.contains("speed") ? 0x7CAFC6 : name.contains("strength") ? 0x932423 :
+                    name.contains("weaving") ? 0xB9B9B9 : name.contains("regeneration") || name.contains("medic") ? 0xCD5CAB :
+                    name.contains("luck") ? 0x339900 : name.contains("hero") ? 0x44BB66 : 0x4466CC;
+            potion.setColor(Color.fromRGB(rgb));
+        }
         item.setItemMeta(meta);
         return item;
     }
@@ -114,6 +125,7 @@ public final class ProgressionMenu implements Listener {
             int level = levels.get(i);
             boolean unlocked = plugin.progression().milestoneUnlocked(player, kind, level);
             String current = plugin.progression().choice(player, kind, level);
+            if (!unlocked) continue;
             var option = ProgressionCatalog.find(kind, current);
             Material material = option != null ? option.icon()
                     : unlocked ? Material.LIME_DYE : Material.GRAY_DYE;
@@ -140,6 +152,7 @@ public final class ProgressionMenu implements Listener {
         for (int level : ProgressionCatalog.milestones(ProgressionCatalog.Kind.PERK, plugin.streaks().cap())) {
             if (index >= slots.length) break;
             String id = plugin.data().get(player).perkRolls.get(level);
+            if (id == null || level > plugin.streaks().streak(player)) continue;
             PerkType perk = PerkType.fromId(id);
             int current = plugin.streaks().streak(player);
             String state = level > current ? "&8Inactive / locked" : "&aActive";
@@ -159,13 +172,13 @@ public final class ProgressionMenu implements Listener {
 
     private void openChoices(Player player, ProgressionCatalog.Kind kind, int level, boolean sigil) {
         Holder h = holder(sigil ? Screen.SIGIL_CHOOSE : Screen.CHOOSE, kind, level);
-        Inventory inv = inventory(h, 3, "&9&lLevel " + level + " &8| &fChoose " + kind.title);
+        Inventory inv = inventory(h, kind == ProgressionCatalog.Kind.TALENT ? 3 : 6, "&9&lLevel " + level + " &8| &fChoose " + kind.title);
         List<String> optionIds = new ArrayList<>();
         if (kind == ProgressionCatalog.Kind.TALENT) optionIds.addAll(plugin.progression().talentOffers(player, level));
         else for (var option : plugin.progression().availableOptions(player, kind, level, sigil))
             optionIds.add(option.id());
         int[] three = {11, 13, 15};
-        int[] six = {11, 13, 15, 20, 22, 24};
+        int[] six = {11, 13, 15, 29, 31, 33};
         int[] cells = kind == ProgressionCatalog.Kind.TALENT ? three : six;
         int index = 0;
         for (String id : optionIds) {
@@ -180,8 +193,11 @@ public final class ProgressionMenu implements Listener {
         }
         if (optionIds.isEmpty()) inv.setItem(13, icon(Material.BARRIER, "&cNo alternative choices",
                 "&7You already own every available option"));
-        inv.setItem(18, icon(Material.ARROW, "&9Back to Milestones"));
-        inv.setItem(26, icon(Material.BARRIER, "&cClose"));
+        if (inv.getSize() == 54) controls(inv, "Milestones", true);
+        else {
+            inv.setItem(18, icon(Material.ARROW, "&9Back to Milestones"));
+            inv.setItem(26, icon(Material.BARRIER, "&cClose"));
+        }
         player.openInventory(inv);
     }
 
@@ -252,10 +268,16 @@ public final class ProgressionMenu implements Listener {
         Holder h=holder(Screen.GUIDE_KIND,kind,0);
         Inventory inv=inventory(h,6,"&9&lGuide &8| &f"+kind.title);
         if (kind == ProgressionCatalog.Kind.PERK) {
-            var all=PerkType.values();
-            for (int i=0; i<Math.min(35,all.length); i++) {
-                int slot=10+(i/7)*9+(i%7);
-                var perk=all[i];
+            List<PerkType> all = new ArrayList<>();
+            for (var entry : plugin.data().get(player).perkRolls.entrySet()) {
+                if (entry.getKey() > plugin.streaks().streak(player)) continue;
+                PerkType perk = PerkType.fromId(entry.getValue());
+                if (perk != null && !all.contains(perk)) all.add(perk);
+            }
+            int[] guideCells={10,12,14,16,19,21,23,25,28,30,32,34,37,39,41,43};
+            for (int i=0; i<Math.min(guideCells.length,all.size()); i++) {
+                int slot=guideCells[i];
+                var perk=all.get(i);
                 inv.setItem(slot, icon(Material.ENCHANTED_BOOK,"&9&l"+perk.display,
                         "&7Bonus per roll: &f"+ ConfigEditor.format(perk==PerkType.CAPACITY ||
                                         perk==PerkType.REACH ? perk.defaultPerCopy : perk.defaultPerCopy*100) +
@@ -265,8 +287,15 @@ public final class ProgressionMenu implements Listener {
             }
         } else {
             List<ProgressionCatalog.Option> all=ProgressionCatalog.options(kind);
-            for (int i=0; i<Math.min(35,all.size()); i++) {
-                int slot=10+(i/7)*9+(i%7);
+            if (kind == ProgressionCatalog.Kind.TALENT) {
+                Set<String> known = new HashSet<>();
+                for (var entry : plugin.data().get(player).talentChoices.entrySet())
+                    if (entry.getKey() <= plugin.streaks().streak(player)) known.add(entry.getValue());
+                all = all.stream().filter(option -> known.contains(option.id())).toList();
+            }
+            int[] guideCells={11,13,15,20,22,24,29,31,33,38,40,42};
+            for (int i=0; i<Math.min(guideCells.length,all.size()); i++) {
+                int slot=guideCells[i];
                 var option=all.get(i);
                 inv.setItem(slot, icon(option.icon(),"&9&l"+option.name(),
                         "&7"+option.description(), "&7"+kind.title+" only"));
@@ -358,6 +387,8 @@ public final class ProgressionMenu implements Listener {
                 switch(h.screen) {
                     case GUIDE_KIND -> openGuide(player);
                     case SIGIL_SLOTS -> openSigil(player);
+                    case CHOOSE -> openSlots(player,h.kind,false);
+                    case SIGIL_CHOOSE -> openSlots(player,h.kind,true);
                     default -> open(player);
                 }
                 return;
@@ -408,6 +439,11 @@ public final class ProgressionMenu implements Listener {
                 if(kind!=null)openSlots(player,kind,true);
             }
             case SIGIL_CONFIRM -> {
+                if (slot == 11) {
+                    if (h.kind == ProgressionCatalog.Kind.PERK) openSigil(player);
+                    else openSlots(player, h.kind, true);
+                    return;
+                }
                 if(slot!=15)return;
                 var result=h.kind==ProgressionCatalog.Kind.PERK
                         ? plugin.progression().rerollPerks(player)
