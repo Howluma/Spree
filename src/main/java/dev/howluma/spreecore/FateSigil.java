@@ -48,13 +48,32 @@ public final class FateSigil implements Listener {
                 && item.getItemMeta().getPersistentDataContainer().has(itemKey, PersistentDataType.BYTE);
     }
 
+    static final List<String> LEGACY_RECIPE = List.of(
+            "AMETHYST_SHARD","DIAMOND","AMETHYST_SHARD",
+            "DIAMOND","NETHERITE_SCRAP","DIAMOND",
+            "AMETHYST_SHARD","DIAMOND","AMETHYST_SHARD");
+    static final List<String> DEFAULT_RECIPE = List.of(
+            "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY",
+            "NETHERITE_INGOT","HEART_OF_THE_SEA","NETHERITE_INGOT",
+            "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY");
+
+    /**
+     * Migrate only the exact old built-in recipe.
+     * Never overwrite any recipe that has been customized by an admin.
+     */
+    static boolean migrateOldRecipe(org.bukkit.configuration.file.FileConfiguration config) {
+        for(int i=0;i<9;i++) {
+            String slot="fate-sigil.recipe.slot-"+(i+1);
+            if(!LEGACY_RECIPE.get(i).equals(config.getString(slot))) return false;
+        }
+        for(int i=0;i<9;i++)
+            config.set("fate-sigil.recipe.slot-"+(i+1),DEFAULT_RECIPE.get(i));
+        return true;
+    }
+
     public Material ingredient(int index) {
         if (index<1||index>9) throw new IllegalArgumentException("Cell must be 1..9");
-        String fallback=switch(index){
-            case 5 -> "HEART_OF_THE_SEA";
-            case 1,3,7,9 -> "OMINOUS_TRIAL_KEY";
-            default -> "NETHERITE_INGOT";
-        };
+        String fallback=DEFAULT_RECIPE.get(index-1);
         String raw=plugin.getConfig().getString("fate-sigil.recipe.slot-"+index,fallback);
         Material result=raw==null?null:Material.matchMaterial(raw);
         return result==null||result.isAir()||!result.isItem()?Material.AIR:result;
