@@ -50,8 +50,11 @@ public final class FateSigil implements Listener {
 
     public Material ingredient(int index) {
         if (index<1||index>9) throw new IllegalArgumentException("Cell must be 1..9");
-        String fallback=switch(index){case 5 -> "NETHERITE_SCRAP";
-            case 1,3,7,9 -> "AMETHYST_SHARD";default -> "DIAMOND";};
+        String fallback=switch(index){
+            case 5 -> "HEART_OF_THE_SEA";
+            case 1,3,7,9 -> "OMINOUS_TRIAL_KEY";
+            default -> "NETHERITE_INGOT";
+        };
         String raw=plugin.getConfig().getString("fate-sigil.recipe.slot-"+index,fallback);
         Material result=raw==null?null:Material.matchMaterial(raw);
         return result==null||result.isAir()||!result.isItem()?Material.AIR:result;
