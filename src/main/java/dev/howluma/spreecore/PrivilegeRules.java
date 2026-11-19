@@ -103,10 +103,15 @@ public final class PrivilegeRules implements Listener {
         if(!owns(p,"forbidden_fruit")) {
             e.setCancelled(true);warn(p,"Forbidden Fruit Privilege required.");return;
         }
-        if(p.hasCooldown(Material.ENCHANTED_GOLDEN_APPLE)) {
+        if(p.hasCooldown(Material.ENCHANTED_GOLDEN_APPLE)
+                ||System.currentTimeMillis()<plugin.data().get(p).talentCooldowns.getOrDefault("enchanted_apple",0L)) {
             e.setCancelled(true);warn(p,"Enchanted golden apple is cooling down.");return;
         }
-        p.setCooldown(Material.ENCHANTED_GOLDEN_APPLE,Math.max(1,setting("enchanted-apple-cooldown-seconds",30))*20);
+        int seconds=Math.max(1,setting("enchanted-apple-cooldown-seconds",30));
+        p.setCooldown(Material.ENCHANTED_GOLDEN_APPLE,seconds*20);
+        plugin.data().get(p).talentCooldowns.put("enchanted_apple",
+                System.currentTimeMillis()+seconds*1000L);
+        plugin.data().dirty();
         int maxDuration=Math.max(1,setting("enchanted-apple-max-effect-seconds",60))*20;
         Bukkit.getScheduler().runTaskLater(plugin,()->{
             if(!p.isOnline()||p.isDead())return;

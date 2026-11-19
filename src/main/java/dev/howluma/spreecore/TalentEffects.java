@@ -40,8 +40,7 @@ public final class TalentEffects implements Listener {
     private record Combo(UUID victim, int hits, long lastHit) {}
     private record Sense(UUID target, long expires) {}
     private final SpreeCorePlugin plugin;
-    private final Map<UUID, Map<String,Long>> cooldowns = new HashMap<>();
-    private final Map<UUID,Combo> combos = new HashMap<>();
+     private final Map<UUID,Combo> combos = new HashMap<>();
     private final Map<UUID,Integer> bloodlust = new HashMap<>();
     private final Map<UUID,Long> jumpBlocked = new HashMap<>();
     private final Map<UUID,Sense> sensed = new HashMap<>();
@@ -56,10 +55,11 @@ public final class TalentEffects implements Listener {
     }
     private boolean has(Player p,String talent){return plugin.progression().hasTalent(p,talent);}
     private boolean ready(Player p,String key,long seconds){
-        Map<String,Long> perPlayer=cooldowns.computeIfAbsent(p.getUniqueId(),unused->new HashMap<>());
+        Map<String,Long> perPlayer=plugin.data().get(p).talentCooldowns;
         long now=System.currentTimeMillis();
         if(now<perPlayer.getOrDefault(key,0L))return false;
         perPlayer.put(key,now+seconds*1000L);
+        plugin.data().dirty();
         return true;
     }
     private void apply(Player p,PotionEffectType type,int amplifier,int seconds){
@@ -109,8 +109,7 @@ public final class TalentEffects implements Listener {
                     pair.getKey().equals(jumpKey)?AttributeModifier.Operation.MULTIPLY_SCALAR_1
                             :AttributeModifier.Operation.ADD_NUMBER,0);
         comboClear(p.getUniqueId());
-        cooldowns.remove(p.getUniqueId());
-        jumpBlocked.remove(p.getUniqueId());
+         jumpBlocked.remove(p.getUniqueId());
         sensed.remove(p.getUniqueId());
     }
     private void comboClear(UUID id){combos.remove(id);bloodlust.remove(id);}
@@ -202,11 +201,18 @@ public final class TalentEffects implements Listener {
         if(has(p,"escape_artist") && (p.hasPotionEffect(PotionEffectType.SLOWNESS)
                 ||p.getLocation().getBlock().getType()==Material.COBWEB)
                 && ready(p,"escape_artist",50)){
+            PotionEffect originalSlow=p.getPotionEffect(PotionEffectType.SLOWNESS);
             p.removePotionEffect(PotionEffectType.SLOWNESS);
             apply(p,PotionEffectType.SPEED,2,3);
-            // Brief lift helps a trapped player escape a cobweb instead of
-            // replicating the other movement Talents' permanent speed.
-            p.setVelocity(p.getVelocity().add(new org.bukkit.util.Vector(0,.32,0)));
+            // A short lift helps the player escape an actual cobweb without
+            // breaking blocks or changing the underlying world.
+            if(p.getLocation().getBlock().getType()==Material.COBWEB)
+                p.setVelocity(p.getVelocity().add(new org.bukkit.util.Vector(0,.42,0)));
+            if(originalSlow!=null && originalSlow.getDuration()>60)
+                Bukkit.getScheduler().runTaskLater(plugin,()->{
+                    if(p.isOnline()&&!p.isDead()&&!p.hasPotionEffect(PotionEffectType.SLOWNESS))
+                        p.addPotionEffect(originalSlow.withDuration(originalSlow.getDuration()-60),true);
+                },60L);
         }
     }
 

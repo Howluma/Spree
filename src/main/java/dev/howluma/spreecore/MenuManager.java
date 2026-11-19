@@ -535,6 +535,8 @@ public final class MenuManager implements Listener {
         }
         if(click!=ClickType.LEFT && click!=ClickType.RIGHT)return;
         double step=(path.startsWith("combat.") && path.endsWith("multiplier")) ? 0.05
+                : path.startsWith("perks.") && path.endsWith(".per-copy")
+                        && !path.equals("perks.capacity.per-copy") ? 0.01
                 : (setting.defaultValue() instanceof Double || setting.defaultValue() instanceof Float) ? 0.1 : 1;
         Number current=(Number)plugin.getConfig().get(path,setting.defaultValue());
         double changed=current.doubleValue()+(click==ClickType.RIGHT?-step:step);

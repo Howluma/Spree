@@ -255,8 +255,9 @@ public final class ProgressionMenu implements Listener {
                 int slot=10+(i/7)*9+(i%7);
                 var perk=all[i];
                 inv.setItem(slot, icon(Material.ENCHANTED_BOOK,"&9&l"+perk.display,
-                        "&7Bonus per roll: &f"+ ConfigEditor.format(perk.defaultPerCopy) +
-                                (perk==PerkType.CAPACITY?" items":""),
+                        "&7Bonus per roll: &f"+ ConfigEditor.format(perk==PerkType.CAPACITY ||
+                                        perk==PerkType.REACH ? perk.defaultPerCopy : perk.defaultPerCopy*100) +
+                                (perk==PerkType.CAPACITY?" items":perk==PerkType.REACH?" blocks":"%"),
                         "&7Max duplicates: &f"+perk.defaultMaxCopies,
                         "&7Automatically assigned at Perk milestones"));
             }

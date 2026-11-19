@@ -27,6 +27,8 @@ public final class PlayerDataStore {
         public final Map<Integer, String> talentChoices = new TreeMap<>();
         public final Map<Integer, String> infusionChoices = new TreeMap<>();
         public final Map<Integer, List<String>> talentOffers = new TreeMap<>();
+        /** Persist cooldowns so relogging cannot bypass defensive Talents. */
+        public final Map<String,Long> talentCooldowns = new HashMap<>();
         /** Fractional credits make small XP/durability bonuses reliable over time. */
         public double durabilityCredit, experienceCredit;
         Profile(UUID id) { this.id = id; }
@@ -96,6 +98,11 @@ public final class PlayerDataStore {
                     if (!available.isEmpty()) p.talentOffers.put(milestone, available);
                 } catch (NumberFormatException ignored) {}
             }
+            ConfigurationSection cooldowns = section.getConfigurationSection("talent-cooldowns");
+            if (cooldowns != null) for (String name : cooldowns.getKeys(false)) {
+                long until = cooldowns.getLong(name);
+                if (until > System.currentTimeMillis()) p.talentCooldowns.put(name, until);
+            }
             String revenge = section.getString("revenge-against");
             if (revenge != null) {
                 try { p.revengeAgainst = UUID.fromString(revenge); } catch (IllegalArgumentException ignored) {}
@@ -151,6 +158,10 @@ public final class PlayerDataStore {
                 yml.set(path + "infusion-choices." + entry.getKey(), entry.getValue());
             for (var entry : p.talentOffers.entrySet())
                 yml.set(path + "talent-offers." + entry.getKey(), entry.getValue());
+            long now = System.currentTimeMillis();
+            for (var entry : p.talentCooldowns.entrySet())
+                if (entry.getValue() > now)
+                    yml.set(path + "talent-cooldowns." + entry.getKey(), entry.getValue());
             if (p.revengeAgainst != null) yml.set(path + "revenge-against", p.revengeAgainst.toString());
             for (var recent : p.recentVictims.entrySet())
                 yml.set(path + "recent-victims." + recent.getKey(), recent.getValue());
