@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -11,11 +12,13 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -170,6 +173,24 @@ public final class SpecialistItems implements Listener {
     public void onDrag(InventoryDragEvent event) {
         if (event.getWhoClicked() instanceof Player player)
             afterTransfer(player, event.getView().getTopInventory());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onOpen(InventoryOpenEvent event) {
+        revertExternal(event.getInventory());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onItemFrame(PlayerInteractEntityEvent event) {
+        if (!(event.getRightClicked() instanceof ItemFrame frame)) return;
+        // Item frames are world entities, never a privileged inventory.
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!frame.isValid()) return;
+            ItemStack displayed = frame.getItem();
+            ItemStack plain = normalize(displayed, false);
+            if (plain != displayed) frame.setItem(plain, false);
+            if (event.getPlayer().isOnline()) sync(event.getPlayer());
+        });
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
