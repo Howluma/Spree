@@ -174,12 +174,20 @@ public final class AdminBalanceMenu implements Listener {
                 "&7Shift+right: reset cell to default"));
         for(int i=0;i<9;i++){
             Material material=plugin.fate().ingredient(i+1);
-            ItemStack button=icon(material.isAir()?Material.GRAY_STAINED_GLASS_PANE:material,
-                    "&9&lIngredient "+(i+1),
-                    "&7Current: &f"+material.name(),
-                    "&eLeft: set from cursor or type",
-                    "&cRight: Clear to AIR",
-                    "&bShift+right: Default ingredient");
+            boolean realSpree=plugin.fate().spreeIngredient(i+1);
+            ItemStack button=realSpree ? plugin.streaks().createSpreeItem(1)
+                    : icon(material.isAir()?Material.GRAY_STAINED_GLASS_PANE:material,
+                        "&9&lIngredient "+(i+1));
+            ItemMeta buttonMeta=button.getItemMeta();
+            buttonMeta.setDisplayName(Text.c("&9&lIngredient "+(i+1)));
+            buttonMeta.setLore(List.of(
+                    Text.c("&7Current: &f"+(realSpree?"Spree item (tagged +1)":material.name())),
+                    Text.c(realSpree?"&aRequires a real Spree item, not a plain Heart of the Sea":
+                            "&7Normal Minecraft ingredient"),
+                    Text.c("&eLeft: set from cursor or type"),
+                    Text.c("&cRight: Clear to AIR"),
+                    Text.c("&bShift+right: Default ingredient")));
+            button.setItemMeta(buttonMeta);
             inv.setItem(RECIPE_SLOTS[i],button);
         }
         inv.setItem(22,icon(Material.ARROW,"&7Crafts Into"));
@@ -200,7 +208,7 @@ public final class AdminBalanceMenu implements Listener {
         inv.setItem(41,icon(on?Material.LIME_DYE:Material.GRAY_DYE,"&9&lRecipe: "+(on?"&aEnabled":"&cDisabled"),
                 "&eLeft: toggle crafting availability"));
         inv.setItem(43,icon(Material.COMPARATOR,"&a&lAdvanced Recipe Settings",
-                "&7All 9 material names, count, name and toggle",
+                "&7Supports SPREE_ITEM for the real +1 consumable",
                 "&eOpen the full config editor"));
         footer(inv,36,44);
         player.openInventory(inv);
@@ -219,7 +227,7 @@ public final class AdminBalanceMenu implements Listener {
         Text.send(player,plugin.prefix()+"&9Editing &f"+path+"&9.");
         Text.send(player,"&7Current: &f"+value(path));
         if(path.startsWith("fate-sigil.recipe.slot-"))
-            Text.send(player,"&7Type an item ID (DIAMOND, NETHERITE_SCRAP, etc.), or AIR to clear.");
+            Text.send(player,"&7Type SPREE_ITEM for the real tagged Spree consumable, or a material like DIAMOND, or AIR.");
         else Text.send(player,"&7Type an exact amount or text value (no +/- clicks).");
         Text.send(player,"&7Type &ccancel &7to return without changes.");
     }
@@ -292,7 +300,8 @@ public final class AdminBalanceMenu implements Listener {
                     }else if(click==ClickType.RIGHT){
                         apply(player,path,"AIR",Screen.RECIPE);
                     }else if(cursor!=null&&!cursor.getType().isAir()&&cursor.getType().isItem()){
-                        apply(player,path,cursor.getType().name(),Screen.RECIPE);
+                        apply(player,path,plugin.streaks().isSpreeItem(cursor)
+                                ? "SPREE_ITEM" : cursor.getType().name(),Screen.RECIPE);
                     }else ask(player,path,Screen.RECIPE);
                     return;
                 }
