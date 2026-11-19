@@ -26,15 +26,17 @@ public final class StreakIndicators implements Listener {
     StreakIndicators(SpreeCorePlugin plugin) { this.plugin = plugin; }
 
     static String color(int streak) {
-        return streak < 0 ? "&c" : streak >= 25 ? "&5" : streak >= 15 ? "&6"
-                : streak >= 10 ? "&e" : streak >= 5 ? "&a" : "&b";
+        return streak < 0 ? "&c&l" : streak == 0 ? "&7&l" : "&b&l";
     }
-    static String tabLabel(String name, int streak, String symbol, String recoverySymbol) {
-        return "&f" + name + " &8" + symbol + " " + color(streak)
-                + (streak < 0 ? recoverySymbol : Integer.toString(streak));
+    static String tabLabel(String name, int streak, String symbol, String fracturedSymbol) {
+        String gemColor = streak < 0 ? "&c" : streak == 0 ? "&8" : "&3";
+        return "&f" + name + " " + gemColor + symbol + " " + color(streak)
+                + (streak < 0 ? fracturedSymbol : Integer.toString(streak));
     }
-    static String nametagSuffix(int streak, String symbol, String recoverySymbol) {
-        return " &8" + symbol + color(streak) + (streak < 0 ? recoverySymbol : Integer.toString(streak));
+    static String nametagSuffix(int streak, String symbol, String fracturedSymbol) {
+        String gemColor = streak < 0 ? "&c" : streak == 0 ? "&8" : "&3";
+        return " " + gemColor + symbol + " " + color(streak)
+                + (streak < 0 ? fracturedSymbol : Integer.toString(streak));
     }
     private String safeSymbol(String key, String fallback) {
         String raw = plugin.getConfig().getString(key, fallback);
@@ -43,8 +45,8 @@ public final class StreakIndicators implements Listener {
         String plain = ChatColor.stripColor(Text.c(raw.replace('&', ' ')));
         return plain.length() > 5 ? plain.substring(0, 5) : plain;
     }
-    private String symbol() { return safeSymbol("display.streak-indicators.symbol", "✦"); }
-    private String recoverySymbol() { return safeSymbol("display.streak-indicators.recovery-symbol", "↺"); }
+    private String symbol() { return safeSymbol("display.streak-indicators.symbol", "◆"); }
+    private String recoverySymbol() { return safeSymbol("display.streak-indicators.fractured-symbol", "✕"); }
     private boolean tabEnabled() { return plugin.getConfig().getBoolean("display.streak-indicators.tab-enabled", true); }
     private boolean tagEnabled() { return plugin.getConfig().getBoolean("display.streak-indicators.nametag-enabled", true); }
 

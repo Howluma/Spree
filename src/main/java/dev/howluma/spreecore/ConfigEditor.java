@@ -11,8 +11,13 @@ public final class ConfigEditor {
     public record Setting(String path, String label, Object defaultValue) {
         public boolean toggle() { return defaultValue instanceof Boolean; }
         public boolean number() { return defaultValue instanceof Number; }
-        public String current(FileConfiguration config) { return format(config.get(path, defaultValue)); }
-        public String defaultText() { return format(defaultValue); }
+        private String shown(Object value) {
+            if (path.startsWith("combat.") && path.endsWith("multiplier") && value instanceof Number number)
+                return format(number.doubleValue() * 100) + "%";
+            return format(value);
+        }
+        public String current(FileConfiguration config) { return shown(config.get(path, defaultValue)); }
+        public String defaultText() { return shown(defaultValue); }
     }
     public record Category(String id, String title, Material icon, List<Setting> settings) {}
     public record Result(boolean success, String message) {}
@@ -49,6 +54,10 @@ public final class ConfigEditor {
         if (setting == null) return new Result(false, "Unknown or unsupported setting.");
         Object value;
         String trimmed = input.trim();
+        if (path.startsWith("combat.") && path.endsWith("multiplier") && trimmed.endsWith("%")) {
+            try { trimmed = Double.toString(Double.parseDouble(trimmed.substring(0, trimmed.length() - 1).trim()) / 100.0); }
+            catch (NumberFormatException ex) { return new Result(false, "Use a percentage like 75% or a decimal like 0.75."); }
+        }
         try {
             if (setting.toggle()) {
                 value = switch (trimmed.toLowerCase(Locale.ROOT)) {
@@ -92,6 +101,7 @@ public final class ConfigEditor {
         if (path.equals("general.max-killstreak")) return between(amount, 1, 1000);
         if (path.startsWith("resource-pack.models.")) return between(amount, 1, 16000000);
         if (path.endsWith("chance")) return between(amount, 0, 1);
+        if (path.startsWith("combat.") && path.endsWith("multiplier")) return between(amount, 0, 1);
         if (path.endsWith("multiplier") || path.endsWith("damage-multiplier")) return between(amount, 0, 10);
         if (path.contains("health-hearts") || path.endsWith("bonus-hearts") || path.endsWith("sacrifice-hearts"))
             return between(amount, 1, 200);
@@ -130,6 +140,7 @@ public final class ConfigEditor {
     private static String title(String id) {
         return switch (id) {
             case "general" -> "General & Interface";
+            case "combat" -> "Combat Balancing";
             case "resource-pack" -> "Resource Pack Models";
             case "killstreak" -> "Killstreak & Health";
             case "killstreak.anti-farm" -> "Anti-Farming";
@@ -152,6 +163,7 @@ public final class ConfigEditor {
     }
     private static Material icon(String id) {
         if (id.equals("general")) return Material.COMPARATOR;
+        if (id.equals("combat")) return Material.TNT;
         if (id.equals("display")) return Material.NAME_TAG;
         if (id.equals("resource-pack")) return Material.PAINTING;
         if (id.contains("anti-farm")) return Material.SHIELD;

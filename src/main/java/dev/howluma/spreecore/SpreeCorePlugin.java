@@ -16,10 +16,12 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private ConfigEditor settings;
     private ModelData models;
     private StreakIndicators indicators;
+    private CombatManager combat;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
         saveDefaultConfig();
+        migrateLegacySettings();
         settings = new ConfigEditor(this);
         models = new ModelData(this);
         data = new PlayerDataStore(this);
@@ -30,14 +32,16 @@ public final class SpreeCorePlugin extends JavaPlugin {
         menus = new MenuManager(this);
         commands = new CoreCommands(this);
         indicators = new StreakIndicators(this);
+        combat = new CombatManager(this);
         Bukkit.getPluginManager().registerEvents(streaks, this);
         Bukkit.getPluginManager().registerEvents(legendaries, this);
         Bukkit.getPluginManager().registerEvents(forges, this);
         Bukkit.getPluginManager().registerEvents(events, this);
         Bukkit.getPluginManager().registerEvents(menus, this);
         Bukkit.getPluginManager().registerEvents(indicators, this);
+        Bukkit.getPluginManager().registerEvents(combat, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
-                "spreeinfo", "spreeadmin", "spreeevent", "legendary"}) {
+                "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
             Objects.requireNonNull(getCommand(command)).setTabCompleter(commands);
         }
@@ -83,6 +87,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public ConfigEditor settings() { return settings; }
     public ModelData models() { return models; }
     public StreakIndicators indicators() { return indicators; }
+    public CombatManager combat() { return combat; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
@@ -97,8 +102,41 @@ public final class SpreeCorePlugin extends JavaPlugin {
             forges.registerRecipes();
         if (path.startsWith("legendary.weapons.bloodsbane.")) legendaries.syncBloodsBane();
     }
+    /** Preserve admin choices while replacing the v1.2 Recovery terminology and art defaults. */
+    private void migrateLegacySettings() {
+        boolean changed = false;
+        String label = getConfig().getString("general.recovery-label");
+        if (label != null) {
+            getConfig().set("general.fractured-label",
+                    label.contains("RECOVERY") ? "&c&lFractured Killstreak" : label);
+            getConfig().set("general.recovery-label", null);
+            changed = true;
+        }
+        String symbol = getConfig().getString("display.streak-indicators.symbol", "◆");
+        if ("✦".equals(symbol)) {
+            getConfig().set("display.streak-indicators.symbol", "◆");
+            changed = true;
+        }
+        String fractured = getConfig().getString("display.streak-indicators.recovery-symbol");
+        if (fractured != null) {
+            getConfig().set("display.streak-indicators.fractured-symbol",
+                    "↺".equals(fractured) ? "✕" : fractured);
+            getConfig().set("display.streak-indicators.recovery-symbol", null);
+            changed = true;
+        }
+        String oldFarmRule = "killstreak.anti-farm.block-rewards-for-negative-victim";
+        if (getConfig().isSet(oldFarmRule)) {
+            getConfig().set("killstreak.anti-farm.block-rewards-for-fractured-victim",
+                    getConfig().getBoolean(oldFarmRule, true));
+            getConfig().set(oldFarmRule, null);
+            changed = true;
+        }
+        if (changed) saveConfig();
+    }
+
     public void reloadSpreeConfiguration() {
         reloadConfig();
+        migrateLegacySettings();
         scheduleConfigurableTasks();
         forges.registerRecipes();
         for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);

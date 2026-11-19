@@ -11,6 +11,10 @@ class SpreeMathTest {
     }
     @Test void deathHalvesPositiveStreak() {
         assertEquals(0, SpreeMath.deathStreak(0));
+        assertEquals(0, SpreeMath.deathStreak(1));
+        assertEquals(1, SpreeMath.deathStreak(2));
+        assertEquals(1, SpreeMath.deathStreak(3));
+        assertEquals(2, SpreeMath.deathStreak(5));
         assertEquals(3, SpreeMath.deathStreak(7));
         assertEquals(15, SpreeMath.deathStreak(30));
     }

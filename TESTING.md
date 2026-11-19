@@ -63,3 +63,34 @@ Test on a **copy** of the server with the original ten Skript scripts disabled. 
 - [ ] If migrating, back up original Skript variables and examine `/spreeadmin importskript` output before enabling `force`.
 
 **Testing note:** GitHub Actions builds and runs JUnit tests against the Paper 1.21.11 API. Passing CI establishes compilation and arithmetic/config validation only. Run the above manual integration tests in-game before deploying on the live SMP.
+
+
+### v1.3 regression checks
+
+1. As an op, run `/spree settings`, `/spreesettings`, and `/spree admin`.
+   Confirm all navigate correctly. As a non-op, verify editor permission is denied.
+   When another plugin also defines `/spree`, use `/spreecore:spree settings`.
+2. Inspect tab and overhead names: `◆ 12` should be dark cyan + **bold cyan**;
+   `◆ ✕` should be red when Fractured. Confirm scoreboard team plugins still work.
+3. Kill players with ordinary swords and then TNT ignited by a different player.
+   Confirm the latter credits the igniter, halves the victim's streak, and drops **no**
+   environmental death token. Test TNT chains and TNT unloaded/reloaded in chunks.
+4. Test igniter taking TNT blast damage: compare with TNT damage to another player;
+   only the igniter should take 50% of baseline when enabled. Set the GUI to 100%
+   and verify damage becomes vanilla. Verify redstone TNT with unknown owner is not
+   assigned to an unrelated player.
+5. Test mace damage with the same target armor: with Mace 75%, the base damage
+   should be scaled by 0.75; ordinary weapons should be unaffected. Adjust via
+   `/spree settings` > Combat Balancing and confirm updates without a restart.
+6. Give `/spreeadmin giveitem <player> 3`. Right-click three times, confirm a
+   single +1 per item, exactly three items consumed. Try both hands, zero/Fractured,
+   the cap (item retained), relogging, and ordinary renamed Hearts of the Sea
+   (must NOT grant points). Admin menu 'Give Spree Item' should do the same.
+7. Confirm old dropped Spree Tokens still auto-claim on pickup. Reclaiming your own
+   at Fractured removes the penalty but does not award a bonus. Other players
+   claiming tokens retain the previous trap reward. Check no item duplication.
+8. Die on streaks 0, 1, 3, 5, 7, 30 in both PvP and natural deaths.
+   Positive streaks must be floored half. Natural death at 0 => Fractured;
+   PvP death at 0 => zero. Natural death while Fractured => Fractured.
+9. Reload/restart an existing 1.2 server with `players.yml` and `config.yml`;
+   verify profiles intact and old Recovery label automatically renamed.

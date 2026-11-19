@@ -24,7 +24,10 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             case "spree" -> {
                 Player p=requirePlayer(sender);
                 if(p!=null) {
-                    if(args.length>0 && args[0].equalsIgnoreCase("settings")) {
+                    if(args.length>0 && args[0].equalsIgnoreCase("admin")) {
+                        if(p.hasPermission("spree.admin"))plugin.menus().openAdmin(p);
+                        else message(p,"&cOnly admins can access the control panel.");
+                    } else if(args.length>0 && args[0].equalsIgnoreCase("settings")) {
                         if(p.hasPermission("spree.admin"))plugin.menus().openSettings(p);
                         else message(p,"&cOnly admins can change plugin settings.");
                     } else if(args.length>0 && args[0].equalsIgnoreCase("value")) {
@@ -33,6 +36,12 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                     } else if(args.length>0 && args[0].equalsIgnoreCase("cancel")) {
                         if(!plugin.menus().submitInput(p,"cancel"))message(p,"&7Nothing to cancel.");
                     } else plugin.menus().openMain(p);
+                }
+            }
+            case "spreesettings" -> {
+                if (admin(sender)) {
+                    Player player = requirePlayer(sender);
+                    if (player != null) plugin.menus().openSettings(player);
                 }
             }
             case "spreehud" -> {
@@ -82,7 +91,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     }
     private void showInfo(CommandSender sender) {
         Text.send(sender,"&9&lSPREE &7- Killstreak Mechanics");
-        Text.send(sender,"&7Cap: &f"+plugin.streaks().cap()+" &7| Recovery state after natural death at zero");
+        Text.send(sender,"&7Cap: &f"+plugin.streaks().cap()+" &7| Fractured Killstreak after an environmental death at zero");
         Text.send(sender,"&7Extra health: +1 heart at streaks 3, 5, 7, ... up to &f"+
                 plugin.getConfig().getInt("killstreak.max-health-hearts",20)+" hearts");
         Text.send(sender,"&7Item progression rules are still being designed; no item unlocks are advertised.");
@@ -93,7 +102,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     private void adminHelp(CommandSender s) {
         Text.send(s,"&9&lSPREE ADMIN &7- GUI: /spreeadmin");
         for(String line:List.of("set <player> <value>","add <player> <value>","remove <player> <value>",
-                "reset <player>","recovery <player>","setall <value>","resetall (twice to confirm)",
+                "reset <player>","fracture <player>","giveitem <player> [amount]","setall <value>","resetall (twice to confirm)",
                 "update [player]","reload","migrateitems","importskript [force]"))
             Text.send(s,"&7/spreeadmin &f"+line);
     }
@@ -150,17 +159,31 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 }else{plugin.streaks().refreshOnline();plugin.streaks().safetyInventoryCheck();}
                 message(sender,"&aRecalculated players.");
             }
-            case "set","add","remove","reset","recovery" -> {
+            case "giveitem" -> {
+                if (args.length < 2) { message(sender,"&cUsage: /spreeadmin giveitem <player> [amount]"); return; }
+                Player target = Bukkit.getPlayerExact(args[1]);
+                if (target == null) { message(sender,"&cThat player must be online to receive the item."); return; }
+                int amount = 1;
+                if (args.length >= 3) {
+                    Integer parsed = number(sender, args[2]);
+                    if (parsed == null) return;
+                    amount = parsed;
+                }
+                if (amount < 1 || amount > 64) { message(sender,"&cGive between 1 and 64 items."); return; }
+                plugin.streaks().giveSpreeItem(target, amount);
+                message(sender,"&aGave &b" + amount + " &aSpree item(s) to &f" + target.getName() + "&a.");
+            }
+            case "set","add","remove","reset","recovery","fracture" -> {
                 if(args.length<2){message(sender,"&cUsage: /spreeadmin "+cmd+" <player> [amount]");return;}
                 PlayerDataStore.Profile p=lookup(args[1]);
                 if(p==null){message(sender,"&cPlayer unknown. They must have joined before, or pass a UUID.");return;}
                 int value=0;
-                if(!cmd.equals("reset") && !cmd.equals("recovery")) {
+                if(!cmd.equals("reset") && !cmd.equals("recovery") && !cmd.equals("fracture")) {
                     if(args.length<3){message(sender,"&cMissing amount.");return;}
                     Integer parsed=number(sender,args[2]);if(parsed==null)return;
                     value=switch(cmd){case "set" -> parsed;case "add" -> p.streak+parsed;default -> p.streak-parsed;};
                 }
-                if(cmd.equals("recovery"))plugin.streaks().setStreak(p.id,-1,false);
+                if(cmd.equals("fracture") || cmd.equals("recovery"))plugin.streaks().setStreak(p.id,-1,false);
                 else plugin.streaks().setStreak(p.id,value,true);
                 message(sender,"&aUpdated &f"+p.name+"&a: " + plugin.streaks().display(p.streak));
             }
@@ -254,11 +277,12 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         String root=command.getName().toLowerCase(Locale.ROOT);
         List<String> options=new ArrayList<>();
         if(root.equals("spree") && sender.hasPermission("spree.admin") && args.length==1)
-            options=List.of("settings","value","cancel");
+            options=List.of("settings","admin","value","cancel");
         else if(root.equals("spreeadmin") && sender.hasPermission("spree.admin")) {
-            if(args.length==1)options=List.of("set","add","remove","reset","recovery","setall","resetall","update","reload","settings","migrateitems","importskript","help");
-            else if(args.length==2 && List.of("set","add","remove","reset","recovery","update").contains(args[0]))
+            if(args.length==1)options=List.of("set","add","remove","reset","fracture","giveitem","setall","resetall","update","reload","settings","migrateitems","importskript","help");
+            else if(args.length==2 && List.of("set","add","remove","reset","fracture","recovery","update","giveitem").contains(args[0]))
                 options=plugin.data().all().stream().map(p->p.name).sorted().toList();
+            else if(args.length==3 && args[0].equalsIgnoreCase("giveitem")) options=List.of("1","5","16","32","64");
             else if(args.length==2 && args[0].equalsIgnoreCase("importskript"))options=List.of("force");
         }else if(root.equals("spreeevent") && sender.hasPermission("spree.admin")) {
             if(args.length==1)options=List.of("locator","hunt","juggernaut","bloodsbane","bloodmoon","surge","chaos","race");
