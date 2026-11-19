@@ -152,6 +152,9 @@ public final class SpreeCorePlugin extends JavaPlugin {
             for(var player:Bukkit.getOnlinePlayers())privilegeRules.enforce(player);
         if (path.startsWith("resource-pack."))
             for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
+        if (path.startsWith("fate-sigil.") || path.equals("resource-pack.enabled")
+                || path.equals("resource-pack.models.fate-sigil"))
+            fate.registerRecipe();
         if (path.equals("legendary.crafting-enabled") || path.startsWith("legendary.forging."))
             forges.registerRecipes();
         if (path.startsWith("legendary.weapons.bloodsbane.")) legendaries.syncBloodsBane();

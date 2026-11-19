@@ -75,6 +75,14 @@ class DefaultConfigTest {
         assertTrue(c.getString("hunt.announcements.10").contains("{player} is unstoppable!"));
         assertFalse(c.contains("killstreak.milestones.glowing-level"));
     }
+    @Test void fateSigilCanBeEditedWithoutLosingItsName() {
+        var c=config();
+        assertEquals("&9&lFate Sigil",c.getString("fate-sigil.display-name"));
+        assertTrue(c.getBoolean("fate-sigil.recipe.enabled"));
+        assertEquals(1,c.getInt("fate-sigil.recipe.result-amount"));
+        assertEquals("NETHERITE_SCRAP",c.getString("fate-sigil.recipe.slot-5"));
+        assertEquals(721051,c.getInt("resource-pack.models.fate-sigil"));
+    }
     @Test void maceSmashCooldownDefaults() {
         var c = config();
         assertEquals(60, c.getInt("combat.mace.slam-cooldown-seconds"));

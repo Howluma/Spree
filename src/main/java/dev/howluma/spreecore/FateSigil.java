@@ -29,9 +29,11 @@ public final class FateSigil implements Listener {
     }
 
     public ItemStack item() {
-        ItemStack item = new ItemStack(Material.ECHO_SHARD);
+        ItemStack item = new ItemStack(Material.ECHO_SHARD,
+                Math.max(1,Math.min(16,plugin.getConfig().getInt("fate-sigil.recipe.result-amount",1))));
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(Text.c("&9&lFate Sigil"));
+        meta.setDisplayName(Text.c(plugin.getConfig().getString("fate-sigil.display-name","&9&lFate Sigil")));
+        plugin.models().sigil(meta);
         meta.setLore(List.of(Text.c("&7Reroll an upgrade in any category"),
                 Text.c("&7Privileges, Talents, Infusions, or all Perks"),
                 Text.c("&aRight-click to choose what to reforge"),
@@ -46,14 +48,36 @@ public final class FateSigil implements Listener {
                 && item.getItemMeta().getPersistentDataContainer().has(itemKey, PersistentDataType.BYTE);
     }
 
+    public Material ingredient(int index) {
+        if (index<1||index>9) throw new IllegalArgumentException("Cell must be 1..9");
+        String fallback=switch(index){case 5 -> "NETHERITE_SCRAP";
+            case 1,3,7,9 -> "AMETHYST_SHARD";default -> "DIAMOND";};
+        String raw=plugin.getConfig().getString("fate-sigil.recipe.slot-"+index,fallback);
+        Material result=raw==null?null:Material.matchMaterial(raw);
+        return result==null||result.isAir()||!result.isItem()?Material.AIR:result;
+    }
     public void registerRecipe() {
         Bukkit.removeRecipe(recipeKey);
-        ShapedRecipe recipe = new ShapedRecipe(recipeKey, item());
-        recipe.shape("ADA","DND","ADA");
-        recipe.setIngredient('A', Material.AMETHYST_SHARD);
-        recipe.setIngredient('D', Material.DIAMOND);
-        recipe.setIngredient('N', Material.NETHERITE_SCRAP);
-        Bukkit.addRecipe(recipe);
+        if(!plugin.getConfig().getBoolean("fate-sigil.recipe.enabled",true))return;
+        char[] grid=new char[9];
+        Map<Character,Material> ingredients=new LinkedHashMap<>();
+        for(int i=0;i<9;i++){
+            Material material=ingredient(i+1);
+            if(material.isAir())grid[i]=' ';
+            else {
+                char letter=(char)('A'+i);
+                grid[i]=letter;
+                ingredients.put(letter,material);
+            }
+        }
+        if(ingredients.isEmpty()){
+            plugin.getLogger().warning("Empty Fate Sigil recipe; no crafting recipe registered.");
+            return;
+        }
+        ShapedRecipe recipe=new ShapedRecipe(recipeKey,item());
+        recipe.shape(new String(grid,0,3),new String(grid,3,3),new String(grid,6,3));
+        ingredients.forEach(recipe::setIngredient);
+        if(!Bukkit.addRecipe(recipe))plugin.getLogger().warning("Fate Sigil recipe registration failed.");
     }
 
     public boolean has(Player player) {

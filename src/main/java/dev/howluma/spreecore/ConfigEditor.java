@@ -99,6 +99,15 @@ public final class ConfigEditor {
         return s == null ? new Result(false, "Setting no longer exists.") : set(path, String.valueOf(s.defaultValue()));
     }
     public static String validate(String path, Object value) {
+        if (path.startsWith("fate-sigil.recipe.slot-")) {
+            if (!(value instanceof String input)) return "Enter a material name.";
+            if (input.equalsIgnoreCase("AIR")) return null;
+            Material m=Material.matchMaterial(input.trim());
+            return m!=null && m.isItem() && !m.isAir()
+                    ? null : "Use a valid item name such as DIAMOND, or AIR for an empty slot.";
+        }
+        if (path.equals("fate-sigil.recipe.result-amount") && value instanceof Number amount)
+            return between(amount.doubleValue(),1,16);
         if (path.startsWith("perks.") && value instanceof Number perkNumber) {
             if (path.endsWith(".max-copies")) return between(perkNumber.doubleValue(), 1, 8);
             if (path.endsWith(".per-copy"))
@@ -147,6 +156,7 @@ public final class ConfigEditor {
     private static String group(String path) {
         String[] p = path.split("\\.");
         if (p[0].equals("general") || p[0].equals("resource-pack")) return p[0];
+        if (p[0].equals("fate-sigil")) return p.length>=3 ? "fate-sigil.recipe" : "fate-sigil";
         if (p[0].equals("killstreak")) return p.length >= 3 ? "killstreak." + p[1] : "killstreak";
         if (p[0].equals("legendary")) {
             if (p.length >= 4 && p[1].equals("weapons")) return "legendary." + p[2];
@@ -164,6 +174,8 @@ public final class ConfigEditor {
             case "perks" -> "Stackable Perks";
             case "hunt" -> "Wanted Status & Hunt";
             case "privileges" -> "Privilege Item Limits";
+            case "fate-sigil" -> "Fate Sigil";
+            case "fate-sigil.recipe" -> "Fate Sigil Crafting Recipe";
             case "resource-pack" -> "Resource Pack Models";
             case "killstreak" -> "Killstreak & Health";
             case "killstreak.anti-farm" -> "Anti-Farming";
@@ -200,6 +212,9 @@ public final class ConfigEditor {
         if (id.equals("general")) return Material.COMPARATOR;
         if (id.equals("combat")) return Material.TNT;
         if (id.equals("perks")) return Material.ENCHANTED_BOOK;
+        if (id.startsWith("fate-sigil")) return Material.ECHO_SHARD;
+        if (id.equals("privileges")) return Material.TOTEM_OF_UNDYING;
+        if (id.equals("hunt")) return Material.COMPASS;
         if (id.equals("display")) return Material.NAME_TAG;
         if (id.equals("resource-pack")) return Material.PAINTING;
         if (id.contains("anti-farm")) return Material.SHIELD;

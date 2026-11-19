@@ -12,6 +12,7 @@ public final class ModelData {
 
     public boolean legendary(ItemMeta meta, LegendaryType type) { return apply(meta, type.id, 721001 + type.ordinal()); }
     public boolean token(ItemMeta meta) { return apply(meta, "token", 721050); }
+    public boolean sigil(ItemMeta meta) { return apply(meta, "fate-sigil", 721051); }
     public int id(String name, int fallback) {
         return plugin.getConfig().getInt("resource-pack.models." + name, fallback);
     }

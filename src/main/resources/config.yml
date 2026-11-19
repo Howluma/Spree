@@ -76,6 +76,23 @@ hunt:
     '25': '&9&lSPREE &8| &5{player} is most wanted! &7(25 killstreak)'
     '30': '&9&lSPREE &8| &4{player} has become legendary! &7(30 killstreak)'
 
+# Fate Sigil crafting and appearance: all nine slots editable in the
+# /spree > Admin Center > Balance Workshop > Fate Sigil Recipe panel.
+fate-sigil:
+  display-name: '&9&lFate Sigil'
+  recipe:
+    enabled: true
+    result-amount: 1
+    slot-1: AMETHYST_SHARD
+    slot-2: DIAMOND
+    slot-3: AMETHYST_SHARD
+    slot-4: DIAMOND
+    slot-5: NETHERITE_SCRAP
+    slot-6: DIAMOND
+    slot-7: AMETHYST_SHARD
+    slot-8: DIAMOND
+    slot-9: AMETHYST_SHARD
+
 # These item limits are visible in the operator settings GUI.
 privileges:
   max-totems: 1
@@ -274,3 +291,4 @@ resource-pack:
     hailstorm: 721006
     bloodsbane: 721007
     token: 721050
+    fate-sigil: 721051
