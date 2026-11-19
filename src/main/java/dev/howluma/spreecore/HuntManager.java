@@ -28,7 +28,7 @@ public final class HuntManager implements Listener {
 
     void announceReached(Player player, int oldStreak, int newStreak) {
         if (newStreak <= oldStreak) return;
-        for (int tier = 5; tier <= newStreak; tier += 5) {
+        for (int tier = 5; tier <= SpreeMath.benefitLevel(newStreak); tier += 5) {
             if (oldStreak >= tier) continue;
             String line = plugin.getConfig().getString("hunt.announcements." + tier);
             if (line != null && !line.isBlank())
