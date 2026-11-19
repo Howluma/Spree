@@ -39,8 +39,19 @@ public final class ProgressionManager {
     public boolean hasInfusion(Player p, String id) {
         return active(p, ProgressionCatalog.Kind.INFUSION, id);
     }
-    public boolean milestoneUnlocked(Player p, ProgressionCatalog.Kind kind, int level) {
-        return level <= SpreeMath.BENEFIT_CAP && ProgressionCatalog.milestone(kind, level) && level <= profile(p).streak;
+    /**
+     * Earning an upgrade milestone is permanent; actual gameplay benefits still
+     * depend solely on the player's CURRENT killstreak.
+     */
+    static boolean historicallyEarned(ProgressionCatalog.Kind kind, int level, int streak, int best) {
+        return kind != null && level <= SpreeMath.BENEFIT_CAP
+                && ProgressionCatalog.milestone(kind, level) && Math.max(streak, best) >= level;
+    }
+    public boolean milestoneUnlocked(Player player, ProgressionCatalog.Kind kind, int level) {
+        PlayerDataStore.Profile p = profile(player);
+        return historicallyEarned(kind, level, p.streak, p.best)
+                || (level <= SpreeMath.BENEFIT_CAP && ProgressionCatalog.milestone(kind, level)
+                    && chosen(p, kind).containsKey(level));
     }
     public int available(Player p, ProgressionCatalog.Kind kind) {
         int count = 0;
@@ -78,9 +89,40 @@ public final class ProgressionManager {
         PlayerDataStore.Profile p = profile(player);
         Set<String> taken = pickedExcept(p, kind, level);
         String own = chosen(p, kind).get(level);
+        // With all six Privileges/Infusions obtained, the player must still be
+        // allowed to reconfigure their order. Choosing a used option swaps slots.
         return ProgressionCatalog.options(kind).stream()
-                .filter(o -> !taken.contains(o.id()) && (!replacing || !o.id().equals(own)))
+                .filter(o -> replacing && (kind == ProgressionCatalog.Kind.PRIVILEGE
+                        || kind == ProgressionCatalog.Kind.INFUSION)
+                        ? !o.id().equals(own)
+                        : !taken.contains(o.id()) && (!replacing || !o.id().equals(own)))
                 .toList();
+    }
+
+    /** Pure planning step: no Sigils are spent or choices changed on rejection. */
+    static record Reselection(String displacedId, int swapLevel) {}
+    static Reselection planReselection(Map<Integer,String> choices, int level, String replacement) {
+        String current = choices.get(level);
+        if (current == null || replacement == null || current.equals(replacement)) return null;
+        int found = -1;
+        for (var entry : choices.entrySet()) {
+            if (entry.getKey() != level && replacement.equals(entry.getValue())) {
+                found = entry.getKey();
+                break;
+            }
+        }
+        return new Reselection(current, found);
+    }
+    static void applyReselection(Map<Integer,String> choices, int level,
+            String replacement, Reselection plan) {
+        // Assignment is atomic on the main thread, and neither reward is lost.
+        if (plan.swapLevel() >= 0) choices.put(plan.swapLevel(), plan.displacedId());
+        choices.put(level, replacement);
+    }
+    public int assignedMilestone(Player player, ProgressionCatalog.Kind kind, String id) {
+        for (var entry : chosen(profile(player),kind).entrySet())
+            if (id.equals(entry.getValue())) return entry.getKey();
+        return -1;
     }
 
     private List<String> buildTalentOffers(PlayerDataStore.Profile p, int level, String old) {
@@ -125,17 +167,29 @@ public final class ProgressionManager {
             return new Result(false, "You need a Fate Sigil and an existing unlocked choice.");
         var option = ProgressionCatalog.find(kind, optionId);
         if (option == null) return new Result(false, "Unknown choice.");
-        if (pickedExcept(p, kind, level).contains(optionId) || (sigil && optionId.equals(existing)))
+        Reselection change = sigil && (kind == ProgressionCatalog.Kind.PRIVILEGE
+                || kind == ProgressionCatalog.Kind.INFUSION)
+                ? planReselection(choices, level, optionId) : null;
+        if (change == null && (pickedExcept(p, kind, level).contains(optionId)
+                || (sigil && optionId.equals(existing))))
             return new Result(false, "Choose a different available upgrade.");
         if (kind == ProgressionCatalog.Kind.TALENT && (!talentOffers(player, level).contains(optionId) || sigil))
             return new Result(false, "Choose one of the three saved Talent offers.");
+        // Validate everything before consuming; a failed or unchanged choice costs nothing.
         if (sigil && !plugin.fate().consume(player)) return new Result(false, "Fate Sigil missing.");
-        choices.put(level, optionId);
+        if (change != null) applyReselection(choices, level, optionId, change);
+        else choices.put(level, optionId);
         if (kind == ProgressionCatalog.Kind.TALENT) p.talentOffers.remove(level);
         plugin.data().dirty();
         plugin.streaks().update(player);
         if (kind == ProgressionCatalog.Kind.TALENT) plugin.talentFeedback().unlocked(player,optionId);
         if (kind == ProgressionCatalog.Kind.PRIVILEGE) plugin.privilegeRules().enforce(player);
+        if (change != null && change.swapLevel() >= 0) {
+            ProgressionCatalog.Option swapped = ProgressionCatalog.find(kind, change.displacedId());
+            return new Result(true, "Fate Sigil used: " + option.name() + " is now at level " + level
+                    + ", and " + (swapped == null ? "your previous choice" : swapped.name())
+                    + " moved to level " + change.swapLevel() + "!");
+        }
         return new Result(true, (sigil ? "Reselected " : "Unlocked ") + option.name() + "!");
     }
 
