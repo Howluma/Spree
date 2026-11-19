@@ -86,11 +86,11 @@ public final class PlayerDataStore {
             readChoices(section, "talent-choices", p.talentChoices, ProgressionCatalog.Kind.TALENT);
             readChoices(section, "infusion-choices", p.infusionChoices, ProgressionCatalog.Kind.INFUSION);
             ConfigurationSection offers = section.getConfigurationSection("talent-offers");
-            if (offers != null) for (String key : offers.getKeys(false)) {
+            if (offers != null) for (String offerKey : offers.getKeys(false)) {
                 try {
-                    int milestone = Integer.parseInt(key);
+                    int milestone = Integer.parseInt(offerKey);
                     if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.TALENT, milestone)) continue;
-                    List<String> available = offers.getStringList(key).stream()
+                    List<String> available = offers.getStringList(offerKey).stream()
                             .filter(s -> ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT, s) != null)
                             .distinct().limit(3).toList();
                     if (!available.isEmpty()) p.talentOffers.put(milestone, available);
