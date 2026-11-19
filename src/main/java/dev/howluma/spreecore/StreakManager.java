@@ -44,7 +44,10 @@ public final class StreakManager implements Listener {
     private FileConfiguration c() { return plugin.getConfig(); }
     public PlayerDataStore.Profile get(Player player) { return plugin.data().get(player); }
     public int streak(OfflinePlayer player) { return plugin.data().get(player).streak; }
-    public int cap() { return c().getInt("general.max-killstreak", 30); }
+    /** Technical maximum score, separate from the level-30 progression ceiling. */
+    public int cap() { return Math.max(31, Math.min(1_000_000_000,
+            c().getInt("general.max-killstreak", 1_000_000_000))); }
+    public int progressionCap() { return SpreeMath.BENEFIT_CAP; }
     public String display(int streak) { return Text.formatStreak(streak, c().getString("general.fractured-label", "&c&lFractured")); }
 
     /** Single entry point for every stat modification; handles best, HUD, health, relic leader. */
@@ -65,7 +68,8 @@ public final class StreakManager implements Listener {
         Player online = Bukkit.getPlayer(id);
         if (online != null && newStreak > old) {
             List<String> gainedPerks = new ArrayList<>();
-            for (int level = Math.max(1, old + 1); level <= newStreak; level++) {
+            for (int level = Math.max(1, Math.min(progressionCap(), old) + 1);
+                    level <= Math.min(progressionCap(), newStreak); level++) {
                 if (!PerkMath.isPerkMilestone(level)) continue;
                 String perk = p.perkRolls.get(level);
                 PerkType type = PerkType.fromId(perk);
@@ -323,7 +327,7 @@ public final class StreakManager implements Listener {
         if (lastSpreeItemTick.getOrDefault(player.getUniqueId(), -1) == tick) return;
         lastSpreeItemTick.put(player.getUniqueId(), tick);
         if (streak(player) >= cap()) {
-            Text.action(player, "&cYou are already at the maximum killstreak.");
+            Text.action(player, "&cMaximum supported killstreak reached.");
             return; // Never waste the item at the cap.
         }
         ItemStack remaining = item.clone();
