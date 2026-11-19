@@ -1,6 +1,7 @@
 package dev.howluma.spreecore;
 
 import java.util.Locale;
+import org.bukkit.Material;
 
 /** Each copy of a Perk is a small permanent, stackable stat increase. */
 public enum PerkType {
@@ -29,6 +30,26 @@ public enum PerkType {
         this.display = display;
         this.defaultPerCopy = defaultPerCopy;
         this.defaultMaxCopies = defaultMaxCopies;
+    }
+
+    /** Distinct icons for the operator picker and earned Perk guide. */
+    public Material icon() {
+        return switch (this) {
+            case POWER -> Material.BLAZE_ROD;
+            case FORTITUDE -> Material.IRON_CHESTPLATE;
+            case AGILITY -> Material.RABBIT_FOOT;
+            case DEXTERITY -> Material.SHEARS;
+            case RESTORATION -> Material.GLISTERING_MELON_SLICE;
+            case STABILITY -> Material.OBSIDIAN;
+            case ENDURANCE -> Material.COOKED_BEEF;
+            case EFFICIENCY -> Material.DIAMOND_PICKAXE;
+            case PRESERVATION -> Material.ANVIL;
+            case INSIGHT -> Material.EXPERIENCE_BOTTLE;
+            case REACH -> Material.SPYGLASS;
+            case SCALE -> Material.SLIME_BALL;
+            case CAPACITY -> Material.BUNDLE;
+            case ALCHEMY -> Material.POTION;
+        };
     }
 
     public static PerkType fromId(String id) {
