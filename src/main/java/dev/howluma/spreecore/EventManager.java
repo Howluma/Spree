@@ -80,7 +80,7 @@ public final class EventManager implements Listener {
         } else if(next==Mode.JUGGERNAUT) {
             pickJuggernaut(null);
             Bukkit.broadcastMessage(Text.c("&4&lJUGGERNAUT &7event has begun!"));
-        } else if(old!=Mode.NONE) Bukkit.broadcastMessage(Text.c("&7The &b"+old+" &7event has ended."));
+        } else if(old!=Mode.NONE) Bukkit.broadcastMessage(Text.c("&7The &9"+old+" &7event has ended."));
         plugin.streaks().refreshOnline(); // Undo the previous Juggernaut's extra hearts immediately.
         persist();
         return true;

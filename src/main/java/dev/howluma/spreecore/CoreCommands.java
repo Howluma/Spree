@@ -72,7 +72,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 if(leaders.isEmpty())Text.send(sender,"&7No players yet.");
                 for(int index=0;index<leaders.size();index++) {
                     var profile=leaders.get(index);
-                    Text.send(sender,"&b#"+(index+1)+" &f"+profile.name+" &7- &9"+plugin.streaks().display(profile.streak));
+                    Text.send(sender,"&9#"+(index+1)+" &f"+profile.name+" &7- &9"+plugin.streaks().display(profile.streak));
                 }
             }
             case "spreeinfo" -> showInfo(sender);
@@ -172,7 +172,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 }
                 if (amount < 1 || amount > 64) { message(sender,"&cGive between 1 and 64 items."); return; }
                 plugin.streaks().giveSpreeItem(target, amount);
-                message(sender,"&aGave &b" + amount + " &aSpree item(s) to &f" + target.getName() + "&a.");
+                message(sender,"&aGave &9" + amount + " &aSpree item(s) to &f" + target.getName() + "&a.");
             }
             case "set","add","remove","reset","recovery","fracture" -> {
                 if(args.length<2){message(sender,"&cUsage: /spreeadmin "+cmd+" <player> [amount]");return;}
@@ -247,7 +247,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         switch(cmd) {
             case "list" -> legendaryHelp(sender);
             case "status" -> {
-                for(LegendaryType t:LegendaryType.values())Text.send(sender,"&b"+t.display+" &7- "+plugin.forges().status(t));
+                for(LegendaryType t:LegendaryType.values())Text.send(sender,"&9"+t.display+" &7- "+plugin.forges().status(t));
             }
             case "refresh" -> {
                 Player p=requirePlayer(sender);if(p!=null)plugin.legendaries().refreshHeld(p);

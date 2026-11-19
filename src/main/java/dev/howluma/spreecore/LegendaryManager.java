@@ -75,19 +75,19 @@ public final class LegendaryManager implements Listener {
     private List<String> buildLore(LegendaryType t, boolean test) {
         List<String> lore = new ArrayList<>();
         lore.add("&8&oLegendary Weapon"); lore.add(" ");
-        lore.add("&b&lActive &7(Sneak + Right Click)");
+        lore.add("&9&lActive &7(Sneak + Right Click)");
         switch (t) {
-            case TUNDRA -> { lore.add("&7Next hit in &b" + i(t,"arm-seconds",8) + "s &7freezes enemy for &b" + i(t,"freeze-seconds",2) + "s");
-                lore.add("&7Passive: &b" + (int)(d(t,"passive-chance",.07)*100) + "% &7Slowness I for 2s"); }
+            case TUNDRA -> { lore.add("&7Next hit in &9" + i(t,"arm-seconds",8) + "s &7freezes enemy for &9" + i(t,"freeze-seconds",2) + "s");
+                lore.add("&7Passive: &9" + (int)(d(t,"passive-chance",.07)*100) + "% &7Slowness I for 2s"); }
             case BUTCHERER -> { lore.add("&7Sacrifice &c" + i(t,"sacrifice-hearts",5) + " hearts &7for &cStrength " + i(t,"strength-level",3) + " &7(" + i(t,"strength-seconds",10) + "s)");
                 lore.add("&7Passive: &c" + (int)(d(t,"wither-chance",.05)*100) + "% &7Wither III for 2s"); }
             case STORMBREAKER -> { lore.add("&7Lightning strikes nearby players for &e" + d(t,"active-damage-hearts",3) + " hearts");
                 lore.add("&7Passive: &e" + (int)(d(t,"passive-chance",.10)*100) + "% &7lightning bonus"); }
-            case AQUAFIER -> { lore.add("&7Absorb water: Speed III and &b+" + (int)((d(t,"active-damage-multiplier",1.2)-1)*100) + "% &7damage for 15s");
-                lore.add("&7Passive: four-hit drowning combo (&b3.5 hearts&7)"); }
+            case AQUAFIER -> { lore.add("&7Absorb water: Speed III and &9+" + (int)((d(t,"active-damage-multiplier",1.2)-1)*100) + "% &7damage for 15s");
+                lore.add("&7Passive: four-hit drowning combo (&93.5 hearts&7)"); }
             case DARKHEART -> { lore.add("&7Dash through players and deal &83.5 hearts");
                 lore.add("&7Passive: every 4 hits heals &c2 hearts"); }
-            case HAILSTORM -> { lore.add("&7Next hit by an arrow calls a &b10-arrow volley");
+            case HAILSTORM -> { lore.add("&7Next hit by an arrow calls a &910-arrow volley");
                 lore.add("&7Passive: every 3rd arrow slows targets"); }
             case BLOODSBANE -> { lore.add("&7Next hit launches victim for &c4.5 hearts &7over time");
                 lore.add("&7Passive: &c+4% &7damage per combo hit (max +40%)"); }
@@ -184,7 +184,7 @@ public final class LegendaryManager implements Listener {
                 .put(t, now() + 1000L * i(t, "arm-seconds", 8));
         if (t != LegendaryType.HAILSTORM) cooldown(player, t); // Hailstorm begins cooldown when shot.
         player.playSound(player.getLocation(), Sound.BLOCK_GLASS_BREAK, 0.8f, 1f);
-        Text.action(player, "&b&l" + t.display + " &7- next hit empowered!");
+        Text.action(player, "&9&l" + t.display + " &7- next hit empowered!");
         return true;
     }
     private boolean consumeArm(Player p, LegendaryType t) {
@@ -253,7 +253,7 @@ public final class LegendaryManager implements Listener {
     private void activateAquafier(Player p, LegendaryType t) {
         if (!ready(p,t)) return;
         Block nearest = nearestWater(p.getLocation(), i(t,"absorb-search-radius",8));
-        if (nearest == null) { Text.action(p,"&bNo nearby water to absorb."); return; }
+        if (nearest == null) { Text.action(p,"&9No nearby water to absorb."); return; }
         int removed = sponge(p, nearest, i(t,"absorb-blocks-max",65));
         if (removed == 0) { Text.action(p,"&cWater is protected here; absorption blocked."); return; }
         int seconds = i(t,"active-seconds",15);
@@ -261,7 +261,7 @@ public final class LegendaryManager implements Listener {
         aquafierActive.put(p.getUniqueId(),now() + seconds * 1000L);
         cooldown(p,t);
         p.playSound(p.getLocation(),Sound.ENTITY_GENERIC_SPLASH,1f,1f);
-        Text.action(p,"&b&lAQUAFIER &7- " + removed + " water blocks absorbed!");
+        Text.action(p,"&9&lAQUAFIER &7- " + removed + " water blocks absorbed!");
     }
     private Block nearestWater(Location center, int radius) {
         World world = center.getWorld();
@@ -336,12 +336,12 @@ public final class LegendaryManager implements Listener {
         int count=hailstormShots.get(shooter.getUniqueId());
         if (count % Math.max(1,i(LegendaryType.HAILSTORM,"frost-every-shots",3)) == 0) {
             arrow.getPersistentDataContainer().set(frostId,PersistentDataType.BYTE,(byte)1);
-            Text.action(shooter,"&3&lHAILSTORM &b- frost arrow!");
+            Text.action(shooter,"&1&lHAILSTORM &9- frost arrow!");
         }
         if (consumeArm(shooter,LegendaryType.HAILSTORM)) {
             arrow.getPersistentDataContainer().set(volleyId,PersistentDataType.BYTE,(byte)1);
             cooldown(shooter,LegendaryType.HAILSTORM);
-            Text.action(shooter,"&3&lHAILSTORM &b- empowered arrow fired!");
+            Text.action(shooter,"&1&lHAILSTORM &9- empowered arrow fired!");
         }
         if (plugin.getConfig().getBoolean("legendary.weapons.hailstorm.replenished-arrows",true)) {
             Bukkit.getScheduler().runTaskLater(plugin,()->replenish(shooter),2L);
@@ -414,7 +414,7 @@ public final class LegendaryManager implements Listener {
         effect(victim,PotionEffectType.RESISTANCE,duration,1);
         if (victim instanceof Player p) frozen.put(p.getUniqueId(),now()+duration*1000L);
         victim.getWorld().playSound(victim.getLocation(),Sound.BLOCK_GLASS_BREAK,1,0.7f);
-        Text.action(attacker,"&b&lFROZEN &7- target locked!");
+        Text.action(attacker,"&9&lFROZEN &7- target locked!");
     }
     @EventHandler(priority=EventPriority.HIGH,ignoreCancelled=true)
     public void frozenMove(PlayerMoveEvent event) {
@@ -445,12 +445,12 @@ public final class LegendaryManager implements Listener {
             target.setRemainingAir(0);
             nonlethal(target,d(t,"drowning-damage-hearts",3.5));
             target.playSound(target.getLocation(),Sound.ENTITY_PLAYER_HURT_DROWN,1,1);
-            Text.action(attacker,"&b&lDROWNED &7- four-hit combo!");
-            Text.action(target,"&b&lDROWNING &7- air depleted!");
+            Text.action(attacker,"&9&lDROWNED &7- four-hit combo!");
+            Text.action(target,"&9&lDROWNING &7- air depleted!");
         } else {
             aquaCombos.put(attacker.getUniqueId(),new Combo(target.getUniqueId(),hits,timestamp));
             target.setRemainingAir(hits==1?225:hits==2?150:75);
-            Text.action(attacker,"&b&lAQUAFIER COMBO &7"+hits+"/"+required);
+            Text.action(attacker,"&9&lAQUAFIER COMBO &7"+hits+"/"+required);
         }
     }
     private void hitBloodsBane(Player attacker, LivingEntity target,EntityDamageByEntityEvent event) {
@@ -483,7 +483,7 @@ public final class LegendaryManager implements Listener {
         LegendaryType t=LegendaryType.HAILSTORM;
         int arrows=Math.max(1,Math.min(32,i(t,"volley-arrows",10)));
         int interval=Math.max(1,i(t,"volley-interval-ticks",10));
-        Text.action(shooter,"&3&lHAILSTORM &b- incoming volley!");
+        Text.action(shooter,"&1&lHAILSTORM &9- incoming volley!");
         for(int n=0;n<arrows;n++) {
             Bukkit.getScheduler().runTaskLater(plugin,()->{
                 if (victim.isDead() || !victim.isValid()) return;

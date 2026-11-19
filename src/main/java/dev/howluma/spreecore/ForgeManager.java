@@ -153,8 +153,8 @@ public final class ForgeManager implements Listener {
         state.lastCoordinates=System.currentTimeMillis();
         state.pending=false;
         save();
-        Bukkit.broadcastMessage(Text.c("&b&lFORGING &f"+player.getName()+" &7is forging &b"+t.display+"&7!"));
-        Bukkit.broadcastMessage(Text.c("&7Last known location: &f"+coordinate(player)+" &7- survive &b"+duration()/60+"m&7!"));
+        Bukkit.broadcastMessage(Text.c("&9&lFORGING &f"+player.getName()+" &7is forging &9"+t.display+"&7!"));
+        Bukkit.broadcastMessage(Text.c("&7Last known location: &f"+coordinate(player)+" &7- survive &9"+duration()/60+"m&7!"));
         player.getWorld().playSound(player.getLocation(),Sound.BLOCK_END_PORTAL_SPAWN,1,1);
         plugin.streaks().update(player);
     }
@@ -169,18 +169,18 @@ public final class ForgeManager implements Listener {
             if (state.endsAt<=0) continue;
             if (time>=state.endsAt) { finish(t,state);continue; }
             Player p=state.owner==null?null:Bukkit.getPlayer(state.owner);
-            BossBar bar=bars.computeIfAbsent(t,key->Bukkit.createBossBar(Text.c("&b"+t.display+" forging"),
+            BossBar bar=bars.computeIfAbsent(t,key->Bukkit.createBossBar(Text.c("&9"+t.display+" forging"),
                     t==LegendaryType.BUTCHERER?BarColor.RED:t==LegendaryType.STORMBREAKER?BarColor.YELLOW:BarColor.BLUE,
                     BarStyle.SOLID));
             double progress=Math.max(0,Math.min(1,(double)(state.endsAt-time)/(duration()*1000L)));
             bar.setProgress(progress);
-            bar.setTitle(Text.c("&b"+t.display+" &7- "+Text.time(state.endsAt-time)));
+            bar.setTitle(Text.c("&9"+t.display+" &7- "+Text.time(state.endsAt-time)));
             if (p==null) bar.removeAll();
             else {
                 if (!bar.getPlayers().contains(p)) {bar.removeAll();bar.addPlayer(p);}
                 if (time-state.lastCoordinates>=plugin.getConfig().getLong("legendary.forging.coordinate-broadcast-seconds",180)*1000L) {
                     state.lastCoordinates=time;
-                    Bukkit.broadcastMessage(Text.c("&b&lFORGE LOCATION &f"+p.getName()+" &7("+t.display+") &f"+coordinate(p)));
+                    Bukkit.broadcastMessage(Text.c("&9&lFORGE LOCATION &f"+p.getName()+" &7("+t.display+") &f"+coordinate(p)));
                     p.getWorld().playSound(p.getLocation(),Sound.BLOCK_BELL_USE,1,1);
                     save();
                 }
@@ -193,13 +193,13 @@ public final class ForgeManager implements Listener {
         Player p=f.owner==null?null:Bukkit.getPlayer(f.owner);
         if (p!=null) {
             give(p,t);
-            Bukkit.broadcastMessage(Text.c("&b&lFORGED &f"+p.getName()+" &7survived and claimed &b"+t.display+"!"));
+            Bukkit.broadcastMessage(Text.c("&9&lFORGED &f"+p.getName()+" &7survived and claimed &9"+t.display+"!"));
             f.owner=null;
             f.pending=false;
             plugin.streaks().update(p);
         } else {
             f.pending=true;
-            Bukkit.broadcastMessage(Text.c("&7The &b"+t.display+" &7forge completed. Its offline owner will claim on join."));
+            Bukkit.broadcastMessage(Text.c("&7The &9"+t.display+" &7forge completed. Its offline owner will claim on join."));
         }
         save();
     }
@@ -233,7 +233,7 @@ public final class ForgeManager implements Listener {
                 f.pending=false;
                 f.owner=null;
                 save();
-                Bukkit.broadcastMessage(Text.c("&b&lFORGED &f"+p.getName()+" &7claimed &b"+t.display+"!"));
+                Bukkit.broadcastMessage(Text.c("&9&lFORGED &f"+p.getName()+" &7claimed &9"+t.display+"!"));
             },2L);
         }
     }
