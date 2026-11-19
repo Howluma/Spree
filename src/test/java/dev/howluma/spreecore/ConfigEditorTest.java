@@ -41,6 +41,18 @@ class ConfigEditorTest {
         assertNotNull(ConfigEditor.validate("killstreak.kill-rewards.extra-per-tier", -1));
         assertNull(ConfigEditor.validate("killstreak.kill-rewards.extra-per-tier", 1));
     }
+    @Test void recipeMaterialAndCountEditorsRejectInvalidInputs() {
+        assertNull(ConfigEditor.validate("fate-sigil.recipe.slot-1","AMETHYST_SHARD"));
+        assertNull(ConfigEditor.validate("fate-sigil.recipe.slot-9","AIR"));
+        assertNotNull(ConfigEditor.validate("fate-sigil.recipe.slot-1","NOT_A_REAL_ITEM"));
+        assertNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",16));
+        assertNotNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",0));
+        assertNotNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",17));
+        assertNull(ConfigEditor.validate("talents.scavenger.chance",.15));
+        assertNotNull(ConfigEditor.validate("talents.scavenger.chance",1.25));
+        assertNotNull(ConfigEditor.validate("talents.combo-breaker.hits-required",0));
+        assertNull(ConfigEditor.validate("talents.combo-breaker.hits-required",3));
+    }
     @Test void tierColorEditorRejectsInvalidOrMultiColorValues() {
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.5", "&a"));
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.10", "<#123ABC>"));

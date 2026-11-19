@@ -1,16 +1,61 @@
-# SpreeCore v1.7.0 — Spree SMP
+# SpreeCore v1.7.1 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.7.0.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.7.1.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.7.0.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.7.1.jar`. GitHub Actions publishes the build artifact after each push.
+
+## Admin Balance Workshop, live recipes and conditional mace cooldown (v1.7.1)
+
+**Fate Sigil** keeps its existing name, icon identity and four-way reroll
+functionality. Its crafting grid is now **fully editable from the game**:
+
+Open **/spree > Admin Center > Balance Workshop > Fate Sigil Crafting**.
+The 3x3 grid is displayed literally. Pick an item onto your cursor from
+your own inventory, then left-click any cell to use that ingredient;
+left-click with an empty cursor to type a material ID in chat, right-click
+to clear a cell (AIR), or shift-right-click to restore that slot's
+default. Adjust crafted output count (1–16), display name and recipe
+enabled status from the same page. All edits save and **re-register the
+recipe immediately**, without a server restart. The default recipe is
+corner amethyst shards, edge diamonds and center netherite scrap.
+
+**Balance Workshop > Item Limits** provides six direct-entry controls
+for totems, enchanted apples, wind charges, XP bottles, enchanted apple
+cooldown and its maximum effect duration. Left-click to type an exact
+number, right-click to reset the default. These are active restrictions,
+not visual-only numbers.
+
+**Balance Workshop > Mace Slams** configures ordinary smash cooldown
+(default 60 seconds), Mace Mastery cooldown (default 30 seconds),
+player-damage multiplier and combat toggle. A cooldown **starts only on
+a real mace-smash damage event with positive final damage**; ordinary
+melee swings, shield blocks, missed smashes, cancelled hits, and
+zero-damage events do not spend it. Blocked smashes on cooldown are
+denied. Mace Mastery still requires its Talent and the Mace Wielder
+Privilege. The cooldown persists across relogs, and changing the
+configuration affects future cooldown triggers.
+
+**/spree > Settings** also exposes dozens of independent Talent
+balancing fields: conditional damage thresholds, combo requirements,
+healing, durations, movement multipliers, defensive shared cooldown,
+Scavenger odds and rewards, consumable speed, and other parameters.
+These are grouped by Talent rather than mixed into the main dashboard.
+
+**Fate Sigil resource pack**: place the updated \`Spree-SMP.zip\` above
+other packs affecting Echo Shards. SpreeCore sets a float CMD selector
+\`721051\` and preserves vanilla Echo Shard appearance for players
+without the pack. The 128x128 texture is at
+\`assets/howluma/textures/item/fate_sigil.png\`, and the exact original
+artwork files for other Spree items remain unchanged. If you edit the
+CMD selector in-game, also update the matching pack JSON.
 
 ## Choice-based progression (v1.7.0)
 

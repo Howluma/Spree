@@ -283,7 +283,8 @@ public final class TalentEffects implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin,()->{
             if(p.isOnline()&&!p.isDead()&&has(p,"golden_aegis"))
                 p.setAbsorptionAmount(Math.max(p.getAbsorptionAmount(),
-                        Math.min(8,p.getAbsorptionAmount()+ti("golden-aegis.extra-absorption-hearts",2)*2)));
+                        Math.min(4+ti("golden-aegis.extra-absorption-hearts",2)*2,
+                                p.getAbsorptionAmount()+ti("golden-aegis.extra-absorption-hearts",2)*2)));
         },2L);
     }
 

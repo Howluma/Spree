@@ -1,4 +1,21 @@
-# SpreeCore v1.7.0 — test-server checklist
+# SpreeCore v1.7.1 — test-server checklist
+
+## Admin Balance Workshop and Fate Sigil art (v1.7.1)
+
+- [ ] Normal users see none of the admin-only balance or recipe controls.
+- [ ] Admin Center > Balance Workshop is symmetrical and offers Item Limits, Mace Slams, Fate Sigil Crafting, plus the full settings editor.
+- [ ] Item Limits shows current totem / enchanted apple / wind charge / XP bottle caps and apple cooldown/effect duration; left-click opens exact-number chat, right-click restores defaults.
+- [ ] Item limit changes persist in config.yml and affect enforcement, pickups, and Expanded Reserves without a restart.
+- [ ] Mace Slam settings permit independent exact normal and Mastery cooldown changes and PvP damage multiplier edits.
+- [ ] Genuine unblocked mace smash against a valid target starts the cooldown; normal swings, missed attacks, canceled damage, zero-damage hits and shield blocks do NOT start it.
+- [ ] A second valid smash while a cooldown remains is denied. Cooldown survives logout/login and retains the originally chosen duration after admin edits.
+- [ ] Fate Sigil name is still "Fate Sigil" and cannot be confused with plain Echo Shards.
+- [ ] Admin Fate Sigil editor shows nine ingredient cells in a literal 3x3 grid; click with held ingredient, right-click to clear, shift-right to reset, or click empty to type material in chat.
+- [ ] Disabling recipe blocks crafting; re-enabling restores chosen recipe. Change output count, material IDs and item display name without restart.
+- [ ] Fate Sigil model selector 721051 shows its sprite in the updated Spree-SMP.zip; an ordinary Echo Shard looks vanilla. Packless players also see ordinary Echo Shards.
+- [ ] /spree settings groups Talent cooldowns, strengths, chances and additional items by Talent and saves the changes.
+- [ ] Changing a Quick Hands consumption-speed multiplier updates already-carried managed items and restores originals when the Talent deactivates.
+- [ ] Server restart preserves all administrative settings, recipe modifications, saved Fate Sigils and existing progression data.
 
 ## Progression selection, chat notices and GUI layout (v1.7.0)
 

@@ -225,7 +225,32 @@ public final class ConfigEditor {
         if (id.equals("combat")) return Material.TNT;
         if (id.equals("perks")) return Material.ENCHANTED_BOOK;
         if (id.startsWith("fate-sigil")) return Material.ECHO_SHARD;
-        if (id.startsWith("talents")) return Material.ENCHANTED_BOOK;
+        if (id.startsWith("talents")) {
+            String name=id.substring(id.lastIndexOf('.')+1);
+            return switch(name) {
+                case "executioner" -> Material.NETHERITE_SWORD;
+                case "combo-breaker" -> Material.IRON_SWORD;
+                case "concussive-blow" -> Material.IRON_AXE;
+                case "sunder" -> Material.SHIELD;
+                case "riposte" -> Material.TURTLE_HELMET;
+                case "bloodlust" -> Material.REDSTONE;
+                case "second-wind" -> Material.GOLDEN_APPLE;
+                case "iron-will" -> Material.IRON_CHESTPLATE;
+                case "field-medic" -> Material.GLISTERING_MELON_SLICE;
+                case "golden-aegis" -> Material.GOLDEN_APPLE;
+                case "scavenger" -> Material.WIND_CHARGE;
+                case "battle-sense" -> Material.SPYGLASS;
+                case "acrobat" -> Material.FEATHER;
+                case "trailblazer" -> Material.LEATHER_BOOTS;
+                case "windrunner" -> Material.WIND_CHARGE;
+                case "escape-artist" -> Material.SHEARS;
+                case "expanded-reserves" -> Material.EXPERIENCE_BOTTLE;
+                case "quick-hands" -> Material.HONEY_BOTTLE;
+                case "streak-insurance" -> Material.HEART_OF_THE_SEA;
+                case "defense" -> Material.DIAMOND_CHESTPLATE;
+                default -> Material.ENCHANTED_BOOK;
+            };
+        }
         if (id.equals("privileges")) return Material.TOTEM_OF_UNDYING;
         if (id.equals("hunt")) return Material.COMPASS;
         if (id.equals("display")) return Material.NAME_TAG;
