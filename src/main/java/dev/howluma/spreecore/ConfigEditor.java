@@ -130,7 +130,7 @@ public final class ConfigEditor {
         if (!(value instanceof Number number)) return null;
         double amount = number.doubleValue();
         if (!Double.isFinite(amount)) return "Enter a finite number.";
-        if (path.equals("general.max-killstreak")) return between(amount, 1, 1000);
+        if (path.equals("general.max-killstreak")) return between(amount, 31, 1_000_000_000);
         if (path.equals("killstreak.kill-rewards.levels-per-tier")
                 || path.equals("killstreak.kill-rewards.base-reward"))
             return between(amount, 1, 1000);
