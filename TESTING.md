@@ -15,8 +15,10 @@ Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable th
 - [ ] Set `killstreak.mace-unlock-level` to 2 in `/spree settings`; level 1 must lose access, level 2 must regain it. Restore to 1. Change `killstreak.health-per-level-hearts`, verify live update, then reset to 0.5.
 - [ ] Confirm `Spree Surge` is marked **Paused** in the admin GUI and cannot start through `/spreeevent surge on`.
 
-## Killstreak tier-color regression (v1.4.1)
+## Killstreak tier-color and tab icon regression (v1.4.2)
 
+- [ ] The sword symbol uses the same dark blue (&1) at all streaks in action bar, tab, and nametag (including zero and Fractured).
+- [ ] Only the tab shows a gray `|` separating the player's name and the Spree indicator.
 - [ ] Tab, overhead tag and action bar show gray bold numbers at levels 0 and 4; green at 5-9; yellow at 10-14; gold at 15-19; red at 20-24; purple at 25-29; dark red at 30.
 - [ ] The original navy sword symbol remains navy; Fractured stays red and never shows -1.
 - [ ] /killstreak, /stats, /leaderboard, dashboard and admin player manager match the tab/HUD tier.

@@ -114,7 +114,7 @@ public final class StreakManager implements Listener {
             PlayerDataStore.Profile profile = get(player);
             if (profile.hideHud) continue;
             String color = plugin.indicators().streakColor(profile.streak);
-            Text.action(player, "&1⚔ &7Killstreak: " + color + display(profile.streak));
+            Text.action(player, StreakIndicators.ICON_COLOR + "⚔ &7Killstreak: " + color + display(profile.streak));
         }
     }
     public void shutdown() { /* Temporary effects expire naturally. */ }

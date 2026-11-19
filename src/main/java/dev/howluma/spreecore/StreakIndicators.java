@@ -19,6 +19,8 @@ import java.util.*;
  */
 public final class StreakIndicators implements Listener {
     private static final String TEAM_PREFIX = "spc_";
+    /** Match the action-bar icon color across all streak levels. */
+    static final String ICON_COLOR = "&1";
     private final SpreeCorePlugin plugin;
     private final Set<Scoreboard> touched = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<UUID, String> previousTabNames = new HashMap<>();
@@ -48,16 +50,14 @@ public final class StreakIndicators implements Listener {
         return tabLabel(name, streak, symbol, fracturedSymbol, color(streak));
     }
     static String tabLabel(String name, int streak, String symbol, String fracturedSymbol, String numberColor) {
-        String gemColor = streak < 0 ? "&c" : streak == 0 ? "&8" : "&1";
-        return "&f" + name + " " + gemColor + symbol + " " + numberColor
+        return "&f" + name + " &8| " + ICON_COLOR + symbol + " " + numberColor
                 + (streak < 0 ? fracturedSymbol : Integer.toString(streak));
     }
     static String nametagSuffix(int streak, String symbol, String fracturedSymbol) {
         return nametagSuffix(streak, symbol, fracturedSymbol, color(streak));
     }
     static String nametagSuffix(int streak, String symbol, String fracturedSymbol, String numberColor) {
-        String gemColor = streak < 0 ? "&c" : streak == 0 ? "&8" : "&1";
-        return " " + gemColor + symbol + " " + numberColor
+        return " " + ICON_COLOR + symbol + " " + numberColor
                 + (streak < 0 ? fracturedSymbol : Integer.toString(streak));
     }
     private String safeSymbol(String key, String fallback) {
