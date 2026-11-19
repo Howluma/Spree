@@ -38,6 +38,7 @@ public final class SpecialistItems implements Listener {
         map(Material.DIAMOND_PICKAXE, Material.NETHERITE_PICKAXE);
         map(Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL);
         map(Material.DIAMOND_HOE, Material.NETHERITE_HOE);
+        map(Material.DIAMOND_SPEAR, Material.NETHERITE_SPEAR);
     }
     private static void map(Material diamond, Material netherite) {
         PROMOTE.put(diamond, netherite);
