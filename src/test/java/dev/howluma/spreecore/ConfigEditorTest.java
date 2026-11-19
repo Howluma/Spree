@@ -32,6 +32,15 @@ class ConfigEditorTest {
         assertNotNull(ConfigEditor.validate("perks.power.max-copies", 9));
         assertNull(ConfigEditor.validate("perks.agility.max-copies", 3));
     }
+    @Test void huntRewardSettingsCannotUseZeroIntervalsOrNegativeRewards() {
+        assertNull(ConfigEditor.validate("killstreak.kill-rewards.levels-per-tier", 5));
+        assertNotNull(ConfigEditor.validate("killstreak.kill-rewards.levels-per-tier", 0));
+        assertNotNull(ConfigEditor.validate("killstreak.kill-rewards.levels-per-tier", -5));
+        assertNotNull(ConfigEditor.validate("killstreak.kill-rewards.base-reward", 0));
+        assertNull(ConfigEditor.validate("killstreak.kill-rewards.base-reward", 1));
+        assertNotNull(ConfigEditor.validate("killstreak.kill-rewards.extra-per-tier", -1));
+        assertNull(ConfigEditor.validate("killstreak.kill-rewards.extra-per-tier", 1));
+    }
     @Test void tierColorEditorRejectsInvalidOrMultiColorValues() {
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.5", "&a"));
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.10", "<#123ABC>"));

@@ -18,30 +18,43 @@ class SpreeMathTest {
         assertEquals(3, SpreeMath.deathStreak(7));
         assertEquals(15, SpreeMath.deathStreak(30));
     }
-    @Test void killerReceivesHalfVictimStreakNotLegacyCap() {
+    @Test void pvpRewardsScaleEveryFiveVictimLevels() {
         assertEquals(1, SpreeMath.killGain(-1));
         assertEquals(1, SpreeMath.killGain(0));
         assertEquals(1, SpreeMath.killGain(1));
-        assertEquals(1, SpreeMath.killGain(3));
-        assertEquals(2, SpreeMath.killGain(4));
-        assertEquals(3, SpreeMath.killGain(7));
-        assertEquals(4, SpreeMath.killGain(9));
-        assertEquals(5, SpreeMath.killGain(10));
-        assertEquals(7, SpreeMath.killGain(15));
-        assertEquals(10, SpreeMath.killGain(20));
-        assertEquals(14, SpreeMath.killGain(29));
-        assertEquals(15, SpreeMath.killGain(30));
+        assertEquals(1, SpreeMath.killGain(4));
+        assertEquals(2, SpreeMath.killGain(5));
+        assertEquals(2, SpreeMath.killGain(9));
+        assertEquals(3, SpreeMath.killGain(10));
+        assertEquals(3, SpreeMath.killGain(14));
+        assertEquals(4, SpreeMath.killGain(15));
+        assertEquals(5, SpreeMath.killGain(20));
+        assertEquals(6, SpreeMath.killGain(25));
+        assertEquals(6, SpreeMath.killGain(29));
+        assertEquals(7, SpreeMath.killGain(30));
+        assertEquals(7, SpreeMath.killGain(34));
+        assertEquals(8, SpreeMath.killGain(35));
     }
-    @Test void thirtyStreakTntKillFromFracturedAwardsFifteen() {
-        // Combat attribution delivers the pre-death victim streak to killGain.
+    @Test void serverCanTuneKillRewardsWithoutChangingTokenPayout() {
+        assertEquals(1, SpreeMath.killGain(0, 1, 5, 1));
+        assertEquals(2, SpreeMath.killGain(5, 1, 5, 1));
+        assertEquals(3, SpreeMath.killGain(9, 1, 4, 1));
+        assertEquals(4, SpreeMath.killGain(10, 2, 10, 2));
+        assertEquals(1, SpreeMath.killGain(-10, -1, 0, -1));
+        assertEquals(15, SpreeMath.naturalDeathTokenGain(30));
+        assertEquals(10, SpreeMath.naturalDeathTokenGain(20));
+        assertEquals(1, SpreeMath.naturalDeathTokenGain(0));
+    }
+    @Test void thirtyStreakTntKillFromFracturedAwardsSeven() {
+        // Credited TNT uses the same PRE-DEATH victim streak as melee kills.
         int victimOldStreak = 30;
         int attackerOldStreak = -1;
         int gained = SpreeMath.killGain(victimOldStreak);
-        assertEquals(15, gained);
-        assertEquals(15, SpreeMath.applyKill(attackerOldStreak, gained, 30));
+        assertEquals(7, gained);
+        assertEquals(7, SpreeMath.applyKill(attackerOldStreak, gained, 30));
         assertEquals(15, SpreeMath.deathStreak(victimOldStreak));
         // Positive streaks still respect the configured 30 cap.
-        assertEquals(30, SpreeMath.applyKill(20, gained, 30));
+        assertEquals(30, SpreeMath.applyKill(25, gained, 30));
     }
     @Test void minimumRewardRecoversFractured() {
         assertEquals(1, SpreeMath.applyKill(-1, SpreeMath.killGain(0), 30));

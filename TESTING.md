@@ -1,6 +1,17 @@
-# SpreeCore v1.6.3 — test-server checklist
+# SpreeCore v1.6.4 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Escalating kill rewards; revenge stays off (v1.6.4)
+
+- [ ] Player kills at victim pre-death streak 0/4 award +1; 5/9 award +2; 10/14 award +3; 15/19 award +4; 20/24 award +5; 25/29 award +6; 30 awards +7.
+- [ ] Victim at 30 is reduced to 15 on death while the eligible killer receives +7; anti-farm disallows rewards from Fractured victims and repeat kills inside the existing cooldown.
+- [ ] The pre-death reward formula is used for melee, projectiles, TNT, and credited end crystals, without duplicating an environmental-death token.
+- [ ] Natural/environmental death at 30 still drops the original half-streak +15 token, not the new +7 kill bounty.
+- [ ] Default revenge.enabled=false; a server with the legacy setting already OFF keeps it OFF after /spreeadmin reload and restart.
+- [ ] Event-specific kill bonuses still stack on top of a *qualifying* kill's base reward, and no event bonus is awarded for anti-farm-protected kills.
+- [ ] /spreeinfo describes the new tier formula and /spree settings > Hunt Kill Rewards can edit base, tier interval, and increment.
+- [ ] A killer already close to the configured streak cap never exceeds it, including from special events.
 
 ## Alchemy beneficial-potion duration Perk (v1.6.3)
 

@@ -180,7 +180,7 @@ public final class StreakManager implements Listener {
         if (old > 0) victimProfile.ended++;
         plugin.data().dirty();
         if (killer == null) {
-            if (old >= 0) dropToken(victim, SpreeMath.killGain(old));
+            if (old >= 0) dropToken(victim, SpreeMath.naturalDeathTokenGain(old));
             setStreak(victim.getUniqueId(), SpreeMath.naturalDeathStreak(old), false);
             if (old == 0) Text.send(victim, plugin.prefix() + "&cYou have a Fractured Killstreak. Reclaim your own token or get a kill.");
             else Text.send(victim, plugin.prefix() + "&7Natural death: your streak is now " + display(streak(victim)));
@@ -192,9 +192,12 @@ public final class StreakManager implements Listener {
             boolean reward = eligibleKill(attacker, victim.getUniqueId(), old);
             int gain = 0;
             if (reward) {
-                gain = SpreeMath.killGain(old);
+                gain = SpreeMath.killGain(old,
+                        c().getInt("killstreak.kill-rewards.base-reward", 1),
+                        c().getInt("killstreak.kill-rewards.levels-per-tier", 5),
+                        c().getInt("killstreak.kill-rewards.extra-per-tier", 1));
                 if (plugin.events() != null) gain += plugin.events().timedKillBonus();
-                if (c().getBoolean("killstreak.revenge.enabled", true) && victim.getUniqueId().equals(attacker.revengeAgainst)) {
+                if (c().getBoolean("killstreak.revenge.enabled", false) && victim.getUniqueId().equals(attacker.revengeAgainst)) {
                     gain += c().getInt("killstreak.revenge.bonus-streak", 2);
                     attacker.revengeAgainst = null;
                     Text.send(killer, "&4&lREVENGE COMPLETE &7- bonus streak!");

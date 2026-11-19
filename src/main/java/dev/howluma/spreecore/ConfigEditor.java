@@ -111,6 +111,11 @@ public final class ConfigEditor {
         double amount = number.doubleValue();
         if (!Double.isFinite(amount)) return "Enter a finite number.";
         if (path.equals("general.max-killstreak")) return between(amount, 1, 1000);
+        if (path.equals("killstreak.kill-rewards.levels-per-tier")
+                || path.equals("killstreak.kill-rewards.base-reward"))
+            return between(amount, 1, 1000);
+        if (path.equals("killstreak.kill-rewards.extra-per-tier"))
+            return between(amount, 0, 1000);
         if (path.equals("killstreak.mace-unlock-level") || path.startsWith("killstreak.milestones."))
             return between(amount, 1, 1000);
         if (path.equals("killstreak.health-per-level-hearts")) return between(amount, 0, 2);
@@ -160,7 +165,8 @@ public final class ConfigEditor {
             case "resource-pack" -> "Resource Pack Models";
             case "killstreak" -> "Killstreak & Health";
             case "killstreak.anti-farm" -> "Anti-Farming";
-            case "killstreak.revenge" -> "Revenge Rewards";
+            case "killstreak.revenge" -> "Legacy Revenge (Disabled by Default)";
+            case "killstreak.kill-rewards" -> "Hunt Kill Rewards";
             case "killstreak.withdrawal" -> "Spree Withdrawal";
             case "killstreak.milestones" -> "Milestone Buffs";
             case "display" -> "Tab & Nametag Indicators";

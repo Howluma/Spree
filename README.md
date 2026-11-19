@@ -1,16 +1,16 @@
-# SpreeCore v1.6.3 — Spree SMP
+# SpreeCore v1.6.4 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.3.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.4.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.3.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.4.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -32,7 +32,7 @@ At zero or Fractured, direct mace attacks against **players and mobs** are cance
 
 **Removed for now:** streak-dependent automatic Fire Resistance, Hero of the Village, Weaving, Speed, Glowing, potion upgrades, and all tentative item restrictions. Their old GUI categories and YAML settings are removed. This does **not** remove independent legendary weapon abilities, forge requirements, event-only Juggernaut health/glowing, or one-off event streak points. The old Spree Surge event, which relied on tier-based buffs, is paused pending the progression redesign.
 
-**Unchanged streak rules:** PvP and environmental deaths halve an existing positive streak, rounded down. Environmental death at 0 creates Fractured (`-1` in `players.yml` for migration compatibility); Fractured never goes below `-1`. The anti-farming cooldown, revenge bonus, item use, and death-token logic stay intact. `/spreeadmin giveitem <player> [1–64]` gives a Heart of the Sea Spree consumable; right click consumes one and adds exactly one killstreak. Original environmental-death tokens auto-claim on pickup using separate logic.
+**Unchanged death rules:** PvP and environmental deaths halve an existing positive streak, rounded down. Environmental death at 0 creates Fractured (`-1` in `players.yml` for migration compatibility); Fractured never goes below `-1`. Anti-farming, Spree item use, and death-token logic remain intact. Revenge bonuses now default **OFF** (and stay off in existing configurations where admins previously disabled them). `/spreeadmin giveitem <player> [1–64]` gives a Heart of the Sea Spree consumable; right click consumes one and adds exactly one killstreak. Original environmental-death tokens auto-claim on pickup using separate logic.
 
 ## Official resource-pack fallback (v1.5.3)
 
@@ -74,28 +74,43 @@ and lowers your streak to 25. `/spree withdraw all` is equivalent to
 - If another plugin intercepts `/spree`, use
   `/spreecore:spree withdraw` instead.
 
-## Kill rewards and TNT credit (v1.5.1)
+## Escalating hunt rewards and TNT credit (v1.6.4)
 
-The original Skript limited kill rewards to **+2**, even when the victim had
-a 30 killstreak. That cap is removed: **a qualifying player kill now awards
-half of the victim's PRE-DEATH streak, rounded down, with a minimum of +1**.
-This rule is independent of the damage source.
+**Qualifying PvP kills earn +1 Spree plus +1 for every five levels of the
+victim's PRE-DEATH killstreak.** The victim's streak is captured before
+being halved on death. This replaces v1.5.1's *half-the-victim-streak*
+reward formula for PvP kills (e.g. a level-30 victim was previously worth
++15 but is now worth +7). The tier values are configurable in
+`/spree settings` > **Hunt Kill Rewards** using three options:
+`base-reward` (1), `levels-per-tier` (5), and `extra-per-tier` (1).
 
 | Victim's streak before death | Killer gains | Victim after death |
 | --- | --- | --- |
-| 0 / Fractured | +1, subject to anti-farm restrictions | 0 / Fractured |
-| 3 | +1 | 1 |
-| 7 | +3 | 3 |
-| 10 | +5 | 5 |
-| 20 | +10 | 10 |
-| 30 | +15 | 15 |
+| 0-4 | +1 | Half, rounded down |
+| 5-9 | +2 | Half, rounded down |
+| 10-14 | +3 | Half, rounded down |
+| 15-19 | +4 | Half, rounded down |
+| 20-24 | +5 | Half, rounded down |
+| 25-29 | +6 | Half, rounded down |
+| 30 | +7 | 15 |
 
-For a TNT kill credited to a **Fractured** player against a player at streak 30,
-the killer is set to **15**, not 2; the victim goes from 30 to 15. The anti-farm
-cooldown and ban on farming Fractured victims remain, as do event-specific
-bonuses and the configured maximum-streak cap. Environmental-death Spree
-Tokens use the same half-streak value and remain separate from the
-right-click **+1 Spree item**.
+Example: a player at Fractured (-1) who TNT-kills an eligible level-30
+player earns +7, returning to a 7 killstreak. This applies to direct
+melee/ranged kills and properly credited explosive kills. Anti-farm
+cooldowns remain mandatory for qualifying rewards, and farming Fractured
+victims is still blocked by default. The configured maximum killstreak
+cap still applies.
+
+**Revenge bonuses are disabled by default** and never included when that
+option is off. Existing server choices in config.yml are preserved.
+Separately configured timed/Juggernaut/Hunt event bonuses still apply
+when those events are running.
+
+**Environmental-death Spree Tokens are intentionally unchanged**: they
+still use HALF of the prior killstreak (e.g. level 30 drops a +15 token)
+rather than this new PvP bounty formula, so owners can keep their existing
+natural-death recovery flow. These tokens do not originate from a
+qualifying PvP kill. Right-click **Spree** consumables still give +1.
 
 When an explosion is attributed to an online player, the normal player-kill
 branch awards streak and does **not** drop an environmental-death token.

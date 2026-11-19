@@ -137,7 +137,12 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 + " heart per positive level; Fractured has the normal base health.");
         Text.send(sender,"&7Mace attacks unlock at killstreak &9&l" +
                 plugin.getConfig().getInt("killstreak.mace-unlock-level",1) + "&7.");
-        Text.send(sender,"&7Other killstreak perks and item unlocks are paused for redesign.");
+        Text.send(sender,"&7Base PvP kill reward: &a+" +
+                plugin.getConfig().getInt("killstreak.kill-rewards.base-reward", 1) +
+                " &7plus &a+" + plugin.getConfig().getInt("killstreak.kill-rewards.extra-per-tier", 1) +
+                " &7per &f" + plugin.getConfig().getInt("killstreak.kill-rewards.levels-per-tier", 5) +
+                " &7victim killstreak levels (before death).");
+        Text.send(sender,"&7Some progression privileges/talents are still being redesigned.");
     }
     private Integer number(CommandSender sender,String s) {
         try {return Integer.parseInt(s);}catch(NumberFormatException e){message(sender,"&cInvalid number: "+s);return null;}

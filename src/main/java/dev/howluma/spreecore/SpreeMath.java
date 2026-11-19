@@ -5,12 +5,24 @@ public final class SpreeMath {
     private SpreeMath() {}
     public static int clamp(int streak, int limit) { return Math.max(-1, Math.min(limit, streak)); }
     /**
-     * Credit a killer with half of the victim's pre-death killstreak
-     * (rounded down), with a minimum of one for low/Fractured victims.
-     * This rule is shared by melee/projectile/explosive credited kills
-     * and death tokens; there is no legacy +2 reward cap.
+     * PvP kill reward from the victim's PRE-DEATH streak.
+     * By default: 0-4 => +1, 5-9 => +2, ... 25-29 => +6, 30 => +7.
+     * One reward rule applies to all direct and credited explosion kills.
+     * This is intentionally separate from the legacy natural-death token payout.
      */
     public static int killGain(int victimStreak) {
+        return killGain(victimStreak, 1, 5, 1);
+    }
+    /** Configurable base reward + one increment per threshold interval. */
+    public static int killGain(int victimStreak, int base, int levelsPerTier, int extraPerTier) {
+        int initial = Math.max(1, base);
+        int interval = Math.max(1, levelsPerTier);
+        int additional = Math.max(0, extraPerTier);
+        long total = (long) initial + ((long) Math.max(0, victimStreak) / interval) * additional;
+        return (int) Math.min(Integer.MAX_VALUE, total);
+    }
+    /** Environmental-death Spree Tokens keep their existing half-streak value. */
+    public static int naturalDeathTokenGain(int victimStreak) {
         return Math.max(1, Math.max(0, victimStreak) / 2);
     }
     public static int deathStreak(int oldStreak) {

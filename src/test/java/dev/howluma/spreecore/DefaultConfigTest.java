@@ -56,6 +56,15 @@ class DefaultConfigTest {
         for (int i=0; i<expected.length; i++)
             assertEquals(expected[i], c.getString("display.streak-indicators.tier-colors."+(i*5)));
     }
+    @Test void huntRewardsAndNoRevengeByDefault() {
+        var c = config();
+        assertEquals(1, c.getInt("killstreak.kill-rewards.base-reward"));
+        assertEquals(5, c.getInt("killstreak.kill-rewards.levels-per-tier"));
+        assertEquals(1, c.getInt("killstreak.kill-rewards.extra-per-tier"));
+        assertFalse(c.getBoolean("killstreak.revenge.enabled"));
+        assertTrue(c.getBoolean("killstreak.anti-farm.enabled"));
+        assertTrue(c.getBoolean("killstreak.anti-farm.block-rewards-for-fractured-victim"));
+    }
     @Test void combatDefaultsPreserved() {
         var c = config();
         assertEquals(0.75, c.getDouble("combat.mace.player-damage-multiplier"));
