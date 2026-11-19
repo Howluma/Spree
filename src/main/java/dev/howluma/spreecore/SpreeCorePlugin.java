@@ -24,6 +24,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private FateSigil fate;
     private ProgressionMenu progressMenus;
     private PrivilegeRules privilegeRules;
+    private SpecialistItems specialistItems;
     private TalentEffects talents;
     private QuickHands quickHands;
     private AdminBalanceMenu balanceMenu;
@@ -50,6 +51,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         combat = new CombatManager(this);
         hunt = new HuntManager(this);
         privilegeRules = new PrivilegeRules(this);
+        specialistItems = new SpecialistItems(this);
         talents = new TalentEffects(this);
         quickHands = new QuickHands(this);
         progressMenus = new ProgressionMenu(this);
@@ -68,6 +70,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(fate, this);
         Bukkit.getPluginManager().registerEvents(progressMenus, this);
         Bukkit.getPluginManager().registerEvents(privilegeRules, this);
+        Bukkit.getPluginManager().registerEvents(specialistItems, this);
         Bukkit.getPluginManager().registerEvents(talents, this);
         Bukkit.getPluginManager().registerEvents(quickHands, this);
         Bukkit.getPluginManager().registerEvents(balanceMenu, this);
@@ -89,6 +92,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         events.tick();
         hunt.tick();
         privilegeRules.tick();
+        specialistItems.tick();
         talents.tick();
         forges.tick();
         legendaries.tick();
@@ -116,6 +120,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (hunt != null) hunt.shutdown();
         if (talents != null) talents.shutdown();
         if (quickHands != null) quickHands.shutdown();
+        if (specialistItems != null) specialistItems.shutdown();
         if (data != null) data.save();
     }
     public PlayerDataStore data() { return data; }
@@ -135,6 +140,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public FateSigil fate() { return fate; }
     public ProgressionMenu progressMenus() { return progressMenus; }
     public PrivilegeRules privilegeRules() { return privilegeRules; }
+    public SpecialistItems specialistItems() { return specialistItems; }
     public TalentEffects talents() { return talents; }
     public QuickHands quickHands() { return quickHands; }
     public AdminBalanceMenu balanceMenu() { return balanceMenu; }
