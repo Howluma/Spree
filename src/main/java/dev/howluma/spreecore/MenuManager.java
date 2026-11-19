@@ -151,9 +151,10 @@ public final class MenuManager implements Listener {
                 "&7Review Privileges, Talents and Infusions", "&eClick to browse"));
         inv.setItem(29, icon(Material.ARROW, "&9Back to Dashboard"));
         inv.setItem(31, icon(Material.BARRIER, "&cClose"));
-        inv.setItem(33, icon(Material.PAPER, "&7Server Status",
-                "&7Players online: &f"+Bukkit.getOnlinePlayers().size(),
-                "&7SpreeCore: &f"+plugin.getPluginMeta().getVersion()));
+        inv.setItem(33, icon(Material.CRAFTING_TABLE, "&b&lBalance Workshop",
+                "&7Direct item carry limits and mace cooldowns",
+                "&7Edit Fate Sigil ingredients in a 3x3 grid",
+                "&eClick for gameplay customization"));
         p.openInventory(inv);
     }
     public void openSettings(Player p) { openSettings(p,0); }
@@ -379,6 +380,7 @@ public final class MenuManager implements Listener {
                     case 25 -> plugin.progressMenus().openGuide(p);
                     case 29 -> openMain(p);
                     case 31 -> p.closeInventory();
+                    case 33 -> plugin.balanceMenu().open(p);
                     default -> {}
                 }
             }

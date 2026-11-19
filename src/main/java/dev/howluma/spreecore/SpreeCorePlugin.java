@@ -26,6 +26,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private PrivilegeRules privilegeRules;
     private TalentEffects talents;
     private QuickHands quickHands;
+    private AdminBalanceMenu balanceMenu;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
@@ -52,6 +53,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         talents = new TalentEffects(this);
         quickHands = new QuickHands(this);
         progressMenus = new ProgressionMenu(this);
+        balanceMenu = new AdminBalanceMenu(this);
         Bukkit.getPluginManager().registerEvents(streaks, this);
         Bukkit.getPluginManager().registerEvents(legendaries, this);
         Bukkit.getPluginManager().registerEvents(forges, this);
@@ -68,6 +70,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(privilegeRules, this);
         Bukkit.getPluginManager().registerEvents(talents, this);
         Bukkit.getPluginManager().registerEvents(quickHands, this);
+        Bukkit.getPluginManager().registerEvents(balanceMenu, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
                 "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
@@ -134,6 +137,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public PrivilegeRules privilegeRules() { return privilegeRules; }
     public TalentEffects talents() { return talents; }
     public QuickHands quickHands() { return quickHands; }
+    public AdminBalanceMenu balanceMenu() { return balanceMenu; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
