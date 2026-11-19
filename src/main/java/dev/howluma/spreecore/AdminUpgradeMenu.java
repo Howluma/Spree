@@ -81,7 +81,7 @@ public final class AdminUpgradeMenu implements Listener {
 
     public void openMilestones(Player admin, UUID target, ProgressionCatalog.Kind kind, int requestedPage) {
         if(!allowed(admin,kind)) return;
-        List<Integer> levels=ProgressionCatalog.milestones(kind,plugin.streaks().cap());
+        List<Integer> levels=ProgressionCatalog.milestones(kind,plugin.streaks().progressionCap());
         int totalPages=Math.max(1,(levels.size()+PAGE_SIZE-1)/PAGE_SIZE);
         int page=Math.max(0,Math.min(requestedPage,totalPages-1));
         var profile=plugin.data().get(target);
@@ -125,7 +125,7 @@ public final class AdminUpgradeMenu implements Listener {
     public void openChoices(Player admin, UUID target, ProgressionCatalog.Kind kind, int level) {
         if(!allowed(admin,kind)
                 || !ProgressionCatalog.milestone(kind,level)
-                || level>plugin.streaks().cap()) return;
+                || level>plugin.streaks().progressionCap()) return;
         var profile=plugin.data().get(target);
         Holder h=new Holder(Screen.CHOICES,target,kind,level);
         Inventory inv=create(h,"&9&lSet "+(kind==ProgressionCatalog.Kind.TALENT?"Talent":"Perk")+" &8| &f"+level);
@@ -203,7 +203,7 @@ public final class AdminUpgradeMenu implements Listener {
                     if(h.pageOrLevel>0)openMilestones(admin,h.target,h.kind,h.pageOrLevel-1);
                     else plugin.menus().openPlayer(admin,h.target);
                 } else if(slot==53) {
-                    int total=ProgressionCatalog.milestones(h.kind,plugin.streaks().cap()).size();
+                    int total=ProgressionCatalog.milestones(h.kind,plugin.streaks().progressionCap()).size();
                     if((h.pageOrLevel+1)*PAGE_SIZE<total)
                         openMilestones(admin,h.target,h.kind,h.pageOrLevel+1);
                     else admin.closeInventory();
