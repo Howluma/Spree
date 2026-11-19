@@ -1,4 +1,4 @@
-# SpreeCore 1.7.6 - authentic Spree-item Fate Sigil ingredient and admin Sigil grants.
+# SpreeCore 1.8.0 - fully audited Talents with activation cues and ready alerts.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -110,6 +110,17 @@ privileges:
 
 # Configurable Talent values. Each subsection has its own settings screen.
 talents:
+  # Owner hears a distinct cue, sees a short particle burst, and receives an
+  # action-bar label when a Talent actually procs. Cooldown alerts are sent only
+  # once, when the Talent becomes usable again; never every heartbeat.
+  feedback:
+    enabled: true
+    sounds: true
+    particles: true
+    actionbar: true
+    ready-notifications: true
+    ready-chat: true
+    passive-interval-ms: 2500
   defense:
     shared-cooldown-seconds: 10
   executioner:
