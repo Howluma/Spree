@@ -33,6 +33,8 @@ public final class CapacityPerk implements Listener {
     private final SpreeCorePlugin plugin;
     private final NamespacedKey managedKey;
     private final Map<UUID, Set<Inventory>> pending = new HashMap<>();
+    /** Preserve unrelated inventory maximums rather than resetting everyone to 64. */
+    private final Map<UUID, Integer> previousInventoryMax = new HashMap<>();
 
     CapacityPerk(SpreeCorePlugin plugin) {
         this.plugin = plugin;
@@ -95,7 +97,15 @@ public final class CapacityPerk implements Listener {
         PlayerInventory inventory = player.getInventory();
         int extra = bonus(player);
         int newMax = CapacityMath.limit(64, extra);
-        if (inventory.getMaxStackSize() != newMax) inventory.setMaxStackSize(newMax);
+        UUID id = player.getUniqueId();
+        if (extra > 0) {
+            previousInventoryMax.putIfAbsent(id, inventory.getMaxStackSize());
+            if (inventory.getMaxStackSize() != newMax) inventory.setMaxStackSize(newMax);
+        } else {
+            Integer restore = previousInventoryMax.remove(id);
+            if (restore != null && inventory.getMaxStackSize() != restore)
+                inventory.setMaxStackSize(restore);
+        }
         ItemStack[] contents = inventory.getStorageContents();
         List<ItemStack> overflow = new ArrayList<>();
         boolean changed = false;
@@ -113,6 +123,19 @@ public final class CapacityPerk implements Listener {
             changed = true;
         }
         if (changed) inventory.setStorageContents(contents);
+        // Offhand items are also carried by the player and deserve the same cap.
+        ItemStack changedOffhand = adjusted(inventory.getItemInOffHand(), extra);
+        if (changedOffhand != null) {
+            int max = changedOffhand.getMaxStackSize();
+            if (changedOffhand.getAmount() > max) {
+                int extraCount = changedOffhand.getAmount() - max;
+                changedOffhand.setAmount(max);
+                ItemStack spare = changedOffhand.clone();
+                spare.setAmount(extraCount);
+                overflow.add(spare);
+            }
+            inventory.setItemInOffHand(changedOffhand);
+        }
         for (ItemStack spare : overflow) giveOrDrop(player, spare);
     }
 
@@ -241,7 +264,16 @@ public final class CapacityPerk implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin, () -> refresh(event.getPlayer()), 3L);
     }
     @EventHandler public void quit(PlayerQuitEvent event) {
-        pending.remove(event.getPlayer().getUniqueId());
+        UUID id = event.getPlayer().getUniqueId();
+        pending.remove(id);
+        Integer previous = previousInventoryMax.remove(id);
+        if (previous != null) event.getPlayer().getInventory().setMaxStackSize(previous);
     }
-    public void shutdown() { pending.clear(); }
+    public void shutdown() {
+        pending.clear();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Integer previous = previousInventoryMax.remove(player.getUniqueId());
+            if (previous != null) player.getInventory().setMaxStackSize(previous);
+        }
+    }
 }
