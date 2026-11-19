@@ -37,8 +37,7 @@ killstreak:
   # Fractured (-1) is treated as 0 here: no health penalty.
   base-health-hearts: 10
   health-per-level-hearts: 0.5
-  # Direct mace attacks are unavailable at 0 or Fractured.
-  mace-unlock-level: 1
+  # The mace now requires a redeemed Mace Wielder Privilege.
   # PvP kill rewards scale with the VICTIM'S streak before death.
   # 0-4 => +1; 5-9 => +2; 10-14 => +3; ... 25-29 => +6; 30 => +7.
   # Applies to qualifying melee, ranged, and player-credited explosive kills.
@@ -47,12 +46,7 @@ killstreak:
     base-reward: 1
     levels-per-tier: 5
     extra-per-tier: 1
-  # All levels are editable in /spree settings > Milestone Buffs.
-  # Buffs remain active while at or above the required streak.
-  milestones:
-    weaving-level: 5
-    speed-level: 10
-    strength-level: 15
+  # Infusions are selected in /spree > Progression, not automatically granted.
   # Convert owned streak levels into right-click +1 Spree items.
   withdrawal:
     enabled: true
@@ -80,6 +74,15 @@ hunt:
     '20': '&9&lSPREE &8| &c{player} is a lone wolf! &7(20 killstreak)'
     '25': '&9&lSPREE &8| &5{player} is most wanted! &7(25 killstreak)'
     '30': '&9&lSPREE &8| &4{player} has become legendary! &7(30 killstreak)'
+
+# These item limits are visible in the operator settings GUI.
+privileges:
+  max-totems: 1
+  max-enchanted-apples: 4
+  enchanted-apple-cooldown-seconds: 30
+  enchanted-apple-max-effect-seconds: 60
+  max-wind-charges: 64
+  max-experience-bottles: 64
 
 # Two Perk rolls per 5 levels (2, 4, 7, 9, ...).
 # Each milestone's roll is stored permanently in players.yml, never rerolled.

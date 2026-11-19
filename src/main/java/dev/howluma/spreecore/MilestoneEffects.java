@@ -27,14 +27,16 @@ final class MilestoneEffects {
     }
 
     void refresh(Player player, int streak, boolean eventGlow) {
-        maintain(player, PotionEffectType.WEAVING, 0,
-                unlocked(streak, plugin.getConfig().getInt("killstreak.milestones.weaving-level", 5)));
-        maintain(player, PotionEffectType.SPEED, 0,
-                unlocked(streak, plugin.getConfig().getInt("killstreak.milestones.speed-level", 10)));
-        maintain(player, PotionEffectType.STRENGTH, 1,
-                unlocked(streak, plugin.getConfig().getInt("killstreak.milestones.strength-level", 15)));
-        maintain(player, PotionEffectType.GLOWING, 0,
-                eventGlow || unlocked(streak, plugin.getConfig().getInt("hunt.glowing-level", 10)));
+        var choices=plugin.progression();
+        maintain(player,PotionEffectType.WEAVING,0,choices.hasInfusion(player,"weaving"));
+        maintain(player,PotionEffectType.SPEED,0,choices.hasInfusion(player,"speed"));
+        maintain(player,PotionEffectType.STRENGTH,0,choices.hasInfusion(player,"strength"));
+        maintain(player,PotionEffectType.REGENERATION,0,choices.hasInfusion(player,"regeneration"));
+        maintain(player,PotionEffectType.LUCK,4,choices.hasInfusion(player,"luck"));
+        maintain(player,PotionEffectType.HERO_OF_THE_VILLAGE,9,choices.hasInfusion(player,"hero"));
+        maintain(player,PotionEffectType.HASTE,0,choices.hasTalent(player,"industrious"));
+        maintain(player,PotionEffectType.GLOWING,0,eventGlow
+                ||unlocked(streak,plugin.getConfig().getInt("hunt.glowing-level",10)));
     }
 
     private void maintain(Player player, PotionEffectType type, int amplifier, boolean enabled) {

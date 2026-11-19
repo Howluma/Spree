@@ -121,16 +121,10 @@ public final class MenuManager implements Listener {
         double healthBonus = streak * config.getDouble("killstreak.health-per-level-hearts", 0.5);
         if (healthBonus > 0)
             current.add("&9❤ &7Health &f+" + ConfigEditor.format(healthBonus) + " hearts");
-        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.mace-unlock-level", 1)))
-            current.add("&9⚔ &7Mace &aUnlocked");
-        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.milestones.weaving-level", 5)))
-            current.add("&7Weaving &aActive");
-        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.milestones.speed-level", 10)))
-            current.add("&7Speed I &aActive");
-        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.milestones.strength-level", 15)))
-            current.add("&7Strength II &aActive");
-        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.milestones.glowing-level", 20)))
-            current.add("&7Glowing &aActive");
+        // Actual Infusions and Privileges are player-selected, not automatic.
+        if (MilestoneEffects.unlocked(streak, config.getInt("hunt.glowing-level",10)))
+            current.add("&7Hunt Glowing &aActive");
+        current.add("&7Your chosen upgrades: &9/spree");
         return current.toArray(String[]::new);
     }
 

@@ -127,7 +127,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public void applySettingChange(String path) {
         if (path.equals("general.actionbar-interval-ticks") || path.equals("general.save-interval-seconds"))
             scheduleConfigurableTasks();
-        if (path.startsWith("killstreak.") || path.startsWith("events.juggernaut."))
+        if (path.startsWith("killstreak.") || path.startsWith("events.juggernaut.")
+                || path.startsWith("privileges."))
             streaks.refreshOnline();
         if (path.startsWith("display.streak-indicators.") || path.equals("hunt.glowing-level"))
             indicators.refreshOnline();
@@ -135,6 +136,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
             perks.initializeExisting();
             for (var player : Bukkit.getOnlinePlayers()) perks.refresh(player);
         }
+        if(path.startsWith("privileges."))
+            for(var player:Bukkit.getOnlinePlayers())privilegeRules.enforce(player);
         if (path.startsWith("resource-pack."))
             for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
         if (path.equals("legendary.crafting-enabled") || path.startsWith("legendary.forging."))
@@ -181,7 +184,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         // otherwise it would appear that the old perks are still configurable.
         for (String removed : new String[]{"killstreak.max-health-hearts", "killstreak.potion-bonuses",
                 "killstreak.passives", "killstreak.restrictions", "events.timed.surge",
-                "killstreak.milestones.glowing-level"}) {
+                "killstreak.milestones", "killstreak.mace-unlock-level"}) {
             if (getConfig().isSet(removed)) {
                 getConfig().set(removed, null);
                 changed = true;

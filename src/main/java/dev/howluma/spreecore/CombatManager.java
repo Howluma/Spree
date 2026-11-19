@@ -200,8 +200,7 @@ public final class CombatManager implements Listener {
     public void onAttemptMaceSmash(EntityAttemptSmashAttackEvent event) {
         if (event.getEntity() instanceof Player attacker
                 && event.getWeapon().getType() == Material.MACE
-                && !SpreeMath.canUseMace(plugin.streaks().streak(attacker),
-                        config().getInt("killstreak.mace-unlock-level", 1))) {
+                && !plugin.progression().hasPrivilege(attacker,"mace_wielder")) {
             event.setResult(org.bukkit.event.Event.Result.DENY);
             warnMace(attacker);
         }
@@ -210,8 +209,7 @@ public final class CombatManager implements Listener {
     private void warnMace(Player attacker) {
         long now = System.currentTimeMillis();
         if (now - maceWarnings.getOrDefault(attacker.getUniqueId(), 0L) >= 1200L) {
-            int unlock = Math.max(1, config().getInt("killstreak.mace-unlock-level", 1));
-            Text.action(attacker, "&1⚔ &7Mace unlocked at &9&l" + unlock + " &7killstreak.");
+            Text.action(attacker, "&cMace locked. &7Choose &9Mace Wielder &7in /spree.");
             maceWarnings.put(attacker.getUniqueId(), now);
         }
     }
@@ -225,8 +223,7 @@ public final class CombatManager implements Listener {
                 && attacker.getInventory().getItemInMainHand().getType() == Material.MACE
                 && (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK
                     || event.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)) {
-            int unlock = config().getInt("killstreak.mace-unlock-level", 1);
-            if (!SpreeMath.canUseMace(plugin.streaks().streak(attacker), unlock)) {
+            if (!plugin.progression().hasPrivilege(attacker,"mace_wielder")) {
                 event.setCancelled(true);
                 warnMace(attacker);
                 return;
