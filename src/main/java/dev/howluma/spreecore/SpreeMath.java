@@ -7,8 +7,9 @@ public final class SpreeMath {
     /**
      * PvP kill reward from the victim's PRE-DEATH streak.
      * By default: 0-4 => +1, 5-9 => +2, ... 25-29 => +6, 30 => +7.
-     * One reward rule applies to all direct and credited explosion kills.
-     * This is intentionally separate from the legacy natural-death token payout.
+     * One reward rule applies to direct, projectile and credited explosion
+     * kills AND to environmental-death token amounts. The death penalty itself
+     * still halves the victim's existing streak.
      */
     public static int killGain(int victimStreak) {
         return killGain(victimStreak, 1, 5, 1);
@@ -21,11 +22,7 @@ public final class SpreeMath {
         long total = (long) initial + ((long) Math.max(0, victimStreak) / interval) * additional;
         return (int) Math.min(Integer.MAX_VALUE, total);
     }
-    /** Environmental-death Spree Tokens keep their existing half-streak value. */
-    public static int naturalDeathTokenGain(int victimStreak) {
-        return Math.max(1, Math.max(0, victimStreak) / 2);
-    }
-    public static int deathStreak(int oldStreak) {
+     public static int deathStreak(int oldStreak) {
         return oldStreak < 0 ? -1 : oldStreak / 2;
     }
     public static int naturalDeathStreak(int oldStreak) {

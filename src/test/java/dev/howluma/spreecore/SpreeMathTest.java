@@ -35,15 +35,17 @@ class SpreeMathTest {
         assertEquals(7, SpreeMath.killGain(34));
         assertEquals(8, SpreeMath.killGain(35));
     }
-    @Test void serverCanTuneKillRewardsWithoutChangingTokenPayout() {
+    @Test void environmentalTokensUseTheSameRewardTiersAsPvPKills() {
         assertEquals(1, SpreeMath.killGain(0, 1, 5, 1));
         assertEquals(2, SpreeMath.killGain(5, 1, 5, 1));
         assertEquals(3, SpreeMath.killGain(9, 1, 4, 1));
         assertEquals(4, SpreeMath.killGain(10, 2, 10, 2));
         assertEquals(1, SpreeMath.killGain(-10, -1, 0, -1));
-        assertEquals(15, SpreeMath.naturalDeathTokenGain(30));
-        assertEquals(10, SpreeMath.naturalDeathTokenGain(20));
-        assertEquals(1, SpreeMath.naturalDeathTokenGain(0));
+        assertEquals(7, SpreeMath.killGain(30));
+        assertEquals(5, SpreeMath.killGain(20));
+        assertEquals(1, SpreeMath.killGain(0));
+        // Victim's penalty still halves their streak, independently of token value.
+        assertEquals(15, SpreeMath.naturalDeathStreak(30));
     }
     @Test void thirtyStreakTntKillFromFracturedAwardsSeven() {
         // Credited TNT uses the same PRE-DEATH victim streak as melee kills.
