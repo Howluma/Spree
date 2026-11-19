@@ -14,6 +14,8 @@ class DefaultConfigTest {
     }
     @Test void healthAndSelectableProgressionReplaceFixedMilestones() {
         var c = config();
+        assertEquals(1_000_000_000, c.getInt("general.max-killstreak"));
+        assertEquals(30, SpreeMath.BENEFIT_CAP);
         assertEquals(10, c.getInt("killstreak.base-health-hearts"));
         assertEquals(0.5, c.getDouble("killstreak.health-per-level-hearts"));
         assertFalse(c.contains("killstreak.mace-unlock-level"));
