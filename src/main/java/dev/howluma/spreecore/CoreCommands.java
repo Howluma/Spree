@@ -22,6 +22,10 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     @Override public boolean onCommand(CommandSender sender,Command command,String alias,String[] args) {
         switch(command.getName().toLowerCase(Locale.ROOT)) {
             case "spree" -> {
+                if (args.length > 0 && (args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("setall"))) {
+                    if (admin(sender)) adminCommand(sender, args);
+                    return true; // Console admins can set killstreaks, too.
+                }
                 Player p=requirePlayer(sender);
                 if(p!=null) {
                     if(args.length>0 && args[0].equalsIgnoreCase("admin")) {
@@ -85,6 +89,16 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             }
             case "spreeinfo" -> showInfo(sender);
             case "spreeadmin" -> {if(admin(sender))adminCommand(sender,args);}
+            case "spreeset" -> {
+                if (!admin(sender)) return true;
+                if (args.length != 2) message(sender, "&cUsage: /spreeset <player> <value>");
+                else adminCommand(sender, new String[]{"set", args[0], args[1]});
+            }
+            case "spreesetall" -> {
+                if (!admin(sender)) return true;
+                if (args.length != 1) message(sender, "&cUsage: /spreesetall <value>");
+                else adminCommand(sender, new String[]{"setall", args[0]});
+            }
             case "spreeevent" -> {if(admin(sender))eventCommand(sender,args);}
             case "legendary" -> legendaryCommand(sender,args);
             default -> {return false;}
@@ -147,8 +161,22 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     private Integer number(CommandSender sender,String s) {
         try {return Integer.parseInt(s);}catch(NumberFormatException e){message(sender,"&cInvalid number: "+s);return null;}
     }
+    private Integer exactSpreeValue(CommandSender sender, String input) {
+        Integer value = number(sender, input);
+        if (value == null) return null;
+        if (value < -1 || value > plugin.streaks().cap()) {
+            message(sender, "&cAllowed killstreak values: -1 (Fractured) through " + plugin.streaks().cap() + ".");
+            return null;
+        }
+        return value;
+    }
+    private List<String> spreeSuggestions() {
+        return java.util.stream.Stream.of("-1", "0", "1", "5", "10", "15", "20",
+                Integer.toString(plugin.streaks().cap())).distinct().toList();
+    }
     private void adminHelp(CommandSender s) {
         Text.send(s,"&9&lSPREE ADMIN &7- GUI: /spreeadmin");
+        Text.send(s,"&bShortcuts: &f/spreeset <player> <value> &7and &f/spreesetall <value>");
         for(String line:List.of("set <player> <value>","add <player> <value>","remove <player> <value>",
                 "reset <player>","fracture <player>","giveitem <player> [amount]","setall <value>","resetall (twice to confirm)",
                 "update [player]","reload","migrateitems","importskript [force]"))
@@ -193,10 +221,15 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 Bukkit.broadcastMessage(Text.c("&9&lSPREE &7All killstreaks reset by an admin."));
             }
             case "setall" -> {
-                if(args.length<2){message(sender,"&cUsage: /spreeadmin setall <amount>");return;}
-                Integer value=number(sender,args[1]);if(value==null)return;
-                for(var profile:List.copyOf(plugin.data().all()))plugin.streaks().setStreak(profile.id,value,true);
-                message(sender,"&aUpdated all saved player streaks.");
+                if(args.length!=2){message(sender,"&cUsage: /spreesetall <value>");return;}
+                Integer value=exactSpreeValue(sender,args[1]);if(value==null)return;
+                for (Player player : Bukkit.getOnlinePlayers()) plugin.data().get(player);
+                List<PlayerDataStore.Profile> targets = List.copyOf(plugin.data().all());
+                for(var profile:targets)plugin.streaks().setStreak(profile.id,value,value>=0);
+                plugin.data().save();
+                plugin.getLogger().info(sender.getName() + " set all " + targets.size() + " stored killstreaks to " + value);
+                message(sender,"&aSet " + targets.size() + " saved player killstreaks to &f"
+                        + plugin.streaks().display(value) + "&a (online and offline).");
             }
             case "update" -> {
                 if(args.length>=2){
@@ -227,11 +260,14 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 int value=0;
                 if(!cmd.equals("reset") && !cmd.equals("recovery") && !cmd.equals("fracture")) {
                     if(args.length<3){message(sender,"&cMissing amount.");return;}
-                    Integer parsed=number(sender,args[2]);if(parsed==null)return;
+                    Integer parsed=cmd.equals("set")
+                            ?exactSpreeValue(sender,args[2]):number(sender,args[2]);
+                    if(parsed==null)return;
                     value=switch(cmd){case "set" -> parsed;case "add" -> p.streak+parsed;default -> p.streak-parsed;};
                 }
                 if(cmd.equals("fracture") || cmd.equals("recovery"))plugin.streaks().setStreak(p.id,-1,false);
-                else plugin.streaks().setStreak(p.id,value,true);
+                else plugin.streaks().setStreak(p.id,value,value>=0);
+                plugin.data().save();
                 message(sender,"&aUpdated &f"+p.name+"&a: " + plugin.streaks().display(p.streak));
             }
             default -> adminHelp(sender);
@@ -335,7 +371,14 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                         && plugin.getConfig().getBoolean("killstreak.withdrawal.enabled", true))
                     options.add("withdraw");
                 if (sender.hasPermission("spree.admin"))
-                    options.addAll(List.of("settings", "admin", "value", "cancel"));
+                    options.addAll(List.of("settings", "admin", "set", "setall", "value", "cancel"));
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("set")
+                    && sender.hasPermission("spree.admin")) {
+                options=plugin.data().all().stream().map(profile -> profile.name).sorted().toList();
+            } else if (sender.hasPermission("spree.admin")
+                    && ((args.length==3 && args[0].equalsIgnoreCase("set"))
+                    || (args.length==2 && args[0].equalsIgnoreCase("setall")))) {
+                options=spreeSuggestions();
             } else if (args.length == 2 && args[0].equalsIgnoreCase("withdraw")
                     && sender instanceof Player p && sender.hasPermission("spree.withdraw")) {
                 int n = plugin.streaks().streak(p);
@@ -347,7 +390,14 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             else if(args.length==2 && List.of("set","add","remove","reset","fracture","recovery","update","giveitem").contains(args[0]))
                 options=plugin.data().all().stream().map(p->p.name).sorted().toList();
             else if(args.length==3 && args[0].equalsIgnoreCase("giveitem")) options=List.of("1","5","16","32","64");
+            else if((args.length==3 && args[0].equalsIgnoreCase("set"))
+                    || (args.length==2 && args[0].equalsIgnoreCase("setall"))) options=spreeSuggestions();
             else if(args.length==2 && args[0].equalsIgnoreCase("importskript"))options=List.of("force");
+        }else if(root.equals("spreeset") && sender.hasPermission("spree.admin")) {
+            if(args.length==1) options=plugin.data().all().stream().map(profile -> profile.name).sorted().toList();
+            else if(args.length==2) options=spreeSuggestions();
+        }else if(root.equals("spreesetall") && sender.hasPermission("spree.admin")) {
+            if(args.length==1) options=spreeSuggestions();
         }else if(root.equals("spreeevent") && sender.hasPermission("spree.admin")) {
             if(args.length==1)options=List.of("locator","hunt","juggernaut","bloodsbane","bloodmoon","surge","chaos","race");
             else if(args.length==2)options=List.of("on","off");
