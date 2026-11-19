@@ -23,6 +23,15 @@ class ConfigEditorTest {
         assertNotNull(ConfigEditor.validate("killstreak.max-health-hearts", 201));
         assertNotNull(ConfigEditor.validate("events.timed.chaos.cooldown-multiplier", Double.NaN));
     }
+    @Test void stackablePerksEnforceSmallBonusesAndReasonableCaps() {
+        assertNull(ConfigEditor.validate("perks.power.per-copy", 0.02));
+        assertNull(ConfigEditor.validate("perks.reach.per-copy", 0.05));
+        assertNotNull(ConfigEditor.validate("perks.power.per-copy", 0.12));
+        assertNotNull(ConfigEditor.validate("perks.reach.per-copy", -0.01));
+        assertNotNull(ConfigEditor.validate("perks.power.max-copies", 0));
+        assertNotNull(ConfigEditor.validate("perks.power.max-copies", 9));
+        assertNull(ConfigEditor.validate("perks.agility.max-copies", 3));
+    }
     @Test void tierColorEditorRejectsInvalidOrMultiColorValues() {
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.5", "&a"));
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.10", "<#123ABC>"));

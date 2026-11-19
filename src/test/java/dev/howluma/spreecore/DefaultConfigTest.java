@@ -28,6 +28,18 @@ class DefaultConfigTest {
         assertFalse(c.contains("killstreak.max-health-hearts"));
         assertFalse(c.contains("events.timed.surge"));
     }
+    @Test void allElevenMinorPerksHaveSafeDefaults() {
+        var c = config();
+        assertTrue(c.getBoolean("perks.enabled"));
+        for (PerkType type : PerkType.values()) {
+            String prefix = "perks." + type.id + ".";
+            assertTrue(c.getBoolean(prefix + "enabled"), type.display);
+            assertEquals(type.defaultMaxCopies, c.getInt(prefix + "max-copies"), type.display);
+            assertEquals(type.defaultPerCopy, c.getDouble(prefix + "per-copy"), type.display);
+        }
+        assertEquals(0.05, c.getDouble("perks.reach.per-copy"));
+        assertEquals(3, c.getInt("perks.reach.max-copies"));
+    }
     @Test void darkBlueIndicatorDefaults() {
         var c = config();
         assertTrue(c.getBoolean("display.streak-indicators.tab-enabled"));
