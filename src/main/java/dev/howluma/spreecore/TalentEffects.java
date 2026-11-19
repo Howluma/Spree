@@ -243,13 +243,19 @@ public final class TalentEffects implements Listener {
         // Paper retains a damage modifier for the actual damage that the shield
         // absorbed. Merely raising a shield does NOT qualify for Riposte.
         try {
-            return e.isApplicable(EntityDamageEvent.DamageModifier.BLOCKING)
-                    && e.getDamage(EntityDamageEvent.DamageModifier.BLOCKING)<-0.01;
-        } catch(UnsupportedOperationException | IllegalArgumentException ex) {
-            // A future server that removes the modifier should not grant a
-            // free Riposte on every raised-shield hit.
-            return false;
+            if(e.isApplicable(EntityDamageEvent.DamageModifier.BLOCKING))
+                return e.getDamage(EntityDamageEvent.DamageModifier.BLOCKING)<-0.01;
+        } catch(UnsupportedOperationException | IllegalArgumentException ignored) {
+            // New shield item components may not expose the deprecated modifier.
         }
+        // Only a zero-damage frontal block qualifies as a fallback. Never
+        // trigger just because the defender was raising a shield.
+        if(e.getFinalDamage()>0.001 || e.getDamage()<=0)return false;
+        org.bukkit.util.Vector toward=attacker.getLocation().toVector()
+                .subtract(defender.getLocation().toVector()).setY(0);
+        org.bukkit.util.Vector facing=defender.getLocation().getDirection().setY(0);
+        return toward.lengthSquared()>.001 && facing.lengthSquared()>.001
+                && facing.normalize().dot(toward.normalize())>.25;
     }
 
     /**
