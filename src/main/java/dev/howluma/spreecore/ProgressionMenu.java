@@ -341,8 +341,10 @@ public final class ProgressionMenu implements Listener {
                 case SIGIL_HOME -> open(player);
                 case CHOOSE -> openSlots(player,h.kind,false);
                 case SIGIL_CHOOSE -> openSlots(player,h.kind,true);
-                case SIGIL_CONFIRM -> h.kind==ProgressionCatalog.Kind.PERK
-                        ? openSigil(player) : openSlots(player,h.kind,true);
+                case SIGIL_CONFIRM -> {
+                    if (h.kind == ProgressionCatalog.Kind.PERK) openSigil(player);
+                    else openSlots(player,h.kind,true);
+                }
                 case WANTED -> openGuide(player);
                 default -> open(player);
             }
