@@ -1,6 +1,18 @@
-# SpreeCore v1.5.1 — test-server checklist
+# SpreeCore v1.5.2 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Spree withdrawal regression (v1.5.2)
+
+- [ ] At streak 30, `/spree withdraw` creates exactly 30 +1 Spree items, sets streak to 0, and drops no tokens.
+- [ ] At streak 30, `/spree withdraw 5` gives exactly 5 items and leaves streak 25; right-clicking each restores +1.
+- [ ] `/spree withdraw all` and `/spree withdraw 1` work normally.
+- [ ] At Fractured or 0, invalid amounts, over-balance values, extra arguments, and malformed quantities are rejected without changes.
+- [ ] A full inventory, or room for fewer items than requested, leaves streak untouched and creates no items.
+- [ ] Existing matching Spree items merge; ordinary Heart of the Sea and environmental-death tokens do not count.
+- [ ] Withdrawing refreshes max health, milestone effects and tab display immediately; lifetime best is unchanged.
+- [ ] Ordinary players have permission by default, but the admin GUI toggle disables withdrawal immediately and persists across restart.
+- [ ] Existing player data migrates unchanged and no inventory/streak duplication occurs on rapid repeated command use.
 
 ## TNT / Fractured streak reward regression (v1.5.1)
 
