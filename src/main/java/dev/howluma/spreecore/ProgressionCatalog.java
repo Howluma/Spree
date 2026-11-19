@@ -32,7 +32,7 @@ public final class ProgressionCatalog {
 
     public static final List<Option> INFUSIONS = List.of(
         new Option("speed", "Speed I", Material.POTION, "Permanent Speed I"),
-        new Option("strength", "Strength I", Material.POTION, "Permanent Strength I"),
+        new Option("haste", "Haste I", Material.POTION, "Permanent Haste I"),
         new Option("weaving", "Weaving I", Material.POTION, "Permanent Weaving I"),
         new Option("regeneration", "Regeneration I", Material.POTION, "Permanent Regeneration I"),
         new Option("luck", "Luck V", Material.POTION, "Permanent Luck V"),
@@ -59,8 +59,7 @@ public final class ProgressionCatalog {
         new Option("scavenger", "Scavenger", Material.BUNDLE, "15% hit chance to restore 4 wind charges; 90s cooldown"),
         new Option("quick_hands", "Quick Hands", Material.RABBIT_FOOT, "Consume food and drink potions 20% faster"),
         new Option("streak_insurance", "Streak Insurance", Material.RECOVERY_COMPASS, "Preserve up to 2 lost streak levels on death; 10m cooldown"),
-        new Option("blacksmith", "Blacksmith", Material.ANVIL, "Craft golden apples with 2 gold and breeze rods from 8 iron nuggets + stick"),
-        new Option("industrious", "Industrious", Material.BEACON, "Permanent Haste I"));
+        new Option("blacksmith", "Blacksmith", Material.ANVIL, "Craft golden apples with 2 gold and breeze rods from 8 iron nuggets + stick"));
 
     public static List<Option> options(Kind kind) {
         return switch (kind) {
