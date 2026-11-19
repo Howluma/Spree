@@ -29,6 +29,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private QuickHands quickHands;
     private AdminBalanceMenu balanceMenu;
     private AdminUpgradeMenu adminUpgrades;
+    private TalentFeedback talentFeedback;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
@@ -54,6 +55,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         privilegeRules = new PrivilegeRules(this);
         specialistItems = new SpecialistItems(this);
         talents = new TalentEffects(this);
+        talentFeedback = new TalentFeedback(this);
         quickHands = new QuickHands(this);
         progressMenus = new ProgressionMenu(this);
         balanceMenu = new AdminBalanceMenu(this);
@@ -74,6 +76,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(privilegeRules, this);
         Bukkit.getPluginManager().registerEvents(specialistItems, this);
         Bukkit.getPluginManager().registerEvents(talents, this);
+        Bukkit.getPluginManager().registerEvents(talentFeedback, this);
         Bukkit.getPluginManager().registerEvents(quickHands, this);
         Bukkit.getPluginManager().registerEvents(balanceMenu, this);
         Bukkit.getPluginManager().registerEvents(adminUpgrades, this);
@@ -122,6 +125,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (capacity != null) capacity.shutdown();
         if (hunt != null) hunt.shutdown();
         if (talents != null) talents.shutdown();
+        if (talentFeedback != null) talentFeedback.shutdown();
         if (quickHands != null) quickHands.shutdown();
         if (specialistItems != null) specialistItems.shutdown();
         if (data != null) data.save();
@@ -145,6 +149,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public PrivilegeRules privilegeRules() { return privilegeRules; }
     public SpecialistItems specialistItems() { return specialistItems; }
     public TalentEffects talents() { return talents; }
+    public TalentFeedback talentFeedback() { return talentFeedback; }
     public QuickHands quickHands() { return quickHands; }
     public AdminBalanceMenu balanceMenu() { return balanceMenu; }
     public AdminUpgradeMenu adminUpgrades() { return adminUpgrades; }
