@@ -24,6 +24,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private FateSigil fate;
     private ProgressionMenu progressMenus;
     private PrivilegeRules privilegeRules;
+    private TalentEffects talents;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
@@ -47,6 +48,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         combat = new CombatManager(this);
         hunt = new HuntManager(this);
         privilegeRules = new PrivilegeRules(this);
+        talents = new TalentEffects(this);
         progressMenus = new ProgressionMenu(this);
         Bukkit.getPluginManager().registerEvents(streaks, this);
         Bukkit.getPluginManager().registerEvents(legendaries, this);
@@ -62,6 +64,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(fate, this);
         Bukkit.getPluginManager().registerEvents(progressMenus, this);
         Bukkit.getPluginManager().registerEvents(privilegeRules, this);
+        Bukkit.getPluginManager().registerEvents(talents, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
                 "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
@@ -69,6 +72,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         }
         forges.registerRecipes();
         fate.registerRecipe();
+        talents.registerRecipes();
         Bukkit.getScheduler().runTaskTimer(this, this::heartbeat, 20L, 20L);
         scheduleConfigurableTasks();
         getLogger().info("SpreeCore enabled. No Skript dependency required.");
@@ -79,6 +83,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         events.tick();
         hunt.tick();
         privilegeRules.tick();
+        talents.tick();
         forges.tick();
         legendaries.tick();
         // Potions/health only need refreshing every 4 seconds, not scanning inventories each tick.
@@ -103,6 +108,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (perks != null) perks.shutdown();
         if (capacity != null) capacity.shutdown();
         if (hunt != null) hunt.shutdown();
+        if (talents != null) talents.shutdown();
         if (data != null) data.save();
     }
     public PlayerDataStore data() { return data; }
@@ -122,6 +128,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public FateSigil fate() { return fate; }
     public ProgressionMenu progressMenus() { return progressMenus; }
     public PrivilegeRules privilegeRules() { return privilegeRules; }
+    public TalentEffects talents() { return talents; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
@@ -199,6 +206,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         scheduleConfigurableTasks();
         forges.registerRecipes();
         fate.registerRecipe();
+        talents.registerRecipes();
         for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
         perks.initializeExisting();
         streaks.refreshOnline();

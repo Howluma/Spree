@@ -114,6 +114,7 @@ public final class StreakManager implements Listener {
                 || (plugin.forges() != null && plugin.forges().isForging(player));
         milestones.refresh(player, streak, eventGlow);
         plugin.perks().refresh(player);
+        plugin.talents().refresh(player);
     }
     public void refreshOnline() { for (Player player : Bukkit.getOnlinePlayers()) update(player); }
     public void renderHud() {
@@ -190,12 +191,14 @@ public final class StreakManager implements Listener {
                     c().getInt("killstreak.kill-rewards.base-reward", 1),
                     c().getInt("killstreak.kill-rewards.levels-per-tier", 5),
                     c().getInt("killstreak.kill-rewards.extra-per-tier", 1)));
-            setStreak(victim.getUniqueId(), SpreeMath.naturalDeathStreak(old), false);
+            setStreak(victim.getUniqueId(),
+                    plugin.talents().protectedDeath(victim,old,SpreeMath.naturalDeathStreak(old)),false);
             if (old == 0) Text.send(victim, plugin.prefix() + "&cYou have a Fractured Killstreak. Reclaim your own token or get a kill.");
             else Text.send(victim, plugin.prefix() + "&7Natural death: your streak is now " + display(streak(victim)));
         } else {
             victimProfile.revengeAgainst = killer.getUniqueId();
-            setStreak(victim.getUniqueId(), SpreeMath.deathStreak(old), false);
+            setStreak(victim.getUniqueId(),
+                    plugin.talents().protectedDeath(victim,old,SpreeMath.deathStreak(old)),false);
             PlayerDataStore.Profile attacker = get(killer);
             attacker.kills++;
             boolean reward = eligibleKill(attacker, victim.getUniqueId(), old);
@@ -212,6 +215,7 @@ public final class StreakManager implements Listener {
                     Text.send(killer, "&4&lREVENGE COMPLETE &7- bonus streak!");
                 }
                 addStreak(killer, gain);
+                plugin.talents().onEligibleKill(killer);
                 Text.send(killer, plugin.prefix() + "&a+" + gain + " Killstreak &7for eliminating &f" + victim.getName());
             } else {
                 Text.action(killer, "&cNo streak earned (anti-farm protection)");
