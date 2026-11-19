@@ -102,6 +102,67 @@ privileges:
   max-wind-charges: 64
   max-experience-bottles: 64
 
+# Configurable Talent values. Each subsection has its own settings screen.
+talents:
+  defense:
+    shared-cooldown-seconds: 10
+  executioner:
+    health-threshold-fraction: 0.50
+    bonus-damage-fraction: 0.10
+  combo-breaker:
+    hits-required: 3
+    window-seconds: 5
+    bonus-damage-fraction: 0.10
+  concussive-blow:
+    cooldown-seconds: 45
+    duration-seconds: 5
+  sunder:
+    cooldown-seconds: 45
+    extra-shield-disable-ticks: 30
+  riposte:
+    cooldown-seconds: 45
+    duration-seconds: 2
+  bloodlust:
+    hits-required: 5
+    heal-hearts: 1.0
+    cooldown-seconds: 15
+  second-wind:
+    health-threshold-fraction: 0.30
+    duration-seconds: 8
+    cooldown-seconds: 90
+  iron-will:
+    trigger-hearts: 3.0
+    duration-seconds: 5
+    cooldown-seconds: 75
+  field-medic:
+    heal-hearts: 5.0
+    cooldown-seconds: 60
+  golden-aegis:
+    extra-absorption-hearts: 2
+    cooldown-seconds: 45
+  scavenger:
+    chance: 0.15
+    wind-charges: 4
+    cooldown-seconds: 90
+  battle-sense:
+    duration-seconds: 8
+  acrobat:
+    fall-damage-multiplier: 0.60
+    jump-bonus-fraction: 0.10
+  trailblazer:
+    step-height-addition: 0.40
+  windrunner:
+    velocity-multiplier: 1.25
+  escape-artist:
+    cooldown-seconds: 50
+  expanded-reserves:
+    extra-items: 64
+  quick-hands:
+    consume-time-multiplier: 0.80
+  streak-insurance:
+    cooldown-seconds: 600
+    protected-levels: 2
+
 # Two Perk rolls per 5 levels (2, 4, 7, 9, ...).
 # Each milestone's roll is stored permanently in players.yml, never rerolled.
 # An assigned Perk is active only while the player's current streak reaches

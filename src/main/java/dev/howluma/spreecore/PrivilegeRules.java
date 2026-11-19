@@ -151,7 +151,8 @@ public final class PrivilegeRules implements Listener {
         if(!p.isOnline()||p.isDead())return;
         cap(p,Material.TOTEM_OF_UNDYING,owns(p,"last_stand")?setting("max-totems",1):0);
         cap(p,Material.ENCHANTED_GOLDEN_APPLE,owns(p,"forbidden_fruit")?setting("max-enchanted-apples",4):0);
-        int extra=plugin.progression().hasTalent(p,"expanded_reserves")?64:0;
+        int extra=plugin.progression().hasTalent(p,"expanded_reserves")
+                ?plugin.getConfig().getInt("talents.expanded-reserves.extra-items",64):0;
         cap(p,Material.WIND_CHARGE,setting("max-wind-charges",64)+extra);
         cap(p,Material.EXPERIENCE_BOTTLE,setting("max-experience-bottles",64)+extra);
     }
@@ -160,7 +161,8 @@ public final class PrivilegeRules implements Listener {
             return owns(p,"last_stand")?setting("max-totems",1):0;
         if(type==Material.ENCHANTED_GOLDEN_APPLE)
             return owns(p,"forbidden_fruit")?setting("max-enchanted-apples",4):0;
-        int extra=plugin.progression().hasTalent(p,"expanded_reserves")?64:0;
+        int extra=plugin.progression().hasTalent(p,"expanded_reserves")
+                ?plugin.getConfig().getInt("talents.expanded-reserves.extra-items",64):0;
         if(type==Material.WIND_CHARGE)return setting("max-wind-charges",64)+extra;
         if(type==Material.EXPERIENCE_BOTTLE)return setting("max-experience-bottles",64)+extra;
         return -1;

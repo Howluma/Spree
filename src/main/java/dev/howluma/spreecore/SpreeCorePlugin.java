@@ -144,7 +144,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (path.equals("general.actionbar-interval-ticks") || path.equals("general.save-interval-seconds"))
             scheduleConfigurableTasks();
         if (path.startsWith("killstreak.") || path.startsWith("events.juggernaut.")
-                || path.startsWith("privileges."))
+                || path.startsWith("privileges.") || path.startsWith("talents."))
             streaks.refreshOnline();
         if (path.startsWith("display.streak-indicators.") || path.equals("hunt.glowing-level"))
             indicators.refreshOnline();
@@ -152,7 +152,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
             perks.initializeExisting();
             for (var player : Bukkit.getOnlinePlayers()) perks.refresh(player);
         }
-        if(path.startsWith("privileges."))
+        if(path.startsWith("privileges.")||path.equals("talents.expanded-reserves.extra-items"))
             for(var player:Bukkit.getOnlinePlayers())privilegeRules.enforce(player);
         if (path.startsWith("resource-pack."))
             for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);

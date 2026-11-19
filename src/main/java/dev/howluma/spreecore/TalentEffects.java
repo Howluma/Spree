@@ -55,6 +55,8 @@ public final class TalentEffects implements Listener {
         rodKey=new NamespacedKey(plugin,"blacksmith_breeze_rod");
     }
     private boolean has(Player p,String talent){return plugin.progression().hasTalent(p,talent);}
+    private int ti(String name,int fallback){return plugin.getConfig().getInt("talents."+name,fallback);}
+    private double td(String name,double fallback){return plugin.getConfig().getDouble("talents."+name,fallback);}
     private boolean ready(Player p,String key,long seconds){
         Map<String,Long> perPlayer=plugin.data().get(p).talentCooldowns;
         long now=System.currentTimeMillis();
@@ -73,7 +75,7 @@ public final class TalentEffects implements Listener {
         if(now<timers.getOrDefault(key,0L)
                 ||now<timers.getOrDefault("defensive_shared",0L))return false;
         timers.put(key,now+personalCooldownSeconds*1000L);
-        timers.put("defensive_shared",now+10000L);
+        timers.put("defensive_shared",now+ti("defense.shared-cooldown-seconds",10)*1000L);
         plugin.data().dirty();
         return true;
     }
@@ -113,9 +115,9 @@ public final class TalentEffects implements Listener {
     public void refresh(Player p){
         if(p.isDead())return;
         modifier(p,Attribute.JUMP_STRENGTH,jumpKey,AttributeModifier.Operation.MULTIPLY_SCALAR_1,
-                has(p,"acrobat")?.10:0);
+                has(p,"acrobat")?td("acrobat.jump-bonus-fraction",.10):0);
         modifier(p,Attribute.STEP_HEIGHT,stepKey,AttributeModifier.Operation.ADD_NUMBER,
-                has(p,"trailblazer")?.4:0);
+                has(p,"trailblazer")?td("trailblazer.step-height-addition",.4):0);
         plugin.quickHands().refresh(p);
     }
     public void clear(Player p){
@@ -185,51 +187,54 @@ public final class TalentEffects implements Listener {
         if(attacker==null||attacker.equals(victim))return;
         // Any PvP hit interrupts the victim's own offensive combo.
         combos.remove(victim.getUniqueId());
-        if(has(attacker,"executioner") && victim.getHealth()<maxHealth(victim)*.5)
-            e.setDamage(e.getDamage()*1.10);
+        if(has(attacker,"executioner") && victim.getHealth()<
+                maxHealth(victim)*td("executioner.health-threshold-fraction",.5))
+            e.setDamage(e.getDamage()*(1+td("executioner.bonus-damage-fraction",.10)));
 
         if(e.getDamager() instanceof Player) {
             if(has(attacker,"combo_breaker")){
                 long now=System.currentTimeMillis();
                 Combo previous=combos.get(attacker.getUniqueId());
                 int hits=previous!=null&&previous.victim().equals(victim.getUniqueId())
-                        &&now-previous.lastHit()<=5000?previous.hits():0;
-                if(hits>=3)e.setDamage(e.getDamage()*1.10);
+                        &&now-previous.lastHit()<=ti("combo-breaker.window-seconds",5)*1000L
+                        ?previous.hits():0;
+                if(hits>=ti("combo-breaker.hits-required",3))
+                    e.setDamage(e.getDamage()*(1+td("combo-breaker.bonus-damage-fraction",.10)));
                 combos.put(attacker.getUniqueId(),new Combo(victim.getUniqueId(),hits+1,now));
             }
-            if(has(attacker,"concussive_blow")&&ready(attacker,"concussive",45))
-                apply(victim,PotionEffectType.MINING_FATIGUE,1,5);
+            if(has(attacker,"concussive_blow")&&ready(attacker,"concussive",ti("concussive-blow.cooldown-seconds",45)))
+                apply(victim,PotionEffectType.MINING_FATIGUE,1,ti("concussive-blow.duration-seconds",5));
 
             if(victim.isBlocking()) {
-                if(has(victim,"riposte") && ready(victim,"riposte",45)){
-                    apply(attacker,PotionEffectType.SLOWNESS,1,2);
-                    jumpBlocked.put(attacker.getUniqueId(),System.currentTimeMillis()+2000L);
+                if(has(victim,"riposte") && ready(victim,"riposte",ti("riposte.cooldown-seconds",45))){
+                    apply(attacker,PotionEffectType.SLOWNESS,1,ti("riposte.duration-seconds",2));
+                    jumpBlocked.put(attacker.getUniqueId(),System.currentTimeMillis()+ti("riposte.duration-seconds",2)*1000L);
                 }
                 if(has(attacker,"sunder")&&axe(attacker.getInventory().getItemInMainHand().getType())
-                        &&ready(attacker,"sunder",45))
+                        &&ready(attacker,"sunder",ti("sunder.cooldown-seconds",45)))
                     Bukkit.getScheduler().runTask(plugin,()->{
                         if(victim.isOnline())victim.setCooldown(Material.SHIELD,
-                                Math.max(130,victim.getCooldown(Material.SHIELD)+30));
+                                Math.max(100+ti("sunder.extra-shield-disable-ticks",30),victim.getCooldown(Material.SHIELD)+ti("sunder.extra-shield-disable-ticks",30)));
                     });
             }
             if(has(attacker,"bloodlust") && attacker.getCooledAttackStrength(0)>=.9){
                 int hits=bloodlust.merge(attacker.getUniqueId(),1,Integer::sum);
-                if(hits>=5){
-                    if(ready(attacker,"bloodlust_heal",15))heal(attacker,1);
+                if(hits>=ti("bloodlust.hits-required",5)){
+                    if(ready(attacker,"bloodlust_heal",ti("bloodlust.cooldown-seconds",15)))heal(attacker,td("bloodlust.heal-hearts",1));
                     bloodlust.put(attacker.getUniqueId(),0);
                 }
             }
         }
         if(has(attacker,"battle_sense"))
-            sensed.put(attacker.getUniqueId(),new Sense(victim.getUniqueId(),System.currentTimeMillis()+8000L));
-        if(has(attacker,"scavenger") && ThreadLocalRandom.current().nextDouble()<.15
-                && ready(attacker,"scavenger",90)){
+            sensed.put(attacker.getUniqueId(),new Sense(victim.getUniqueId(),System.currentTimeMillis()+ti("battle-sense.duration-seconds",8)*1000L));
+        if(has(attacker,"scavenger") && ThreadLocalRandom.current().nextDouble()<td("scavenger.chance",.15)
+                && ready(attacker,"scavenger",ti("scavenger.cooldown-seconds",90))){
             int cap=plugin.getConfig().getInt("privileges.max-wind-charges",64)
-                    +(has(attacker,"expanded_reserves")?64:0);
+                    +(has(attacker,"expanded_reserves")?ti("expanded-reserves.extra-items",64):0);
             int held=0;
             for(ItemStack item:attacker.getInventory().getContents())
                 if(item!=null&&item.getType()==Material.WIND_CHARGE)held+=item.getAmount();
-            int amount=Math.min(4,Math.max(0,cap-held));
+            int amount=Math.min(ti("scavenger.wind-charges",4),Math.max(0,cap-held));
             if(amount>0)attacker.getInventory().addItem(new ItemStack(Material.WIND_CHARGE,amount));
         }
     }
@@ -238,17 +243,17 @@ public final class TalentEffects implements Listener {
     public void damage(EntityDamageEvent e){
         if(!(e.getEntity() instanceof Player p)||e.getFinalDamage()<=0)return;
         if(e.getCause()==EntityDamageEvent.DamageCause.FALL&&has(p,"acrobat"))
-            e.setDamage(e.getDamage()*.60);
+            e.setDamage(e.getDamage()*td("acrobat.fall-damage-multiplier",.60));
         // Give the life-saving option priority when both could activate.
-        if(has(p,"second_wind") && p.getHealth()-e.getFinalDamage()<=maxHealth(p)*.30
-                && defensiveReady(p,"second_wind",90))
-            apply(p,PotionEffectType.ABSORPTION,0,8);
-        else if(has(p,"iron_will") && e.getFinalDamage()>=6
-                && defensiveReady(p,"iron_will",75))
-            apply(p,PotionEffectType.RESISTANCE,0,5);
+        if(has(p,"second_wind") && p.getHealth()-e.getFinalDamage()<=maxHealth(p)*td("second-wind.health-threshold-fraction",.30)
+                && defensiveReady(p,"second_wind",ti("second-wind.cooldown-seconds",90)))
+            apply(p,PotionEffectType.ABSORPTION,0,ti("second-wind.duration-seconds",8));
+        else if(has(p,"iron_will") && e.getFinalDamage()>=td("iron-will.trigger-hearts",3)*2
+                && defensiveReady(p,"iron_will",ti("iron-will.cooldown-seconds",75)))
+            apply(p,PotionEffectType.RESISTANCE,0,ti("iron-will.duration-seconds",5));
         if(has(p,"escape_artist") && (p.hasPotionEffect(PotionEffectType.SLOWNESS)
                 ||p.getLocation().getBlock().getType()==Material.COBWEB)
-                && ready(p,"escape_artist",50)){
+                && ready(p,"escape_artist",ti("escape-artist.cooldown-seconds",50))){
             PotionEffect originalSlow=p.getPotionEffect(PotionEffectType.SLOWNESS);
             p.removePotionEffect(PotionEffectType.SLOWNESS);
             apply(p,PotionEffectType.SPEED,2,3);
@@ -274,24 +279,24 @@ public final class TalentEffects implements Listener {
     public void goldenApple(PlayerItemConsumeEvent e){
         Player p=e.getPlayer();
         if(e.getItem().getType()!=Material.GOLDEN_APPLE||!has(p,"golden_aegis")
-                ||!ready(p,"golden_aegis",45))return;
+                ||!ready(p,"golden_aegis",ti("golden-aegis.cooldown-seconds",45)))return;
         Bukkit.getScheduler().runTaskLater(plugin,()->{
             if(p.isOnline()&&!p.isDead()&&has(p,"golden_aegis"))
                 p.setAbsorptionAmount(Math.max(p.getAbsorptionAmount(),
-                        Math.min(8,p.getAbsorptionAmount()+4)));
+                        Math.min(8,p.getAbsorptionAmount()+ti("golden-aegis.extra-absorption-hearts",2)*2)));
         },2L);
     }
 
     /** Called only after StreakManager confirms a kill is anti-farm eligible. */
     public void onEligibleKill(Player killer){
-        if(has(killer,"field_medic")&&ready(killer,"field_medic",60))heal(killer,5);
+        if(has(killer,"field_medic")&&ready(killer,"field_medic",ti("field-medic.cooldown-seconds",60)))heal(killer,td("field-medic.heal-hearts",5));
     }
 
     /** Does not protect Fractured, and never increases a streak above pre-death. */
     public int protectedDeath(Player victim,int oldStreak,int normalLoss){
         if(oldStreak<=0||normalLoss>=oldStreak||!has(victim,"streak_insurance")
-                ||!ready(victim,"streak_insurance",600))return normalLoss;
-        return Math.min(oldStreak,normalLoss+2);
+                ||!ready(victim,"streak_insurance",ti("streak-insurance.cooldown-seconds",600)))return normalLoss;
+        return Math.min(oldStreak,normalLoss+ti("streak-insurance.protected-levels",2));
     }
 
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
@@ -303,7 +308,7 @@ public final class TalentEffects implements Listener {
                 ||charge.getLocation().distanceSquared(p.getLocation())>16)return;
         Bukkit.getScheduler().runTaskLater(plugin,()->{
             if(p.isOnline()&&!p.isDead()&&has(p,"windrunner"))
-                p.setVelocity(p.getVelocity().multiply(1.25));
+                p.setVelocity(p.getVelocity().multiply(td("windrunner.velocity-multiplier",1.25)));
         },1L);
     }
 

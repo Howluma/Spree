@@ -108,6 +108,17 @@ public final class ConfigEditor {
         }
         if (path.equals("fate-sigil.recipe.result-amount") && value instanceof Number amount)
             return between(amount.doubleValue(),1,16);
+        if (path.startsWith("talents.") && value instanceof Number talentValue) {
+            double v=talentValue.doubleValue();
+            if(path.endsWith("-fraction") || path.endsWith(".chance"))return between(v,0,1);
+            if(path.endsWith("-multiplier"))return between(v,0,3);
+            if(path.endsWith("step-height-addition"))return between(v,0,1.5);
+            if(path.endsWith("-ticks"))return between(v,0,1200);
+            if(path.endsWith("-hearts"))return between(v,0,20);
+            if(path.endsWith("-seconds"))return between(v,0,3600);
+            if(path.endsWith("-items"))return between(v,0,256);
+            if(path.endsWith("-hits-required") || path.endsWith("-levels"))return between(v,1,20);
+        }
         if (path.startsWith("perks.") && value instanceof Number perkNumber) {
             if (path.endsWith(".max-copies")) return between(perkNumber.doubleValue(), 1, 8);
             if (path.endsWith(".per-copy"))
@@ -157,6 +168,7 @@ public final class ConfigEditor {
         String[] p = path.split("\\.");
         if (p[0].equals("general") || p[0].equals("resource-pack")) return p[0];
         if (p[0].equals("fate-sigil")) return p.length>=3 ? "fate-sigil.recipe" : "fate-sigil";
+        if (p[0].equals("talents")) return p.length>=3 ? "talents."+p[1] : "talents";
         if (p[0].equals("killstreak")) return p.length >= 3 ? "killstreak." + p[1] : "killstreak";
         if (p[0].equals("legendary")) {
             if (p.length >= 4 && p[1].equals("weapons")) return "legendary." + p[2];
@@ -213,6 +225,7 @@ public final class ConfigEditor {
         if (id.equals("combat")) return Material.TNT;
         if (id.equals("perks")) return Material.ENCHANTED_BOOK;
         if (id.startsWith("fate-sigil")) return Material.ECHO_SHARD;
+        if (id.startsWith("talents")) return Material.ENCHANTED_BOOK;
         if (id.equals("privileges")) return Material.TOTEM_OF_UNDYING;
         if (id.equals("hunt")) return Material.COMPASS;
         if (id.equals("display")) return Material.NAME_TAG;

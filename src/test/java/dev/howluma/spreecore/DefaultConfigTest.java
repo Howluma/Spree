@@ -75,6 +75,14 @@ class DefaultConfigTest {
         assertTrue(c.getString("hunt.announcements.10").contains("{player} is unstoppable!"));
         assertFalse(c.contains("killstreak.milestones.glowing-level"));
     }
+    @Test void talentBalanceIsConfigurable() {
+        var c=config();
+        assertEquals(3,c.getInt("talents.combo-breaker.hits-required"));
+        assertEquals(.10,c.getDouble("talents.executioner.bonus-damage-fraction"));
+        assertEquals(45,c.getInt("talents.riposte.cooldown-seconds"));
+        assertEquals(5.0,c.getDouble("talents.field-medic.heal-hearts"));
+        assertEquals(64,c.getInt("talents.expanded-reserves.extra-items"));
+    }
     @Test void fateSigilCanBeEditedWithoutLosingItsName() {
         var c=config();
         assertEquals("&9&lFate Sigil",c.getString("fate-sigil.display-name"));
