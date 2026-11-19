@@ -64,7 +64,7 @@ public final class ProgressionMenu implements Listener {
         if (type == Material.HEART_OF_THE_SEA) plugin.models().token(meta);
         if (type == Material.POTION && meta instanceof PotionMeta potion) {
             String name = label.toLowerCase(Locale.ROOT);
-            int rgb = name.contains("speed") ? 0x7CAFC6 : name.contains("strength") ? 0x932423 :
+            int rgb = name.contains("speed") ? 0x7CAFC6 : name.contains("haste") ? 0xDDBE49 :
                     name.contains("weaving") ? 0xB9B9B9 : name.contains("regeneration") || name.contains("medic") ? 0xCD5CAB :
                     name.contains("luck") ? 0x339900 : name.contains("hero") ? 0x44BB66 : 0x4466CC;
             potion.setColor(Color.fromRGB(rgb));
