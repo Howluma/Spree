@@ -30,6 +30,8 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                     } else if(args.length>0 && args[0].equalsIgnoreCase("settings")) {
                         if(p.hasPermission("spree.admin"))plugin.menus().openSettings(p);
                         else message(p,"&cOnly admins can change plugin settings.");
+                    } else if(args.length>0 && args[0].equalsIgnoreCase("withdraw")) {
+                        withdraw(p, args);
                     } else if(args.length>0 && args[0].equalsIgnoreCase("value")) {
                         if(args.length<2 || !plugin.menus().submitInput(p,String.join(" ",Arrays.copyOfRange(args,1,args.length))))
                             message(p,"&cSelect a setting in /spree settings before entering a value.");
@@ -83,6 +85,39 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         }
         return true;
     }
+    private void withdraw(Player player, String[] args) {
+        if (!player.hasPermission("spree.withdraw")) {
+            message(player, "&cYou cannot withdraw Spree.");
+            return;
+        }
+        if (!plugin.getConfig().getBoolean("killstreak.withdrawal.enabled", true)) {
+            message(player, "&cSpree withdrawal is disabled.");
+            return;
+        }
+        if (args.length > 2) {
+            message(player, "&cUsage: /spree withdraw [amount|all]");
+            return;
+        }
+        int streak = plugin.streaks().streak(player);
+        if (streak <= 0) {
+            message(player, "&cYou must have a positive killstreak to withdraw.");
+            return;
+        }
+        int amount = streak;
+        if (args.length == 2 && !args[1].equalsIgnoreCase("all")) {
+            try { amount = Integer.parseInt(args[1]); }
+            catch (NumberFormatException ex) {
+                message(player, "&cUsage: /spree withdraw [amount|all]");
+                return;
+            }
+        }
+        StreakManager.WithdrawalResult result = plugin.streaks().withdrawSpree(player, amount);
+        if (!result.success()) { message(player, "&c" + result.message()); return; }
+        message(player, "&aWithdrew &9&l" + result.amount() + " &aSpree item(s). &7Remaining killstreak: &9&l"
+                + result.remaining());
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, .85f);
+    }
+
     private PlayerDataStore.Profile lookup(String input) {
         try {UUID id=UUID.fromString(input);return plugin.data().get(id);}catch(IllegalArgumentException ignored){}
         Player online=Bukkit.getPlayerExact(input);
@@ -281,8 +316,20 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     @Override public List<String> onTabComplete(CommandSender sender,Command command,String alias,String[] args) {
         String root=command.getName().toLowerCase(Locale.ROOT);
         List<String> options=new ArrayList<>();
-        if(root.equals("spree") && sender.hasPermission("spree.admin") && args.length==1)
-            options=List.of("settings","admin","value","cancel");
+        if (root.equals("spree")) {
+            if (args.length == 1) {
+                options = new ArrayList<>();
+                if (sender.hasPermission("spree.withdraw")
+                        && plugin.getConfig().getBoolean("killstreak.withdrawal.enabled", true))
+                    options.add("withdraw");
+                if (sender.hasPermission("spree.admin"))
+                    options.addAll(List.of("settings", "admin", "value", "cancel"));
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("withdraw")
+                    && sender instanceof Player p && sender.hasPermission("spree.withdraw")) {
+                int n = plugin.streaks().streak(p);
+                if (n > 0) options = List.of("all", "1", "5", "10", Integer.toString(n));
+            }
+        }
         else if(root.equals("spreeadmin") && sender.hasPermission("spree.admin")) {
             if(args.length==1)options=List.of("set","add","remove","reset","fracture","giveitem","setall","resetall","update","reload","settings","migrateitems","importskript","help");
             else if(args.length==2 && List.of("set","add","remove","reset","fracture","recovery","update","giveitem").contains(args[0]))

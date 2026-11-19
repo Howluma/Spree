@@ -17,6 +17,7 @@ class DefaultConfigTest {
         assertEquals(10, c.getInt("killstreak.base-health-hearts"));
         assertEquals(0.5, c.getDouble("killstreak.health-per-level-hearts"));
         assertEquals(1, c.getInt("killstreak.mace-unlock-level"));
+        assertTrue(c.getBoolean("killstreak.withdrawal.enabled"));
         assertEquals(5, c.getInt("killstreak.milestones.weaving-level"));
         assertEquals(10, c.getInt("killstreak.milestones.speed-level"));
         assertEquals(15, c.getInt("killstreak.milestones.strength-level"));

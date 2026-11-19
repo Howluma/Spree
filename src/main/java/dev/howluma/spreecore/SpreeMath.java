@@ -31,6 +31,12 @@ public final class SpreeMath {
     public static boolean canUseMace(int streak, int requiredLevel) {
         return streak >= Math.max(1, requiredLevel);
     }
+    /** All withdrawals are a one-for-one exchange of positive streak levels. */
+    public static int withdrawRemaining(int streak, int amount) {
+        if (streak <= 0 || amount <= 0 || amount > streak)
+            throw new IllegalArgumentException("Invalid Spree withdrawal.");
+        return streak - amount;
+    }
     public static int applyKill(int current, int gain, int cap) {
         return Math.min(cap, Math.max(0, current) + Math.max(0, gain));
     }

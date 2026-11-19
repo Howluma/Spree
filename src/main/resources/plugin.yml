@@ -1,12 +1,13 @@
 name: SpreeCore
-version: 1.5.1
+version: 1.5.2
 main: dev.howluma.spreecore.SpreeCorePlugin
 api-version: '1.21.11'
 authors: [Howluma]
 description: Native Paper rewrite of Spree SMP killstreaks, events, tokens and legendary weapons.
 commands:
   spree:
-    description: Open the Spree menu
+    description: Open the Spree menu or withdraw killstreak into Spree items
+    usage: '/spree [withdraw [amount|all]]'
   spreesettings:
     description: Open the admin settings editor directly
     permission: spree.admin
@@ -36,6 +37,9 @@ commands:
     aliases: [relic]
     description: Administer legendary weapons and forges
 permissions:
+  spree.withdraw:
+    description: Withdraw owned streak levels to Spree items
+    default: true
   spree.admin:
     description: Manage all Spree systems
     default: op

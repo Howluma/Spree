@@ -211,6 +211,51 @@ public final class StreakManager implements Listener {
         Map<Integer, ItemStack> leftover = player.getInventory().addItem(createSpreeItem(amount));
         for (ItemStack item : leftover.values()) player.getWorld().dropItemNaturally(player.getLocation(), item);
     }
+    public record WithdrawalResult(boolean success, String message, int amount, int remaining) {}
+
+    /** Gives exactly the requested amount of the pre-existing +1 consumable,
+     * deducting the streak only after successful inventory insertion.
+     * Full inventory means no items and no deduction; no ground drops.
+     */
+    public WithdrawalResult withdrawSpree(Player player, int amount) {
+        int streak = streak(player);
+        if (streak <= 0) return new WithdrawalResult(false,
+                "You need a positive killstreak to withdraw Spree.", 0, streak);
+        if (amount <= 0 || amount > streak) return new WithdrawalResult(false,
+                "Withdraw between 1 and " + streak + " Spree.", 0, streak);
+
+        PlayerInventory inventory = player.getInventory();
+        ItemStack example = createSpreeItem(1);
+        int stackMax = Math.max(1, Math.min(inventory.getMaxStackSize(), example.getMaxStackSize()));
+        int capacity = 0;
+        for (ItemStack existing : inventory.getStorageContents()) {
+            if (existing == null || existing.getType().isAir()) capacity += stackMax;
+            else if (existing.isSimilar(example))
+                capacity += Math.max(0, Math.min(stackMax, existing.getMaxStackSize()) - existing.getAmount());
+        }
+        if (capacity < amount) return new WithdrawalResult(false,
+                "Not enough inventory space. You can fit " + capacity + " more Spree items.", 0, streak);
+
+        List<ItemStack> items = new ArrayList<>();
+        int left = amount;
+        while (left > 0) {
+            int n = Math.min(left, stackMax);
+            items.add(createSpreeItem(n));
+            left -= n;
+        }
+        ItemStack[] backup = inventory.getStorageContents();
+        for (int i = 0; i < backup.length; i++) if (backup[i] != null) backup[i] = backup[i].clone();
+        Map<Integer, ItemStack> leftover = inventory.addItem(items.toArray(ItemStack[]::new));
+        if (!leftover.isEmpty()) {
+            inventory.setStorageContents(backup);
+            return new WithdrawalResult(false, "Inventory changed; nothing was withdrawn.", 0, streak);
+        }
+
+        int remaining = SpreeMath.withdrawRemaining(streak, amount);
+        setStreak(player.getUniqueId(), remaining, false);
+        return new WithdrawalResult(true, "Spree withdrawn.", amount, remaining);
+    }
+
     // Right-click-air events may arrive pre-cancelled when vanilla has no action.
     // Handle those while cancelling the normal Heart of the Sea interaction.
     @EventHandler(priority = EventPriority.HIGH)

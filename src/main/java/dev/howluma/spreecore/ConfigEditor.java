@@ -155,6 +155,7 @@ public final class ConfigEditor {
             case "killstreak" -> "Killstreak & Health";
             case "killstreak.anti-farm" -> "Anti-Farming";
             case "killstreak.revenge" -> "Revenge Rewards";
+            case "killstreak.withdrawal" -> "Spree Withdrawal";
             case "killstreak.milestones" -> "Milestone Buffs";
             case "display" -> "Tab & Nametag Indicators";
             case "legendary" -> "Legendary System";
@@ -182,6 +183,7 @@ public final class ConfigEditor {
         if (id.equals("resource-pack")) return Material.PAINTING;
         if (id.contains("anti-farm")) return Material.SHIELD;
         if (id.contains("revenge")) return Material.IRON_SWORD;
+        if (id.contains("withdrawal")) return Material.HEART_OF_THE_SEA;
         if (id.contains("killstreak")) return Material.NETHER_STAR;
         if (id.contains("forging")) return Material.ANVIL;
         if (id.startsWith("legendary.")) return Material.NETHERITE_SWORD;

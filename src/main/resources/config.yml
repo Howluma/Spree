@@ -1,4 +1,4 @@
-# SpreeCore 1.5.0 - milestone buffs, colored glowing, and compact active-buffs book.
+# SpreeCore 1.5.2 - secure Spree withdrawal with inventory validation.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -43,6 +43,9 @@ killstreak:
     speed-level: 10
     strength-level: 15
     glowing-level: 20
+  # Convert owned streak levels into right-click +1 Spree items.
+  withdrawal:
+    enabled: true
   anti-farm:
     enabled: true
     same-victim-cooldown-seconds: 300

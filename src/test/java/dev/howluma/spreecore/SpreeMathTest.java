@@ -47,6 +47,16 @@ class SpreeMathTest {
         assertEquals(1, SpreeMath.applyKill(-1, SpreeMath.killGain(0), 30));
         assertEquals(1, SpreeMath.applyKill(-1, SpreeMath.killGain(-1), 30));
     }
+    @Test void withdrawalNeverCreatesExtraKillstreak() {
+        assertEquals(0, SpreeMath.withdrawRemaining(30, 30));
+        assertEquals(25, SpreeMath.withdrawRemaining(30, 5));
+        assertEquals(0, SpreeMath.withdrawRemaining(1, 1));
+        assertThrows(IllegalArgumentException.class, () -> SpreeMath.withdrawRemaining(-1, 1));
+        assertThrows(IllegalArgumentException.class, () -> SpreeMath.withdrawRemaining(0, 1));
+        assertThrows(IllegalArgumentException.class, () -> SpreeMath.withdrawRemaining(30, -1));
+        assertThrows(IllegalArgumentException.class, () -> SpreeMath.withdrawRemaining(30, 31));
+        assertThrows(IllegalArgumentException.class, () -> SpreeMath.withdrawRemaining(30, 0));
+    }
     @Test void halfHeartForEveryPositiveLevel() {
         assertEquals(20.0, SpreeMath.maxHealthPoints(-1, 10, 0.5));
         assertEquals(20.0, SpreeMath.maxHealthPoints(0, 10, 0.5));
