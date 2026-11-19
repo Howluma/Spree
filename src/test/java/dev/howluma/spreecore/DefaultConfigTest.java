@@ -75,6 +75,11 @@ class DefaultConfigTest {
         assertTrue(c.getString("hunt.announcements.10").contains("{player} is unstoppable!"));
         assertFalse(c.contains("killstreak.milestones.glowing-level"));
     }
+    @Test void maceSmashCooldownDefaults() {
+        var c = config();
+        assertEquals(60, c.getInt("combat.mace.slam-cooldown-seconds"));
+        assertEquals(30, c.getInt("combat.mace.mastery-slam-cooldown-seconds"));
+    }
     @Test void combatDefaultsPreserved() {
         var c = config();
         assertEquals(0.75, c.getDouble("combat.mace.player-damage-multiplier"));

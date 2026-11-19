@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import io.papermc.paper.event.entity.EntityAttemptSmashAttackEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.damage.DamageType;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -131,18 +132,49 @@ public final class TalentEffects implements Listener {
 
     @EventHandler public void quit(PlayerQuitEvent e){clear(e.getPlayer());}
 
-    /** 60-second mace smash cooldown, or 30 with the claimed Mastery Talent. */
+    /**
+     * DENY only a real candidate smash while the player is on cooldown.
+     * Never START the cooldown here: an attempted attack can miss, hit a
+     * shield, deal zero damage, or be cancelled by another plugin.
+     */
     @EventHandler(priority=EventPriority.HIGHEST)
-    public void smash(EntityAttemptSmashAttackEvent e){
-        if(!(e.getEntity() instanceof Player p)
-                ||e.getWeapon().getType()!=Material.MACE
-                ||e.getResult()==Event.Result.DENY
-                ||!plugin.progression().hasPrivilege(p,"mace_wielder"))return;
-        int seconds=has(p,"mace_mastery")?30:60;
-        if(!ready(p,"mace_smash",seconds)){
+    public void smash(EntityAttemptSmashAttackEvent e) {
+        if (!(e.getEntity() instanceof Player attacker)
+                || e.getWeapon().getType() != Material.MACE
+                || !plugin.progression().hasPrivilege(attacker,"mace_wielder")
+                || e.getResult() == Event.Result.DENY
+                || (e.getResult() == Event.Result.DEFAULT && !e.getOriginalResult()))
+            return;
+        long until = plugin.data().get(attacker).talentCooldowns.getOrDefault("mace_smash",0L);
+        if (System.currentTimeMillis() < until) {
             e.setResult(Event.Result.DENY);
-            Text.action(p,"&cMace smash is recharging.");
+            long seconds = (until - System.currentTimeMillis() + 999) / 1000;
+            Text.action(attacker, "&cMace slam recharging: &f" + Math.max(1,seconds) + "s");
         }
+    }
+
+    /** Only a confirmed, unblocked mace-smash damage event starts the timer. */
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void confirmedSmash(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player attacker)
+                || attacker.getInventory().getItemInMainHand().getType()!=Material.MACE
+                || !plugin.progression().hasPrivilege(attacker,"mace_wielder"))
+            return;
+        boolean shield = e.getEntity() instanceof Player p && p.isBlocking();
+        if (!MaceSmashMath.connects(DamageType.MACE_SMASH.equals(e.getDamageSource().getDamageType()),
+                e.isCancelled(), e.getFinalDamage(), shield)) return;
+        Map<String,Long> timers = plugin.data().get(attacker).talentCooldowns;
+        long now=System.currentTimeMillis();
+        // A single smash may cause multiple damage events; never renew the
+        // cooldown for secondary impacts from the same smash.
+        if (timers.getOrDefault("mace_smash",0L)>now) return;
+        int base=plugin.getConfig().getInt("combat.mace.slam-cooldown-seconds",60);
+        int mastery=plugin.getConfig().getInt("combat.mace.mastery-slam-cooldown-seconds",30);
+        int seconds=Math.max(0,Math.min(3600,has(attacker,"mace_mastery")?mastery:base));
+        if(seconds==0) return;
+        timers.put("mace_smash",now+seconds*1000L);
+        plugin.data().dirty();
+        Text.action(attacker,"&9Mace slam connected &8| &f"+seconds+"s cooldown");
     }
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)

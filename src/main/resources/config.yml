@@ -1,4 +1,4 @@
-# SpreeCore 1.7.0 - bounty tokens, hunt milestones, and player progression.
+# SpreeCore 1.7.1 - configurable gameplay workshop, mace slams and Fate Sigil recipes.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -228,6 +228,10 @@ combat:
   mace:
     enabled: true
     player-damage-multiplier: 0.75
+    # Only actual, unblocked smash damage starts the cooldown.
+    # Normal mace swings, misses, and blocked attacks do not start it.
+    slam-cooldown-seconds: 60
+    mastery-slam-cooldown-seconds: 30
   tnt:
     enabled: true
     igniter-self-damage-multiplier: 0.50
