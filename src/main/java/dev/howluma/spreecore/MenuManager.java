@@ -82,6 +82,8 @@ public final class MenuManager implements Listener {
                 "&7Compare killstreaks with other players", "&aClick to view"));
         inv.setItem(20, icon(Material.BOOK, "&9&lCurrent Streak Buffs",
                 currentBuffLore(plugin.getConfig(), profile.streak)));
+        inv.setItem(21, icon(Material.ENCHANTED_BOOK, "&9&lYour Perks",
+                plugin.perks().activeLore(profile)));
         inv.setItem(22, icon(profile.hideHud ? Material.GRAY_DYE : Material.LIME_DYE,
                 "&fKillstreak HUD: " + (profile.hideHud ? "&cOFF" : "&aON"),
                 "&7Toggle the action bar display", "&eClick to toggle"));
@@ -324,6 +326,7 @@ public final class MenuManager implements Listener {
                     case 15 -> p.performCommand("leaderboard");
                     case 18 -> { if (p.hasPermission("spree.admin")) openAdmin(p); }
                     case 20 -> p.performCommand("spreeinfo");
+                    case 21 -> p.performCommand("spree perks");
                     case 22 -> { p.performCommand("spreehud"); openMain(p); }
                     case 24 -> { if (p.hasPermission("spree.admin")) openSettings(p); }
                     case 26 -> p.closeInventory();

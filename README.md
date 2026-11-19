@@ -1,16 +1,16 @@
-# SpreeCore v1.5.4 — Spree SMP
+# SpreeCore v1.6.0 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.5.4.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.0.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.5.4.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.0.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -133,6 +133,48 @@ automatically; custom server labels are preserved.
 The four milestone levels are editable through `/spree settings` >
 **Milestone Buffs**. A lost streak removes only SpreeCore-owned buffs;
 independent potions and stronger legendary abilities are not intentionally removed.
+
+## Random, stackable minor Perks (v1.6.0)
+
+Perks now roll automatically at **2, 4, 7, 9, 12, 14, 17, 19, 22, 24,
+27 and 29** on the default level-30 cap. A roll can repeat a Perk, up to its
+per-type copy cap, and provides a small passive bonus. It is never a random
+"proc". Every Perk milestone is saved permanently to players.yml under
+perk-rolls. Dropping streak or withdrawing disables Perks from higher
+milestones; regaining levels restores the same Perks with no rerolls.
+
+| Perk | Each copy | Default copies cap |
+| --- | --- | --- |
+| Power | +2% outgoing melee/projectile damage | 4 |
+| Fortitude | -2% incoming damage (excluding void/admin kills) | 4 |
+| Agility | +3% movement speed | 3 |
+| Dexterity | +2% attack speed | 4 |
+| Restoration | +3% healing received | 4 |
+| Stability | +4% knockback resistance | 4 |
+| Endurance | -5% hunger exhaustion | 4 |
+| Efficiency | +4% block-breaking speed | 4 |
+| Preservation | -5% item durability used | 4 |
+| Insight | +5% naturally gained XP | 4 |
+| Reach | **+0.05 block entity attack reach** | **3 (+0.15 blocks)** |
+
+All percentages are **per copy, added together**, not multiplicative.
+Power does not boost TNT or end-crystal explosions. The 0.15-block maximum
+reach is deliberately small; some anti-cheat plugins require matching reach
+settings. Reach does not increase block interaction distance.
+
+Small whole-number effects are precise over time: Preservation/Insight
+accumulate fractional savings/XP in the player's saved profile, so 5%
+is not lost to per-event integer rounding.
+
+Existing players with old killstreak histories are assigned their historic
+milestones once on upgrade. Perks are inactive when streak is below their
+respective unlocked level. Admins can edit each Perk's enabled flag,
+bonus-per-copy, and max copies through /spree settings > Stackable Perks.
+Perks are visible as their own compact active-only icon on the /spree
+dashboard and via **/spree perks**, separate from the current-buffs book.
+The existing +0.5 hearts per level, all Infusions (Weaving/Speed/Strength/
+Glowing), mace restrictions, TNT rules, and all legendaries are unchanged.
+Talents and the complete Privileges system remain future design work.
 
 ## Invisibility and tab-list privacy (v1.5.4)
 

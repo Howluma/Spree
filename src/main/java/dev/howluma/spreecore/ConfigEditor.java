@@ -99,6 +99,10 @@ public final class ConfigEditor {
         return s == null ? new Result(false, "Setting no longer exists.") : set(path, String.valueOf(s.defaultValue()));
     }
     public static String validate(String path, Object value) {
+        if (path.startsWith("perks.") && value instanceof Number perkNumber) {
+            if (path.endsWith(".max-copies")) return between(perkNumber.doubleValue(), 1, 8);
+            if (path.endsWith(".per-copy")) return between(perkNumber.doubleValue(), 0, .10);
+        }
         if (path.startsWith("display.streak-indicators.tier-colors."))
             return value instanceof String str && str.matches("(?i)(?:&[0-9a-f]|<#[0-9a-f]{6}>)")
                     ? null : "Use a single vanilla color code or six-digit RGB hex.";
@@ -151,6 +155,7 @@ public final class ConfigEditor {
         return switch (id) {
             case "general" -> "General & Interface";
             case "combat" -> "Combat Balancing";
+            case "perks" -> "Stackable Perks";
             case "resource-pack" -> "Resource Pack Models";
             case "killstreak" -> "Killstreak & Health";
             case "killstreak.anti-farm" -> "Anti-Farming";
@@ -164,6 +169,12 @@ public final class ConfigEditor {
         };
     }
     private static String label(String path) {
+        if (path.startsWith("perks.")) {
+            String[] parts = path.split("\\.");
+            if (parts.length == 3)
+                return capitalize(parts[1]) + " " + (parts[2].equals("per-copy") ? "Bonus Per Copy"
+                        : capitalize(parts[2]));
+        }
         if (path.startsWith("display.streak-indicators.tier-colors.")) {
             int first = Integer.parseInt(path.substring(path.lastIndexOf('.') + 1));
             return first >= 30 ? "Level 30+ Number Color" : "Levels " + first + "-" + (first + 4) + " Number Color";
@@ -179,6 +190,7 @@ public final class ConfigEditor {
     private static Material icon(String id) {
         if (id.equals("general")) return Material.COMPARATOR;
         if (id.equals("combat")) return Material.TNT;
+        if (id.equals("perks")) return Material.ENCHANTED_BOOK;
         if (id.equals("display")) return Material.NAME_TAG;
         if (id.equals("resource-pack")) return Material.PAINTING;
         if (id.contains("anti-farm")) return Material.SHIELD;

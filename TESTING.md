@@ -1,6 +1,21 @@
-# SpreeCore v1.5.4 — test-server checklist
+# SpreeCore v1.6.0 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Random stackable Perks (v1.6.0)
+
+- [ ] At 0 and Fractured, no Perks or related modifiers apply.
+- [ ] Level 2 and 4 grant separate random Perks. Level 3 grants no Perk (reserved for Talents). Repeat at 7, 9, 12, 14, etc.; exactly 12 rolls by 29.
+- [ ] Duplicate Perks increase bonus linearly; capped Perks stop being rolled.
+- [ ] Losing levels disables the corresponding rolls. Regaining levels restores the exact same assigned Perk per milestone, including across restarts/withdrawals.
+- [ ] A player previously at 30 gets historic milestones filled on upgrade once, no rerolls on later deaths.
+- [ ] Power and Fortitude affect normal melee/ranged damage but Power does not alter TNT/crystal damage; existing mace multiplier remains in effect.
+- [ ] Agility and Dexterity stack correctly with potion buffs and item attributes without overwriting others; Stability and Efficiency update.
+- [ ] Reach has only 0.05 blocks per copy (up to +0.15) of ENTITY interaction range; block range is unchanged.
+- [ ] Restoration increases heal events; Endurance reduces exhaustion; Preservation and Insight accumulate their small fractional bonuses over many uses or XP orbs.
+- [ ] All Spree-owned modifiers disappear below their unlock, on quit and plugin disable; no leftover attribute values after reload/restart.
+- [ ] /spree dashboard shows only active Perks in separate enchanted-book item; /spree perks displays the same breakdown.
+- [ ] Each Perk can be individually disabled and tuned in /spree settings > Stackable Perks, with sensible validation.
 
 ## Invisibility tab-list freeze (v1.5.4)
 

@@ -30,6 +30,12 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                     } else if(args.length>0 && args[0].equalsIgnoreCase("settings")) {
                         if(p.hasPermission("spree.admin"))plugin.menus().openSettings(p);
                         else message(p,"&cOnly admins can change plugin settings.");
+                    } else if(args.length>0 && args[0].equalsIgnoreCase("perks")) {
+                        if (args.length != 1) message(p, "&cUsage: /spree perks");
+                        else {
+                            Text.send(p, "&9&lYOUR ACTIVE PERKS");
+                            for (String lore : plugin.perks().activeLore(plugin.data().get(p))) Text.send(p, lore);
+                        }
                     } else if(args.length>0 && args[0].equalsIgnoreCase("withdraw")) {
                         withdraw(p, args);
                     } else if(args.length>0 && args[0].equalsIgnoreCase("value")) {
@@ -319,6 +325,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         if (root.equals("spree")) {
             if (args.length == 1) {
                 options = new ArrayList<>();
+                options.add("perks");
                 if (sender.hasPermission("spree.withdraw")
                         && plugin.getConfig().getBoolean("killstreak.withdrawal.enabled", true))
                     options.add("withdraw");

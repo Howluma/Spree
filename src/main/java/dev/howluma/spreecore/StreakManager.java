@@ -60,8 +60,15 @@ public final class StreakManager implements Listener {
             if (online != null && newStreak >= 5 && newStreak != old)
                 Text.send(online, "&9&lNEW PERSONAL BEST &f" + newStreak + " Killstreak!");
         }
+        List<PerkManager.Award> newPerks = plugin.perks().ensureRolls(p);
         plugin.data().dirty();
         Player online = Bukkit.getPlayer(id);
+        if (online != null && !newPerks.isEmpty()) {
+            List<String> unlocked = newPerks.stream().filter(a -> a.milestone() <= newStreak)
+                    .map(a -> a.type().display).toList();
+            if (!unlocked.isEmpty())
+                Text.send(online, plugin.prefix() + "&aPerks unlocked: &f" + String.join(", ", unlocked));
+        }
         if (online != null) {
             // Do not change a dead player's inventory/health during PlayerDeathEvent:
             // Bukkit already computed its drops and inventory changes can duplicate items.
@@ -99,6 +106,7 @@ public final class StreakManager implements Listener {
         boolean eventGlow = (plugin.events() != null && plugin.events().isJuggernaut(player))
                 || (plugin.forges() != null && plugin.forges().isForging(player));
         milestones.refresh(player, streak, eventGlow);
+        plugin.perks().refresh(player);
     }
     public void refreshOnline() { for (Player player : Bukkit.getOnlinePlayers()) update(player); }
     public void renderHud() {

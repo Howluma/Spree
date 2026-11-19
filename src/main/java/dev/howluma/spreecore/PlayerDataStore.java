@@ -21,6 +21,10 @@ public final class PlayerDataStore {
         public boolean hideHud;
         public UUID revengeAgainst;
         public final Map<UUID, Long> recentVictims = new HashMap<>();
+        /** Historical milestones are never rerolled, even after withdrawal or death. */
+        public final Map<Integer, String> perkRolls = new TreeMap<>();
+        /** Fractional credits make small XP/durability bonuses reliable over time. */
+        public double durabilityCredit, experienceCredit;
         Profile(UUID id) { this.id = id; }
     }
 
@@ -63,6 +67,17 @@ public final class PlayerDataStore {
             p.deaths = section.getInt("deaths");
             p.ended = section.getInt("ended");
             p.hideHud = section.getBoolean("hide-hud");
+            p.durabilityCredit = PerkMath.fractionalPart(section.getDouble("perk-durability-credit", 0));
+            p.experienceCredit = PerkMath.fractionalPart(section.getDouble("perk-experience-credit", 0));
+            ConfigurationSection rolls = section.getConfigurationSection("perk-rolls");
+            if (rolls != null) for (String milestone : rolls.getKeys(false)) {
+                try {
+                    int level = Integer.parseInt(milestone);
+                    String perk = rolls.getString(milestone);
+                    if (PerkMath.isPerkMilestone(level) && PerkType.fromId(perk) != null)
+                        p.perkRolls.put(level, perk);
+                } catch (NumberFormatException ignored) {}
+            }
             String revenge = section.getString("revenge-against");
             if (revenge != null) {
                 try { p.revengeAgainst = UUID.fromString(revenge); } catch (IllegalArgumentException ignored) {}
@@ -91,6 +106,10 @@ public final class PlayerDataStore {
             yml.set(path + "deaths", p.deaths);
             yml.set(path + "ended", p.ended);
             yml.set(path + "hide-hud", p.hideHud);
+            yml.set(path + "perk-durability-credit", p.durabilityCredit);
+            yml.set(path + "perk-experience-credit", p.experienceCredit);
+            for (var roll : p.perkRolls.entrySet())
+                yml.set(path + "perk-rolls." + roll.getKey(), roll.getValue());
             if (p.revengeAgainst != null) yml.set(path + "revenge-against", p.revengeAgainst.toString());
             for (var recent : p.recentVictims.entrySet())
                 yml.set(path + "recent-victims." + recent.getKey(), recent.getValue());

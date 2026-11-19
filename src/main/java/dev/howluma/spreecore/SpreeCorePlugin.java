@@ -17,6 +17,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private ModelData models;
     private StreakIndicators indicators;
     private CombatManager combat;
+    private PerkManager perks;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
@@ -25,6 +26,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
         settings = new ConfigEditor(this);
         models = new ModelData(this);
         data = new PlayerDataStore(this);
+        perks = new PerkManager(this);
+        perks.initializeExisting();
         legendaries = new LegendaryManager(this);
         streaks = new StreakManager(this);
         forges = new ForgeManager(this);
@@ -40,6 +43,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(menus, this);
         Bukkit.getPluginManager().registerEvents(indicators, this);
         Bukkit.getPluginManager().registerEvents(combat, this);
+        // Register after core combat so final melee damage multipliers apply in order.
+        Bukkit.getPluginManager().registerEvents(perks, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
                 "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
@@ -75,6 +80,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (events != null) events.shutdown();
         if (indicators != null) indicators.shutdown();
         if (streaks != null) streaks.shutdown();
+        if (perks != null) perks.shutdown();
         if (data != null) data.save();
     }
     public PlayerDataStore data() { return data; }
@@ -87,6 +93,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public ModelData models() { return models; }
     public StreakIndicators indicators() { return indicators; }
     public CombatManager combat() { return combat; }
+    public PerkManager perks() { return perks; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
@@ -96,6 +103,10 @@ public final class SpreeCorePlugin extends JavaPlugin {
             streaks.refreshOnline();
         if (path.startsWith("display.streak-indicators.") || path.equals("killstreak.milestones.glowing-level"))
             indicators.refreshOnline();
+        if (path.startsWith("perks.")) {
+            perks.initializeExisting();
+            for (var player : Bukkit.getOnlinePlayers()) perks.refresh(player);
+        }
         if (path.startsWith("resource-pack."))
             for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
         if (path.equals("legendary.crafting-enabled") || path.startsWith("legendary.forging."))
@@ -156,6 +167,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         scheduleConfigurableTasks();
         forges.registerRecipes();
         for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
+        perks.initializeExisting();
         streaks.refreshOnline();
         indicators.refreshOnline();
         legendaries.syncBloodsBane();

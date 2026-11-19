@@ -1,4 +1,4 @@
-# SpreeCore 1.5.4 - invisibility-safe tab list killstreak updates.
+# SpreeCore 1.6.0 - stackable randomized minor Perks and small reach bonus.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -58,6 +58,58 @@ killstreak:
     bonus-streak: 2
   # Milestones above are the only current potion perks. The rest of the
   # progression, item unlocks, and temporary event rules are unchanged.
+
+# Two Perk rolls per 5 levels (2, 4, 7, 9, ...).
+# Each milestone's roll is stored permanently in players.yml, never rerolled.
+# An assigned Perk is active only while the player's current streak reaches
+# that exact milestone. Duplicates stack additively up to max-copies.
+# 'per-copy' is a FRACTION (0.02 = 2%), except reach (blocks/copy).
+perks:
+  enabled: true
+  power:
+    enabled: true
+    per-copy: 0.02
+    max-copies: 4
+  fortitude:
+    enabled: true
+    per-copy: 0.02
+    max-copies: 4
+  agility:
+    enabled: true
+    per-copy: 0.03
+    max-copies: 3
+  dexterity:
+    enabled: true
+    per-copy: 0.02
+    max-copies: 4
+  restoration:
+    enabled: true
+    per-copy: 0.03
+    max-copies: 4
+  stability:
+    enabled: true
+    per-copy: 0.04
+    max-copies: 4
+  endurance:
+    enabled: true
+    per-copy: 0.05
+    max-copies: 4
+  efficiency:
+    enabled: true
+    per-copy: 0.04
+    max-copies: 4
+  preservation:
+    enabled: true
+    per-copy: 0.05
+    max-copies: 4
+  insight:
+    enabled: true
+    per-copy: 0.05
+    max-copies: 4
+  reach:
+    enabled: true
+    per-copy: 0.05  # +0.05 blocks melee/entity reach each roll; up to +0.15
+    max-copies: 3
 
 legendary:
   enabled: true
