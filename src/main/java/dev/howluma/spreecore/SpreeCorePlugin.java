@@ -219,6 +219,14 @@ public final class SpreeCorePlugin extends JavaPlugin {
                 changed = true;
             }
         }
+        // Older versions wrote a hard 30 cap into existing servers' config.yml.
+        // A new JAR alone must not leave returning players locked at 30.
+        int formerScoreCap = getConfig().getInt("general.max-killstreak", 30);
+        if (formerScoreCap <= SpreeMath.BENEFIT_CAP) {
+            getConfig().set("general.max-killstreak", 1_000_000_000);
+            getLogger().info("Migrated legacy 30-level killstreak cap: scoring now continues above 30; rewards still stop at 30.");
+            changed = true;
+        }
         if (changed) saveConfig();
     }
 
