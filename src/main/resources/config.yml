@@ -1,9 +1,12 @@
-# SpreeCore 1.7.1 - configurable gameplay workshop, mace slams and Fate Sigil recipes.
+# SpreeCore 1.7.4 - visible killstreaks continue above 30; gameplay benefits stop at 30.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
   prefix: '&9&lSPREE &8| &f'
-  max-killstreak: 30
+  # Technical score ceiling (not a progression limit). Past level 30, the
+  # displayed killstreak, personal best and leaderboards keep increasing.
+  # Health, perks, talents, infusions, privileges and reward tiers stop at 30.
+  max-killstreak: 1000000000
   fractured-label: '&c&lFractured'
   actionbar-interval-ticks: 40
   save-interval-seconds: 120
@@ -33,13 +36,13 @@ display:
       '30': '&4' # 30+ dark red
 
 killstreak:
-  # Vanilla is 10 hearts. Each POSITIVE level grants precisely +0.5 heart.
+  # Vanilla is 10 hearts. Only the first 30 positive levels grant +0.5 heart each.
   # Fractured (-1) is treated as 0 here: no health penalty.
   base-health-hearts: 10
   health-per-level-hearts: 0.5
   # The mace now requires a redeemed Mace Wielder Privilege.
   # PvP kill rewards scale with the VICTIM'S streak before death.
-  # 0-4 => +1; 5-9 => +2; 10-14 => +3; ... 25-29 => +6; 30 => +7.
+  # 0-4 => +1; 5-9 => +2; 10-14 => +3; ... 25-29 => +6; 30+ => +7.
   # Applies to qualifying melee, ranged, and player-credited explosive kills.
   # Environmental-death tokens award the SAME tier payout as player kills;
   # environmental death still halves the victim's current killstreak.
