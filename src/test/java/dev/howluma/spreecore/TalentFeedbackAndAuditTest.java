@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class TalentFeedbackAndAuditTest {
     @Test void allDesignedTalentsExistWithoutDuplicateIds() {
-        assertEquals(22,ProgressionCatalog.TALENTS.size());
+        assertEquals(21,ProgressionCatalog.TALENTS.size());
         Set<String> unique=new HashSet<>();
         for(var talent:ProgressionCatalog.TALENTS) {
             assertTrue(unique.add(talent.id()),"Duplicate Talent: "+talent.id());
@@ -27,7 +27,9 @@ class TalentFeedbackAndAuditTest {
                 "concussive_blow","sunder","riposte","second_wind","iron_will","bloodlust",
                 "field_medic","golden_aegis","windrunner","escape_artist","acrobat",
                 "trailblazer","expanded_reserves","battle_sense","scavenger",
-                "quick_hands","streak_insurance","blacksmith","industrious")));
+                "quick_hands","streak_insurance","blacksmith")));
+        assertFalse(unique.contains("industrious"));
+        assertNull(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,"industrious"));
     }
 
     @Test void allTimedTalentsHaveExactlyOneCorrectTimerName() {
