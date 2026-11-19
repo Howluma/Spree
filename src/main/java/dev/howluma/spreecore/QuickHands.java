@@ -14,6 +14,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -150,6 +151,12 @@ public final class QuickHands implements Listener {
             ItemStack revised=modify(e.getDrops().get(i),false);
             if(revised!=null)e.getDrops().set(i,revised);
         }
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void consumed(PlayerItemConsumeEvent e) {
+        if(plugin.progression().hasTalent(e.getPlayer(),"quick_hands")
+                &&marked(e.getItem()))
+            plugin.talentFeedback().passive(e.getPlayer(),"quick_hands");
     }
     @EventHandler public void quit(PlayerQuitEvent e) {
         pending.remove(e.getPlayer().getUniqueId());
