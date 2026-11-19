@@ -63,7 +63,7 @@ public final class StreakManager implements Listener {
         List<PerkManager.Award> newPerks = plugin.perks().ensureRolls(p);
         plugin.data().dirty();
         Player online = Bukkit.getPlayer(id);
-        if (online != null && newStreak > old && !admin) {
+        if (online != null && newStreak > old) {
             List<String> gainedPerks = new ArrayList<>();
             for (int level = Math.max(1, old + 1); level <= newStreak; level++) {
                 if (!PerkMath.isPerkMilestone(level)) continue;
@@ -73,7 +73,9 @@ public final class StreakManager implements Listener {
             }
             if (!gainedPerks.isEmpty())
                 Text.send(online, plugin.prefix() + "&9Perk gained: &f" + String.join("&7, ", gainedPerks));
-            plugin.hunt().announceReached(online, old, newStreak);
+            if (!admin) plugin.hunt().announceReached(online, old, newStreak);
+            // Even administrative level gains should tell the affected player
+            // which milestone rewards became claimable (without a GUI popup).
             plugin.progression().notifyMilestones(online, old, newStreak);
         }
         if (online != null) {

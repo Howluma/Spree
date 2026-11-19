@@ -119,8 +119,10 @@ public final class ProgressionMenu implements Listener {
                     : unlocked ? Material.LIME_DYE : Material.GRAY_DYE;
             inv.setItem(cells[i], icon(material, "&9&lLevel " + level,
                     coloredStatus(unlocked, current, reroll),
-                    option != null ? "&7" + option.name() : "&7Not chosen yet",
-                    unlocked ? "&eClick to " + (reroll ? "reroll" : "choose or inspect") : "&8Reach level " + level + " first"));
+                    option != null ? "&f" + option.name() : "&7Not chosen yet",
+                    option != null ? "&7" + option.description() : "&8One choice per milestone",
+                    unlocked ? (current != null && !reroll ? "&aAlready claimed - hover to inspect" :
+                            "&eClick to " + (reroll ? "rechoose" : "choose")) : "&8Reach level " + level + " first"));
             h.levels.put(cells[i], level);
         }
         inv.setItem(22, icon(kind.icon, "&9&l" + kind.title,
@@ -386,7 +388,7 @@ public final class ProgressionMenu implements Listener {
                     if(h.kind==ProgressionCatalog.Kind.TALENT)openConfirm(player,h.kind,level);
                     else openChoices(player,h.kind,level,true);
                 } else {
-                    if(existing!=null) {Text.action(player,"&aAlready chosen: "+existing);return;}
+                    if(existing!=null) {Text.action(player,"&aUpgrade claimed. &7Hover over the slot to read its effect.");return;}
                     openChoices(player,h.kind,level,false);
                 }
             }
