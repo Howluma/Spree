@@ -12,27 +12,81 @@ One native Java 21 plugin for Paper **1.21.11**, replacing the original killstre
 
 Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.7.0.jar`. GitHub Actions publishes the build artifact after each push.
 
-## Interim killstreak progression (v1.4)
+## Choice-based progression (v1.7.0)
 
-There are exactly **two default progression effects** until the progression redesign is decided:
+The four milestone categories repeat through the default 30 killstreak cap:
 
-| Killstreak | Health | Mace attacks |
+| Killstreak | Category | Reward |
 | --- | --- | --- |
-| Fractured (`-1` internally) | 10 hearts | Blocked |
-| 0 | 10 hearts | Blocked |
-| 1 | 10.5 hearts | Allowed |
-| 2 | 11 hearts | Allowed |
-| 3 | 11.5 hearts | Allowed |
-| 10 | 15 hearts | Allowed |
-| 30 (default cap) | 25 hearts | Allowed |
+| 1, 6, 11, 16, 21, 26 | Privilege | Choose an available item-use unlock |
+| 2, 4, 7, 9, 12, 14, 17, 19, 22, 24, 27, 29 | Perk | Auto-roll a small stacking bonus |
+| 3, 8, 13, 18, 23, 28 | Talent | Choose one of three randomly offered Talents |
+| 5, 10, 15, 20, 25, 30 | Infusion | Choose an unclaimed permanent potion effect |
 
-`killstreak.base-health-hearts: 10`, `killstreak.health-per-level-hearts: 0.5`, and `killstreak.mace-unlock-level: 1` are visible and adjustable in the admin GUI. Every **positive** killstreak level grants half a heart; Fractured is treated as zero for health, not as a penalty. There is no previous 20-heart cap cutting off the progression. The health calculation uses double-precision health points, allowing half-heart changes.
+**The game never automatically opens a GUI after a kill.** Players
+receive chat notices for new selectable rewards and freshly rolled Perks;
+they can visit **/spree > Progression** to redeem choices when ready.
+The four category screens distinguish locked, ready, owned and inactive
+milestones, with six symmetrically placed unlocks per category. A separate
+**/spree > How Everything Works** guide explains every Talent, Perk,
+Privilege, Infusion and Wanted penalty. Both the normal-player dashboard
+and the operator control center use compact, symmetric blue/black layouts,
+instead of walls of text or an overloaded front page.
 
-At zero or Fractured, direct mace attacks against **players and mobs** are cancelled, and Paper mace smash attempts are denied. Mace attacks are available after reaching the configured unlock level (1 by default). Once unlocked, mace damage to **players** retains the existing 75% multiplier, adjustable under Combat Balancing. TNT igniter self-damage still defaults to 50%, also adjustable.
+**All claimed options are saved at their original milestone.** Losing
+streak disables options above the current level, while regaining it
+restores those exact choices. Perks are automatic and continue to use
+saved rolls and maximum-copy caps. Talent selections come from **three
+saved random offers**, so reopening the GUI cannot provide a free reroll.
+Players can eventually acquire all six Privileges and all six Infusions;
+this is intentional.
 
-**Removed for now:** streak-dependent automatic Fire Resistance, Hero of the Village, Weaving, Speed, Glowing, potion upgrades, and all tentative item restrictions. Their old GUI categories and YAML settings are removed. This does **not** remove independent legendary weapon abilities, forge requirements, event-only Juggernaut health/glowing, or one-off event streak points. The old Spree Surge event, which relied on tier-based buffs, is paused pending the progression redesign.
+Privileges: Demolitionist (TNT minecarts), Mace Wielder, Netherite
+Specialist (netherite tools), Turtle Master potions, Forbidden Fruit
+(enchanted golden apples), and Last Stand (totems). Mace attacks now
+require a claimed active Privilege rather than just level 1. The
+Forbidden Fruit restriction is **maximum 4 carried**, **30s consumption
+cooldown**, and **at most 60s on granted potion effects**. Last Stand
+permits **1 total totem**. Default individual possession limits for
+Wind Charges and XP Bottles are 64 each; the Expanded Reserves Talent
+adds one more stack of each (up to 128).
 
-**Unchanged death rules:** PvP and environmental deaths halve an existing positive streak, rounded down. Environmental death at 0 creates Fractured (`-1` in `players.yml` for migration compatibility); Fractured never goes below `-1`. Anti-farming, Spree item use, and death-token logic remain intact. Revenge bonuses now default **OFF** (and stay off in existing configurations where admins previously disabled them). `/spreeadmin giveitem <player> [1–64]` gives a Heart of the Sea Spree consumable; right click consumes one and adds exactly one killstreak. Original environmental-death tokens auto-claim on pickup using separate logic.
+Infusions: **Speed I, Strength I, Weaving I, Regeneration I, Luck V,
+Hero of the Village X**, refreshed while chosen and active. This
+replaces the old fixed Weaving/Speed/Strength unlocks.
+
+The 22 Talents are passive or automatically triggered and cover combat,
+survival, mobility, economy and resource management. Examples include:
+Mace Mastery (mace smash cooldown **60s -> 30s**), Blacksmith
+(2-gold-ingot golden apples and 8-iron-nugget breeze rods), Industrious
+(permanent Haste I), Combo Breaker, Field Medic, and Quick Hands.
+No added keybinds or manually activated Talent items.
+
+Positive killstreak levels still give **+0.5 max hearts** each:
+10 hearts at 0/Fractured, 25 hearts at 30. Natural and PvP deaths still
+halve the victim's streak, rounded down. The anti-farm and Fractured
+rules remain intact.
+
+### Fate Sigil: universal reroll item
+
+Craft an **Echo Shard Fate Sigil** with four amethyst shards in the
+corners, four diamonds on the edges, and one netherite scrap in the
+center. Right-click to open its reroll interface, or browse from
+**/spree > Progression > Fate Sigil**.
+
+You can rechoose **one currently unlocked Privilege**, rechoose **one
+currently unlocked Infusion**, reroll **three new saved Talent options**
+for one previously chosen Talent milestone, or **reroll all earned
+Perk rolls** together. A Sigil is used only when the player confirms a
+reroll/replacement; browsing costs nothing. A confirmed Talent reroll
+immediately consumes one Sigil and stores the new three offers, which
+persist through closing the interface and logouts.
+
+**Existing-player migration:** Previous fixed potion milestones and
+automatic mace access are retired. The stored killstreak, statistics and
+all historical Perk rolls are retained, but new Privilege/Talent/Infusion
+milestones start unclaimed until a player makes a choice. Back up
+players.yml and test migration on a staging server first.
 
 ## Official resource-pack fallback (v1.5.3)
 
@@ -66,8 +120,8 @@ and lowers your streak to 25. `/spree withdraw all` is equivalent to
 - The transfer uses inventory storage only, merging matching Spree items.
   It does **not** spill items onto the ground; insufficient storage space
   cancels the entire transfer without subtracting any streak.
-- Health, mace eligibility, milestone buffs and indicators refresh after
-  deduction. Best lifetime streak and statistics are not reset.
+- Health, selected Privilege/Talent/Infusion eligibility, Perks and Wanted
+  indicators refresh after deduction. Best lifetime streak and statistics remain.
 - Every player has the `spree.withdraw` permission by default. Server
   operators can toggle `killstreak.withdrawal.enabled` in
   `/spree settings` > **Spree Withdrawal**.
@@ -137,35 +191,24 @@ still drop a token. If TNT behavior differs during live testing, note whether
 you received a "for eliminating" message or picked up a dropped Spree Token;
 those distinguish credited player kills from environmental deaths.
 
-## Current streak milestone buffs (v1.5.0)
+## Wanted penalties and chosen permanent effects (v1.7.0)
 
-A player's killstreak provides +0.5 heart for each positive level. Level 1 unlocks
-mace attacks. The following buffs last as long as the player's streak meets the
-configured threshold (they are refreshed automatically):
+Every five killstreak levels triggers a global chat message. At **5**:
+"{player} is on fire!". At **10**: "{player} is unstoppable!".
+At **10**, players additionally receive persistent glowing in the
+current five-level streak tier color (where SpreeCore owns scoreboard
+presentation). At **15**, their world and XYZ coordinates are publicly
+announced **every 15 minutes**. At **20**, they cannot remain in vanilla
+scoreboard gameplay teams; SpreeCore's own singleton team remains to
+color their glowing outline. Third-party clans or party systems may
+need separate hooks. At **25** and **30**, custom server announcements
+complete the wanted tiers. All tiers are explained in the Wanted GUI.
 
-| Killstreak | New buff |
-| --- | --- |
-| 5 | Weaving (level I) |
-| 10 | Speed I |
-| 15 | Strength II |
-| 20 | Glowing, colored by the five-kill tier |
-
-For glowing, level 20-24 defaults to red, 25-29 to purple, and 30+ to
-dark red. Vanilla scoreboard team colors support only named colors; RGB
-hex customization is approximated to the nearest named color. Existing team
-membership controlled by another plugin takes precedence to preserve
-friendly-fire, collisions, and other team rules.
-
-`/spree` now shows a compact **Current Streak Buffs** book with just the
-buffs that player already has; no future unlocks are listed.
-
-Fractured remains `-1` internally for compatibility but is shown as
-**Killstreak: Fractured** in the action bar. The v1.4.3 default label migrates
-automatically; custom server labels are preserved.
-
-The four milestone levels are editable through `/spree settings` >
-**Milestone Buffs**. A lost streak removes only SpreeCore-owned buffs;
-independent potions and stronger legendary abilities are not intentionally removed.
+Permanent Speed/Strength/Weaving/Regen/Luck/Hero effects are **chosen
+Infusions**, not fixed rewards. SpreeCore refreshes them only while the
+relevant selected milestone is active, and respects stronger external
+potion effects. Losing levels removes owned effects without erasing the
+permanent recorded selections.
 
 ## Alchemy Perk and Talent design (v1.6.3)
 
@@ -188,12 +231,9 @@ Alchemy appears in `/spree perks` and can be tuned or disabled in
 `/spree settings`. Current existing Perk assignments are preserved;
 Alchemy simply joins the possible future random rolls.
 
-**Talents are separate future work and will be entirely passive or
-automatically triggered**, with no active abilities or keybinds.
-The currently agreed concepts include Mace Mastery (60s -> 30s cooldown
-where the server enforces that cooldown) and Expanded Reserves (+1
-normal stack of specifically capped items). The detailed pool is
-still being balanced before implementation.
+**All 22 designed Talents are now in the v1.7.0 code**, with automatic
+triggers rather than new keybinds. This remains a staging build: advanced
+combat, inventory and scoreboard interactions require in-game verification.
 
 ## Capacity Perk (v1.6.2)
 
@@ -327,7 +367,7 @@ Overhead tags use scoreboard suffixes only where an existing team does not own t
 
 | Command | Description |
 | --- | --- |
-| `/spree` | Regular dashboard; admin buttons only if permitted |
+| `/spree` | Symmetric player dashboard: Progression, Guide, Wanted, Perks, Statistics and optional operator controls |
 | `/spree settings`, `/spreesettings`, `/spreeconfig` | Config editor (`spree.admin`) |
 | `/spreeadmin` | Admin player browser, events, balancing, weapons |
 | `/spreeadmin set/add/remove/reset/fracture <player> [amount]` | Player killstreak controls |
@@ -351,4 +391,9 @@ In the settings GUI: left/right clicks adjust numbers, shift-left enters an exac
 
 ## Compatibility and verification
 
-This build targets Paper 1.21.11 only. The unit tests cover fractional hearts, Fractured health, mace thresholds, config keys, and indicator formatting. The JAR should compile successfully through GitHub Actions; check the corresponding run before using it. There is still an **in-game test requirement** for mace smash/wind-burst interactions, attribute modifiers from other plugins, spectator/team scoreboards, and health synchronization on death/rejoin. If a plugin also sets a player's maximum health, check the interaction in your test server.
+This build targets Paper 1.21.11 and Java 21. Automated tests
+cover killstreak, Perk and progression math, config defaults and GUI-related
+formatting. A successful CI build does not prove live-server compatibility.
+Before production, test all Talent interactions, the Fate Sigil,
+item-transfer components, anti-farm protections, chat notices,
+coordinates and scoreboard-team restrictions in a staging server.

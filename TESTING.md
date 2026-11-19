@@ -1,5 +1,32 @@
 # SpreeCore v1.7.0 — test-server checklist
 
+## Progression selection, chat notices and GUI layout (v1.7.0)
+
+- [ ] Normal players see a symmetric 4-row navy/black /spree dashboard, without operator buttons. Operators see additional Admin and Settings options.
+- [ ] The op Admin Center and player progression screens use balanced spacing and symmetrical milestone placement.
+- [ ] Progression provides separate Privilege, Perk, Talent, Infusion screens; the Guide provides short category-specific explanations and a Wanted page.
+- [ ] No GUI appears after player kills or Spree consumable use. Chat announces newly claimable milestones and actual rolled Perk names.
+- [ ] At levels 1/6/11/16/21/26, choose unique Privileges; at levels 5/10/15/20/25/30, choose unique Infusions. Level30 can collect all six.
+- [ ] At levels 3/8/13/18/23/28, Talent offers exactly 3 random, unique, saved alternatives. Disconnect/restart: offers persist, no free reroll.
+- [ ] Twelve Perk milestones are rolled automatically, allow stacking duplicates, and are visible in their own menu.
+- [ ] Declining an unlock initially leaves it available. Death/withdrawal disables saved selections below the required level; regaining restores the same choices.
+- [ ] Craft Fate Sigil from corner amethyst, edge diamonds and center netherite scrap; right-click opens category reroll UI.
+- [ ] Reselect one Privilege or Infusion, reroll a chosen Talent to 3 new saved offers, or reroll all historical Perks. Confirmations each consume precisely one Sigil.
+- [ ] Closing the menu costs no Sigil until confirmed. Talent reroll consumption and pending offers cannot be reset by reconnecting.
+- [ ] Restart saves and reloads selection maps, Talent offer maps and cooldowns in players.yml.
+
+## Privilege use restrictions and automatic Talent effects (v1.7.0)
+
+- [ ] Mace use requires selected Mace Wielder; Mace Mastery changes 60s cooldown to 30s.
+- [ ] TNT minecarts, netherite tools, Turtle Master potions respect claimed Privilege restrictions.
+- [ ] Forbidden Fruit: total max four enchanted apples, 30s use cooldown, potion-effect durations capped at 60s.
+- [ ] Last Stand: at most one totem; resurrection blocked without Privilege. Expanded Reserves adds one stack each to XP Bottles and Wind Charges (base cap64).
+- [ ] Unauthorized excess items are handled without deletion or infinite pickup/drop loops, including with Capacity Perk, inventory GUIs, drops and deaths.
+- [ ] Six selected Infusions refresh indefinitely while active; stronger independent potion sources retain precedence.
+- [ ] All 22 Talents tested, including Blacksmith recipes, permanent Haste, field medic, Combo Breaker, Riposte, Golden Aegis, Acrobat and Quick Hands item-component restoration.
+- [ ] Talent and enchanted-apple cooldowns survive logout without being reset or duplicated.
+
+
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
 
 ## Wanted status and token payouts (v1.7.0)

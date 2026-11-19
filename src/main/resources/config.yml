@@ -41,7 +41,8 @@ killstreak:
   # PvP kill rewards scale with the VICTIM'S streak before death.
   # 0-4 => +1; 5-9 => +2; 10-14 => +3; ... 25-29 => +6; 30 => +7.
   # Applies to qualifying melee, ranged, and player-credited explosive kills.
-  # Environmental-death tokens keep their separate pre-existing half-streak payout.
+  # Environmental-death tokens award the SAME tier payout as player kills;
+  # environmental death still halves the victim's current killstreak.
   kill-rewards:
     base-reward: 1
     levels-per-tier: 5
@@ -58,8 +59,8 @@ killstreak:
   revenge:
     enabled: false
     bonus-streak: 2
-  # Milestones above are the only current potion perks. The rest of the
-  # progression, item unlocks, and temporary event rules are unchanged.
+  # Privileges, Talents, Infusions are manually chosen in /spree > Progression.
+  # Only minor Perks roll and apply automatically.
 
 # Wanted status announces each five levels and adds escalating target penalties.
 hunt:
