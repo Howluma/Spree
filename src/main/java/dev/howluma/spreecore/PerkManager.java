@@ -64,7 +64,7 @@ public final class PerkManager implements Listener {
 
     /** Allocate all previously reached levels on upgrade and when a milestone is crossed. */
     public List<Award> ensureRolls(PlayerDataStore.Profile profile) {
-        int achieved = Math.max(0, Math.min(1000, Math.max(profile.best, profile.streak)));
+        int achieved = SpreeMath.benefitLevel(Math.max(profile.best, profile.streak));
         List<Award> newAwards = new ArrayList<>();
         List<PerkType> options = new ArrayList<>();
         Map<PerkType, Integer> caps = new EnumMap<>(PerkType.class);
@@ -90,7 +90,7 @@ public final class PerkManager implements Listener {
 
     public int stacks(PlayerDataStore.Profile profile, PerkType type) {
         if (!enabled() || !allowed(type) || profile.streak <= 0) return 0;
-        return Math.min(cap(type), PerkMath.copies(profile.perkRolls, type, profile.streak));
+        return Math.min(cap(type), PerkMath.copies(profile.perkRolls, type, SpreeMath.benefitLevel(profile.streak)));
     }
     public double bonus(Player player, PerkType type) {
         double total = stacks(plugin.data().get(player), type) * perCopy(type);
