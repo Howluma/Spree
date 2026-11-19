@@ -1,16 +1,16 @@
-# SpreeCore v1.6.0 — Spree SMP
+# SpreeCore v1.6.1 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.0.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.1.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.0.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.1.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -134,6 +134,27 @@ The four milestone levels are editable through `/spree settings` >
 **Milestone Buffs**. A lost streak removes only SpreeCore-owned buffs;
 independent potions and stronger legendary abilities are not intentionally removed.
 
+## Scale Perk (v1.6.1)
+
+**Scale** joins the existing random, stackable Perk pool, without removing
+any old Perks or rerolling saved assignments. Each copy reduces the player's
+physical size by 5%, including their hitbox, through a transient, keyed
+Minecraft `SCALE` attribute modifier. Three copies produce 85% normal
+size by default. The bonus adds linearly (-5%, -10%, -15%); even if an admin
+raises its config limits, total size reduction from Scale is capped at 15%
+to protect PvP balance. Other size modifiers from commands or plugins
+continue to coexist.
+
+Only currently active Scale rolls apply: dying or withdrawing below their
+unlock levels restores the proper size, and recovering the level restores
+the same roll. The perk's modifier is removed on quit and plugin shutdown.
+The `/spree` Perks book and `/spree perks` show a clear negative size
+percentage. Configure `perks.scale.enabled`, `perks.scale.per-copy` and
+`perks.scale.max-copies` via `/spree settings`.
+
+**This is both a visual and hitbox change**, not a cosmetic-only scale.
+Check combat balance and any reach/anti-cheat rules on your test server.
+
 ## Random, stackable minor Perks (v1.6.0)
 
 Perks now roll automatically at **2, 4, 7, 9, 12, 14, 17, 19, 22, 24,
@@ -156,6 +177,7 @@ milestones; regaining levels restores the same Perks with no rerolls.
 | Preservation | -5% item durability used | 4 |
 | Insight | +5% naturally gained XP | 4 |
 | Reach | **+0.05 block entity attack reach** | **3 (+0.15 blocks)** |
+| Scale | **-5% player size and hitbox** | **3 (-15%)** |
 
 All percentages are **per copy, added together**, not multiplicative.
 Power does not boost TNT or end-crystal explosions. The 0.15-block maximum

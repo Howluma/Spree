@@ -91,7 +91,10 @@ public final class PerkManager implements Listener {
     public double bonus(Player player, PerkType type) {
         double total = stacks(plugin.data().get(player), type) * perCopy(type);
         // Server-side hard limits prevent accidental extreme config values.
-        return Math.min(type == PerkType.REACH ? .20 : .30, total);
+        // Entity reach maxes at +0.20 blocks; player scale cannot shrink
+        // by more than 15%, even if an admin raises a copy limit.
+        double limit = type == PerkType.REACH ? .20 : type == PerkType.SCALE ? .15 : .30;
+        return Math.min(limit, total);
     }
 
     /** Current bonuses rendered as a separate, compact active-only dashboard item. */
@@ -100,7 +103,7 @@ public final class PerkManager implements Listener {
         for (PerkType type : PerkType.values()) {
             int copies = stacks(profile, type);
             if (copies <= 0) continue;
-            double amount = Math.min(type == PerkType.REACH ? .20 : .30,
+            double amount = Math.min(type == PerkType.REACH ? .20 : type == PerkType.SCALE ? .15 : .30,
                     copies * perCopy(type));
             String unit = type == PerkType.REACH ? format(amount) + " blocks" : format(amount * 100) + "%";
             String subject = switch (type) {
@@ -115,8 +118,10 @@ public final class PerkManager implements Listener {
                 case PRESERVATION -> " durability saved";
                 case INSIGHT -> " XP earned";
                 case REACH -> " entity reach";
+                case SCALE -> " player size";
             };
-            lines.add("&9" + type.display + " &8x" + copies + " &7(+" + unit + subject + ")");
+            String sign = type == PerkType.SCALE ? "-" : "+";
+            lines.add("&9" + type.display + " &8x" + copies + " &7(" + sign + unit + subject + ")");
         }
         return lines.isEmpty() ? new String[]{"&8No active Perks"}
                 : lines.toArray(String[]::new);
@@ -130,7 +135,9 @@ public final class PerkManager implements Listener {
     private void sync(Player player, PerkType type, Attribute attribute, AttributeModifier.Operation operation) {
         AttributeInstance instance = player.getAttribute(attribute);
         if (instance == null) return;
-        double desired = bonus(player, type);
+        // Negative MULTIPLY_SCALAR_1 shrinks the vanilla SCALE attribute and
+        // its hitbox, without replacing the base size or another plugin's modifiers.
+        double desired = type == PerkType.SCALE ? -bonus(player, type) : bonus(player, type);
         NamespacedKey key = modifierKeys.get(type);
         AttributeModifier previous = null;
         for (AttributeModifier modifier : instance.getModifiers())
@@ -138,7 +145,7 @@ public final class PerkManager implements Listener {
         if (previous != null && Math.abs(previous.getAmount() - desired) < 1e-9
                 && previous.getOperation() == operation) return;
         if (previous != null) instance.removeModifier(previous);
-        if (desired > 0) instance.addTransientModifier(new AttributeModifier(key, desired, operation));
+        if (desired != 0) instance.addTransientModifier(new AttributeModifier(key, desired, operation));
     }
 
     public void refresh(Player player) {
@@ -149,6 +156,7 @@ public final class PerkManager implements Listener {
         sync(player, PerkType.STABILITY, Attribute.KNOCKBACK_RESISTANCE, AttributeModifier.Operation.ADD_NUMBER);
         sync(player, PerkType.EFFICIENCY, Attribute.BLOCK_BREAK_SPEED, AttributeModifier.Operation.MULTIPLY_SCALAR_1);
         sync(player, PerkType.REACH, Attribute.ENTITY_INTERACTION_RANGE, AttributeModifier.Operation.ADD_NUMBER);
+        sync(player, PerkType.SCALE, Attribute.SCALE, AttributeModifier.Operation.MULTIPLY_SCALAR_1);
     }
 
     /** Remove only modifiers owned by SpreeCore. */
@@ -158,7 +166,8 @@ public final class PerkManager implements Listener {
                 PerkType.DEXTERITY, Attribute.ATTACK_SPEED,
                 PerkType.STABILITY, Attribute.KNOCKBACK_RESISTANCE,
                 PerkType.EFFICIENCY, Attribute.BLOCK_BREAK_SPEED,
-                PerkType.REACH, Attribute.ENTITY_INTERACTION_RANGE).entrySet()) {
+                PerkType.REACH, Attribute.ENTITY_INTERACTION_RANGE,
+                PerkType.SCALE, Attribute.SCALE).entrySet()) {
             AttributeInstance instance = player.getAttribute(pair.getValue());
             if (instance == null) continue;
             NamespacedKey key = modifierKeys.get(pair.getKey());

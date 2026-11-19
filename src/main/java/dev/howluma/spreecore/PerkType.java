@@ -14,7 +14,8 @@ public enum PerkType {
     EFFICIENCY("efficiency", "Efficiency", .04, 4),
     PRESERVATION("preservation", "Preservation", .05, 4),
     INSIGHT("insight", "Insight", .05, 4),
-    REACH("reach", "Reach", .05, 3);
+    REACH("reach", "Reach", .05, 3),
+    SCALE("scale", "Scale", .05, 3);
 
     public final String id;
     public final String display;

@@ -1,5 +1,5 @@
 name: SpreeCore
-version: 1.6.0
+version: 1.6.1
 main: dev.howluma.spreecore.SpreeCorePlugin
 api-version: '1.21.11'
 authors: [Howluma]

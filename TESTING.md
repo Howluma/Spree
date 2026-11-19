@@ -1,6 +1,18 @@
-# SpreeCore v1.6.0 — test-server checklist
+# SpreeCore v1.6.1 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Scale Perk and player hitbox (v1.6.1)
+
+- [ ] A player with Scale x1 is 95% normal height/width, x2 is 90%, and x3 is 85% (visible to other players).
+- [ ] Scale can be randomly rolled at multiple Perk milestones; no 4th copy can be assigned with the default cap.
+- [ ] Withdrawing/dying to below a Scale milestone removes only that stack; regaining the level restores the same saved roll.
+- [ ] At zero or Fractured, SpreeCore Scale changes disappear and size returns to the base/other modifier-defined value.
+- [ ] On quit/rejoin/restart, players do not retain duplicate scale modifiers; plugin shutdown removes its transient modifier.
+- [ ] Scale does not override other plugins' scale changes, item bonuses, Potion of Invisibility, Spree milestone effects or the Reach perk.
+- [ ] `/spree perks` and the Perks book display Scale as a negative size percentage.
+- [ ] Changing/disabling Scale via settings recalculates players' sizes promptly; >15% shrink remains hard-capped.
+- [ ] Confirm anti-cheat and PvP hit registration behave appropriately with reduced player hitboxes.
 
 ## Random stackable Perks (v1.6.0)
 

@@ -27,6 +27,21 @@ class PerkMathTest {
         assertEquals(3, PerkMath.copies(history, PerkType.POWER, 100));
     }
 
+    @Test void scaleCanRollMultipleTimesAndRespectsCap() {
+        Map<Integer,String> history = new HashMap<>();
+        history.put(2, "scale");
+        history.put(4, "scale");
+        assertEquals(1, PerkMath.copies(history, PerkType.SCALE, 2));
+        assertEquals(2, PerkMath.copies(history, PerkType.SCALE, 4));
+        assertEquals(PerkType.SCALE,
+                PerkMath.draw(history, List.of(PerkType.SCALE), Map.of(PerkType.SCALE, 3), new Random(2)));
+        history.put(7, "scale");
+        assertEquals(3, PerkMath.copies(history, PerkType.SCALE, 7));
+        assertNull(PerkMath.draw(history, List.of(PerkType.SCALE), Map.of(PerkType.SCALE, 3), new Random(2)));
+        assertEquals(0, PerkMath.copies(history, PerkType.SCALE, -1));
+        assertEquals(2, PerkMath.copies(history, PerkType.SCALE, 6));
+        assertEquals(0.85, 1.0 - PerkType.SCALE.defaultPerCopy * PerkType.SCALE.defaultMaxCopies, 1e-10);
+    }
     @Test void cappingATypeRemovesItFromFutureRandomOffers() {
         Map<Integer,String> history = Map.of(2,"power",4,"power",7,"power",9,"power");
         Map<PerkType,Integer> caps = Map.of(PerkType.POWER,4,PerkType.AGILITY,3);

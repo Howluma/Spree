@@ -1,4 +1,4 @@
-# SpreeCore 1.6.0 - stackable randomized minor Perks and small reach bonus.
+# SpreeCore 1.6.1 - stackable Scale Perk (5% player size reduction per copy).
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -109,6 +109,10 @@ perks:
   reach:
     enabled: true
     per-copy: 0.05  # +0.05 blocks melee/entity reach each roll; up to +0.15
+    max-copies: 3
+  scale:
+    enabled: true
+    per-copy: 0.05  # -5% player size and hitbox per copy; up to -15%
     max-copies: 3
 
 legendary:
