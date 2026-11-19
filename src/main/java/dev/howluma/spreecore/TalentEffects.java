@@ -89,6 +89,29 @@ public final class TalentEffects implements Listener {
                 ||(old.getAmplifier()==amplifier&&old.getDuration()>=duration)))return false;
         return p.addPotionEffect(new PotionEffect(type,duration,amplifier,true,false,true),true);
     }
+    /**
+     * Move out of a web only when a neighboring two-block-high air column is
+     * clear. Never break blocks or teleport through solid blocks; protected
+     * regions can still reject the Bukkit teleport.
+     */
+    private boolean stepOutOfWeb(Player player) {
+        org.bukkit.block.Block origin=player.getLocation().getBlock();
+        if(origin.getType()!=Material.COBWEB)return false;
+        for(org.bukkit.block.BlockFace face:new org.bukkit.block.BlockFace[]{
+                org.bukkit.block.BlockFace.NORTH,org.bukkit.block.BlockFace.EAST,
+                org.bukkit.block.BlockFace.SOUTH,org.bukkit.block.BlockFace.WEST,
+                org.bukkit.block.BlockFace.UP}) {
+            org.bukkit.block.Block target=origin.getRelative(face);
+            if(!target.getType().isAir()||!target.getRelative(
+                    org.bukkit.block.BlockFace.UP).getType().isAir())continue;
+            var destination=target.getLocation().add(.5,0,.5);
+            destination.setYaw(player.getLocation().getYaw());
+            destination.setPitch(player.getLocation().getPitch());
+            if(player.teleport(destination,
+                    org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN))return true;
+        }
+        return false;
+    }
     private static boolean axe(Material type){return type.name().endsWith("_AXE");}
     private static Player credited(EntityDamageByEntityEvent event){
         if(event.getDamager() instanceof Player p)return p;
@@ -362,8 +385,10 @@ public final class TalentEffects implements Listener {
             PotionEffect originalSlow=p.getPotionEffect(PotionEffectType.SLOWNESS);
             if(originalSlow!=null)p.removePotionEffect(PotionEffectType.SLOWNESS);
             apply(p,PotionEffectType.SPEED,2,3);
-            // Brief lift from a cobweb is an escape, not block destruction.
-            if(p.getLocation().getBlock().getType()==Material.COBWEB)
+            // Take one safe, immediately adjacent step out of the cobweb when
+            // possible. If enclosed, fall back to a short lift instead.
+            if(p.getLocation().getBlock().getType()==Material.COBWEB
+                    &&!stepOutOfWeb(p))
                 p.setVelocity(p.getVelocity().add(new org.bukkit.util.Vector(0,.42,0)));
             start(p,"escape_artist",ti("escape-artist.cooldown-seconds",50));
             if(originalSlow!=null && originalSlow.getDuration()>60)
