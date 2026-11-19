@@ -30,10 +30,13 @@ class ProgressionCatalogTest {
     @Test void fullPoolsContainTheApprovedChoices() {
         assertEquals(6,ProgressionCatalog.PRIVILEGES.size());
         assertEquals(6,ProgressionCatalog.INFUSIONS.size());
-        assertEquals(22,ProgressionCatalog.TALENTS.size());
+        assertEquals(21,ProgressionCatalog.TALENTS.size());
         assertNotNull(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,"blacksmith"));
         assertNotNull(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,"mace_mastery"));
-        assertNotNull(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,"industrious"));
+        assertNull(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,"industrious"));
+        assertNotNull(ProgressionCatalog.find(ProgressionCatalog.Kind.INFUSION,"haste"));
+        assertEquals("Haste I",ProgressionCatalog.find(ProgressionCatalog.Kind.INFUSION,"haste").name());
+        assertNull(ProgressionCatalog.find(ProgressionCatalog.Kind.INFUSION,"strength"));
         assertNotNull(ProgressionCatalog.find(ProgressionCatalog.Kind.PRIVILEGE,"mace_wielder"));
     }
 }
