@@ -21,7 +21,7 @@ public final class ConfigEditor {
     ConfigEditor(SpreeCorePlugin plugin) { this.plugin = plugin; }
 
     public List<Category> categories() {
-        FileConfiguration defaults = plugin.getConfig().getDefaults();
+        org.bukkit.configuration.Configuration defaults = plugin.getConfig().getDefaults();
         if (defaults == null) return List.of();
         Map<String, List<Setting>> groups = new LinkedHashMap<>();
         for (String path : defaults.getKeys(true)) {
