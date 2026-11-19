@@ -336,25 +336,36 @@ public final class TalentEffects implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void damage(EntityDamageEvent e){
         if(!(e.getEntity() instanceof Player p)||e.getFinalDamage()<=0)return;
-        if(e.getCause()==EntityDamageEvent.DamageCause.FALL&&has(p,"acrobat"))
-            e.setDamage(e.getDamage()*td("acrobat.fall-damage-multiplier",.60));
+        if(e.getCause()==EntityDamageEvent.DamageCause.FALL&&has(p,"acrobat")){
+            double factor=Math.max(0,Math.min(1,td("acrobat.fall-damage-multiplier",.60)));
+            if(factor<1){
+                e.setDamage(e.getDamage()*factor);
+                plugin.talentFeedback().passive(p,"acrobat");
+            }
+        }
         // Give the life-saving option priority when both could activate.
-        if(has(p,"second_wind") && p.getHealth()-e.getFinalDamage()<=maxHealth(p)*td("second-wind.health-threshold-fraction",.30)
-                && defensiveReady(p,"second_wind",ti("second-wind.cooldown-seconds",90)))
-            apply(p,PotionEffectType.ABSORPTION,0,ti("second-wind.duration-seconds",8));
-        else if(has(p,"iron_will") && e.getFinalDamage()>=td("iron-will.trigger-hearts",3)*2
-                && defensiveReady(p,"iron_will",ti("iron-will.cooldown-seconds",75)))
-            apply(p,PotionEffectType.RESISTANCE,0,ti("iron-will.duration-seconds",5));
+        if(has(p,"second_wind")
+                &&p.getHealth()-e.getFinalDamage()
+                        <=maxHealth(p)*td("second-wind.health-threshold-fraction",.30)
+                &&defensiveAvailable(p,"second_wind")
+                &&apply(p,PotionEffectType.ABSORPTION,0,ti("second-wind.duration-seconds",8))){
+            startDefense(p,"second_wind",ti("second-wind.cooldown-seconds",90));
+        }else if(has(p,"iron_will")
+                &&e.getFinalDamage()>=td("iron-will.trigger-hearts",3)*2
+                &&defensiveAvailable(p,"iron_will")
+                &&apply(p,PotionEffectType.RESISTANCE,0,ti("iron-will.duration-seconds",5))){
+            startDefense(p,"iron_will",ti("iron-will.cooldown-seconds",75));
+        }
         if(has(p,"escape_artist") && (p.hasPotionEffect(PotionEffectType.SLOWNESS)
                 ||p.getLocation().getBlock().getType()==Material.COBWEB)
-                && ready(p,"escape_artist",ti("escape-artist.cooldown-seconds",50))){
+                &&available(p,"escape_artist")){
             PotionEffect originalSlow=p.getPotionEffect(PotionEffectType.SLOWNESS);
-            p.removePotionEffect(PotionEffectType.SLOWNESS);
+            if(originalSlow!=null)p.removePotionEffect(PotionEffectType.SLOWNESS);
             apply(p,PotionEffectType.SPEED,2,3);
-            // A short lift helps the player escape an actual cobweb without
-            // breaking blocks or changing the underlying world.
+            // Brief lift from a cobweb is an escape, not block destruction.
             if(p.getLocation().getBlock().getType()==Material.COBWEB)
                 p.setVelocity(p.getVelocity().add(new org.bukkit.util.Vector(0,.42,0)));
+            start(p,"escape_artist",ti("escape-artist.cooldown-seconds",50));
             if(originalSlow!=null && originalSlow.getDuration()>60)
                 Bukkit.getScheduler().runTaskLater(plugin,()->{
                     if(p.isOnline()&&!p.isDead()&&!p.hasPotionEffect(PotionEffectType.SLOWNESS))
@@ -373,25 +384,53 @@ public final class TalentEffects implements Listener {
     public void goldenApple(PlayerItemConsumeEvent e){
         Player p=e.getPlayer();
         if(e.getItem().getType()!=Material.GOLDEN_APPLE||!has(p,"golden_aegis")
-                ||!ready(p,"golden_aegis",ti("golden-aegis.cooldown-seconds",45)))return;
+                ||!available(p,"golden_aegis"))return;
         Bukkit.getScheduler().runTaskLater(plugin,()->{
-            if(p.isOnline()&&!p.isDead()&&has(p,"golden_aegis"))
-                p.setAbsorptionAmount(Math.max(p.getAbsorptionAmount(),
-                        Math.min(4+ti("golden-aegis.extra-absorption-hearts",2)*2,
-                                p.getAbsorptionAmount()+ti("golden-aegis.extra-absorption-hearts",2)*2)));
+            if(!p.isOnline()||p.isDead()||!has(p,"golden_aegis")
+                    ||!available(p,"golden_aegis"))return;
+            double before=p.getAbsorptionAmount();
+            double added=Math.max(0,ti("golden-aegis.extra-absorption-hearts",2)*2);
+            // A normal Golden Apple grants two absorption hearts; Aegis adds
+            // another two without repeatedly stacking above its intended cap.
+            double after=Math.max(before,Math.min(4+added,before+added));
+            if(after>before+0.01){
+                p.setAbsorptionAmount(after);
+                start(p,"golden_aegis",ti("golden-aegis.cooldown-seconds",45));
+            }
         },2L);
     }
 
     /** Called only after StreakManager confirms a kill is anti-farm eligible. */
     public void onEligibleKill(Player killer){
-        if(has(killer,"field_medic")&&ready(killer,"field_medic",ti("field-medic.cooldown-seconds",60)))heal(killer,td("field-medic.heal-hearts",5));
+        if(has(killer,"field_medic")&&available(killer,"field_medic")
+                &&killer.getHealth()<maxHealth(killer)-.01){
+            heal(killer,td("field-medic.heal-hearts",5));
+            start(killer,"field_medic",ti("field-medic.cooldown-seconds",60));
+        }
     }
 
     /** Does not protect Fractured, and never increases a streak above pre-death. */
     public int protectedDeath(Player victim,int oldStreak,int normalLoss){
         if(oldStreak<=0||normalLoss>=oldStreak||!has(victim,"streak_insurance")
-                ||!ready(victim,"streak_insurance",ti("streak-insurance.cooldown-seconds",600)))return normalLoss;
-        return Math.min(oldStreak,normalLoss+ti("streak-insurance.protected-levels",2));
+                ||!available(victim,"streak_insurance"))return normalLoss;
+        int protectedStreak=Math.min(oldStreak,normalLoss
+                +Math.max(0,ti("streak-insurance.protected-levels",2)));
+        if(protectedStreak<=normalLoss)return normalLoss;
+        insuranceOnRespawn.put(victim.getUniqueId(),protectedStreak-normalLoss);
+        start(victim,"streak_insurance",ti("streak-insurance.cooldown-seconds",600));
+        return protectedStreak;
+    }
+    @EventHandler public void respawn(PlayerRespawnEvent e){
+        Integer saved=insuranceOnRespawn.remove(e.getPlayer().getUniqueId());
+        if(saved==null)return;
+        Bukkit.getScheduler().runTaskLater(plugin,()->{
+            Player p=e.getPlayer();
+            if(!p.isOnline()||p.isDead())return;
+            Text.send(p,plugin.prefix()+"&aStreak Insurance saved &f"+saved
+                    +" &akillstreak levels! &7Check &b/spree cooldowns &7for its recharge.");
+            plugin.talentFeedback().activated(p,"streak_insurance",
+                    ti("streak-insurance.cooldown-seconds",600));
+        },2L);
     }
 
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
@@ -402,17 +441,21 @@ public final class TalentEffects implements Listener {
         if(!charge.getWorld().equals(p.getWorld())
                 ||charge.getLocation().distanceSquared(p.getLocation())>16)return;
         Bukkit.getScheduler().runTaskLater(plugin,()->{
-            if(p.isOnline()&&!p.isDead()&&has(p,"windrunner"))
+            if(p.isOnline()&&!p.isDead()&&has(p,"windrunner")){
                 p.setVelocity(p.getVelocity().multiply(td("windrunner.velocity-multiplier",1.25)));
+                plugin.talentFeedback().passive(p,"windrunner");
+            }
         },1L);
     }
 
     /** Called from the main heartbeat after the HUD, for 8s of target health. */
     public void tick(){
+        plugin.talentFeedback().tick();
         long now=System.currentTimeMillis();
         for(Player p:Bukkit.getOnlinePlayers()){
             Sense sense=sensed.get(p.getUniqueId());
-            if(sense==null||now>=sense.expires()||!has(p,"battle_sense"))continue;
+            if(sense==null||now>=sense.expires()||!has(p,"battle_sense")
+                    ||plugin.talentFeedback().suppressBattleSense(p))continue;
             Player target=Bukkit.getPlayer(sense.target());
             if(target!=null&&target.isOnline()&&!target.isDead())
                 Text.action(p,"&9&lBATTLE SENSE &7"+target.getName()+" &c"
@@ -451,5 +494,12 @@ public final class TalentEffects implements Listener {
             if(e.getWhoClicked() instanceof Player p)
                 Text.action(p,"&cBlacksmith Talent required.");
         }
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void craftedFeedback(CraftItemEvent e) {
+        if(blacksmithRecipe(e.getRecipe())&&e.getWhoClicked() instanceof Player p
+                &&has(p,"blacksmith") &&e.getCurrentItem()!=null
+                &&!e.getCurrentItem().getType().isAir())
+            plugin.talentFeedback().passive(p,"blacksmith");
     }
 }
