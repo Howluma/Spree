@@ -2,7 +2,7 @@
 
 A Java 21 / Paper **1.21.11** replacement for these ten Skript files.
 
-**Delivery format: complete Java source project.** This archive does not contain a ready-to-install JAR because this environment could not download the Paper API dependency for a full build. Use the GitHub Actions workflow or build with Java 21 and Gradle. All config YAML was validated and 11 standalone Java arithmetic assertions passed, but the plugin still requires compilation and live-server verification. See `TESTING.md`.
+**Build verified:** The Java 21 / Paper 1.21.11 project compiles in GitHub Actions and its automated tests pass. Download the `SpreeCore-jar` artifact from a successful [GitHub Actions build](https://github.com/Howluma/Spree/actions/workflows/build.yml), extract `SpreeCore-1.0.0.jar`, and install that JAR on a **test** server first. Live Minecraft gameplay remains unverified; see `TESTING.md`.
 
 Original inputs:
 
@@ -13,7 +13,7 @@ Original inputs:
 1. **Back up your server** (world and `plugins/Skript` folder). In your **test** server first, disable/remove the ten `.sk` files (do not load both implementations at the same time).
 2. Build with Java 21 and Gradle 8.14+: `gradle clean test build` (or run `build-windows.bat` on Windows if Gradle is installed).
    - The built jar is `build/libs/SpreeCore-1.0.0.jar`.
-   - Alternatively, push this folder to GitHub and run the included GitHub Actions `Build SpreeCore` workflow to download the compiled jar.
+   - Alternatively, use the GitHub Actions `Build SpreeCore JAR` workflow. A successful run attaches the downloadable `SpreeCore-jar` ZIP.
 3. Place **only the built JAR** in `plugins/` and start your Paper 1.21.11 server. **Skript is not required** for this plugin.
 4. Review `plugins/SpreeCore/config.yml`. All important cooldowns, chances, durations, streak thresholds, forge timers, and anti-farm settings live there. Use `/spreeadmin reload` for balance adjustments. (Scheduler interval changes require restart.)
 5. If migrating existing Skript player data and the Skript default CSV is available, run `/spreeadmin importskript` once. If profiles already contain data, use `/spreeadmin importskript force` to override fields **after** reviewing the automatic backup. Other Skript database formats are not automatically imported.
