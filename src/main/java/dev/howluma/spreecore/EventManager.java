@@ -135,8 +135,8 @@ public final class EventManager implements Listener {
         }
     }
     private void reroll(Player hunter,UUID avoid) {
-        List<Player> choices=Bukkit.getOnlinePlayers().stream()
-                .filter(p->!p.equals(hunter) && !p.getUniqueId().equals(avoid)).toList();
+        List<Player> choices=new ArrayList<>(Bukkit.getOnlinePlayers());
+        choices.removeIf(p->p.equals(hunter) || p.getUniqueId().equals(avoid));
         if(choices.isEmpty()) {huntTargets.remove(hunter.getUniqueId());return;}
         Player target=choices.get(ThreadLocalRandom.current().nextInt(choices.size()));
         huntTargets.put(hunter.getUniqueId(),target.getUniqueId());
@@ -144,7 +144,8 @@ public final class EventManager implements Listener {
     }
     private void pickJuggernaut(UUID avoid) {
         UUID old=juggernaut;
-        List<Player> choices=Bukkit.getOnlinePlayers().stream().filter(p->!p.getUniqueId().equals(avoid)).toList();
+        List<Player> choices=new ArrayList<>(Bukkit.getOnlinePlayers());
+        choices.removeIf(p->p.getUniqueId().equals(avoid));
         if(choices.isEmpty())choices=new ArrayList<>(Bukkit.getOnlinePlayers());
         if(choices.isEmpty()) {juggernaut=null;return;}
         Player selected=choices.get(ThreadLocalRandom.current().nextInt(choices.size()));
