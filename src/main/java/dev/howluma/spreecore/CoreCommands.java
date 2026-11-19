@@ -146,7 +146,10 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     }
     private void showInfo(CommandSender sender) {
         Text.send(sender,"&9&lSPREE &7- Killstreak Mechanics");
-        Text.send(sender,"&7Cap: &f"+plugin.streaks().cap()+" &7| Fractured Killstreak after an environmental death at zero");
+        Text.send(sender,"&7Progression rewards stop at &f" + plugin.streaks().progressionCap()
+                + "&7; killstreak totals continue above 30 (score limit: &f"
+                + plugin.streaks().cap() + "&7).");
+        Text.send(sender,"&7Fractured Killstreak after an environmental death at zero");
         Text.send(sender,"&7Health: +" + ConfigEditor.format(plugin.getConfig().getDouble("killstreak.health-per-level-hearts", 0.5))
                 + " heart per positive level; Fractured has the normal base health.");
         Text.send(sender,"&7Mace attacks require a claimed &9Mace Wielder &7Privilege.");
@@ -263,7 +266,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                     Integer parsed=cmd.equals("set")
                             ?exactSpreeValue(sender,args[2]):number(sender,args[2]);
                     if(parsed==null)return;
-                    value=switch(cmd){case "set" -> parsed;case "add" -> p.streak+parsed;default -> p.streak-parsed;};
+                    value=switch(cmd){case "set" -> parsed;case "add" -> (int)Math.min(plugin.streaks().cap(), (long)p.streak+parsed);default -> (int)Math.max(0L, (long)p.streak-parsed);};
                 }
                 if(cmd.equals("fracture") || cmd.equals("recovery"))plugin.streaks().setStreak(p.id,-1,false);
                 else plugin.streaks().setStreak(p.id,value,value>=0);
