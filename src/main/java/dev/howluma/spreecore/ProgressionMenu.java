@@ -134,6 +134,9 @@ public final class ProgressionMenu implements Listener {
             details.add(coloredStatus(unlocked, current, reroll));
             details.add(option != null ? "&f" + option.name() : "&7Not chosen yet");
             details.add(option != null ? "&7" + option.description() : "&8One choice per milestone");
+            if(kind == ProgressionCatalog.Kind.TALENT && current == null
+                    && plugin.data().get(player).retiredTalentMilestones.contains(level))
+                details.add("&bIndustrious retired: free replacement Talent available");
             if(kind==ProgressionCatalog.Kind.TALENT && option!=null) {
                 details.add(plugin.talentFeedback().cooldownLore(player,option.id()));
                 details.add("&7All cooldowns: &b/spree cooldowns");
