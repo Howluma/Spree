@@ -15,10 +15,11 @@ import java.util.*;
 public final class MenuManager implements Listener {
     private final SpreeCorePlugin plugin;
     private final Map<UUID, Long> resetConfirm = new HashMap<>();
-    private final Map<UUID, PendingEdit> editing = new HashMap<>();
+    // Async chat listeners only inspect these; modifications and GUI work run on the server thread.
+    private final Map<UUID, PendingEdit> editing = new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<UUID, BrowserState> playerBrowser = new HashMap<>();
-    private final Map<UUID, PendingStatEdit> statEditing = new HashMap<>();
-    private final Set<UUID> searchEditing = new HashSet<>();
+    private final Map<UUID, PendingStatEdit> statEditing = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Set<UUID> searchEditing = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final Map<UUID, ConfirmPlayerReset> playerResetConfirm = new HashMap<>();
     private record BrowserState(int page, boolean onlineOnly, String search) {}
     private enum PlayerField { STREAK, BEST, KILLS, DEATHS, ENDED }
@@ -367,7 +368,7 @@ public final class MenuManager implements Listener {
                     default -> null;
                 };
                 if (changed != null) {
-                    plugin.streaks().setStreak(h.target, changed, true);
+                    if (changed != profile.streak) plugin.streaks().setStreak(h.target, changed, changed >= 0);
                     playerResetConfirm.remove(p.getUniqueId());
                     openPlayer(p, h.target);
                     return;
@@ -559,7 +560,7 @@ public final class MenuManager implements Listener {
         Bukkit.getScheduler().runTask(plugin,()->{
             Player player=Bukkit.getPlayer(playerId);
             if(player!=null && player.isOnline())submitInput(player,message);
-            else editing.remove(playerId);
+            else { editing.remove(playerId); statEditing.remove(playerId); searchEditing.remove(playerId); }
         });
     }
     @EventHandler public void quit(PlayerQuitEvent event) {
