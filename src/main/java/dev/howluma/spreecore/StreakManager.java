@@ -111,6 +111,26 @@ public final class StreakManager implements Listener {
     }
     public void shutdown() { for (Player player : Bukkit.getOnlinePlayers()) milestones.clear(player); }
 
+    /** Normalize legacy item_model overrides for real PDC-tagged Spree
+     * consumables and tokens already in an inventory. Ignore unrelated items. */
+    public int migrateTokenModels(Player player) {
+        ItemStack[] contents = player.getInventory().getContents();
+        int changed = 0;
+        for (int slot = 0; slot < contents.length; slot++) {
+            ItemStack item = contents[slot];
+            if (item == null || item.getType() != Material.HEART_OF_THE_SEA || !item.hasItemMeta()) continue;
+            ItemMeta meta = item.getItemMeta();
+            boolean owned = meta.getPersistentDataContainer().has(spreeConsumable, PersistentDataType.BYTE)
+                    || meta.getPersistentDataContainer().has(tokenOwner, PersistentDataType.STRING);
+            if (!owned || !plugin.models().token(meta)) continue;
+            item.setItemMeta(meta);
+            contents[slot] = item;
+            changed++;
+        }
+        if (changed > 0) player.getInventory().setContents(contents);
+        return changed;
+    }
+
     @EventHandler public void join(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         plugin.data().get(player);
@@ -119,6 +139,7 @@ public final class StreakManager implements Listener {
             update(player);
             tabName(player);
             plugin.legendaries().migrate(player);
+            migrateTokenModels(player);
             if (streak(player) >= c().getInt("general.announce-joining-streak", 10))
                 Bukkit.broadcastMessage(Text.c(plugin.prefix() + "&f" + player.getName() + " &7joined on a " + plugin.indicators().streakColor(streak(player)) + streak(player) + " &7killstreak!"));
         }, 2L);

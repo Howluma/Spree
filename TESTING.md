@@ -1,6 +1,15 @@
-# SpreeCore v1.5.2 — test-server checklist
+# SpreeCore v1.5.3 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Official pack and vanilla-client compatibility (v1.5.3)
+
+- [ ] With pack: issued Spree item, Tundra Tanto, Blood Butcher, Blood's Bane show correct original art.
+- [ ] Without pack: same items render as Heart of the Sea, Diamond Sword, Diamond Axe or Diamond Sword, never missing-texture purple/black.
+- [ ] Legacy recognized items with an explicit item_model get normalized on login or /spreeadmin migrateitems without losing stats, enchantments, lore or PDC.
+- [ ] Existing PDC-tagged Spree consumables and tokens from prior versions migrate when joining, retaining function.
+- [ ] Unrelated items and other plugin's models are not affected by the Spree inventory migration.
+- [ ] Archived item_model /give test items may still require pack: replace them with CMD-only safe preview commands from official pack.
 
 ## Spree withdrawal regression (v1.5.2)
 

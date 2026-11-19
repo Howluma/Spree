@@ -16,6 +16,11 @@ public final class ModelData {
         return plugin.getConfig().getInt("resource-pack.models." + name, fallback);
     }
     private boolean apply(ItemMeta meta, String name, int fallback) {
+        // An explicit resource-pack item_model renders missing on clients without
+        // that pack. SpreeCore-managed items must use vanilla item_model plus
+        // a custom_model_data selector, which has a vanilla client fallback.
+        boolean resetItemModel = meta.hasItemModel();
+        if (resetItemModel) meta.setItemModel(null);
         CustomModelDataComponent component = meta.getCustomModelDataComponent();
         List<Float> floats = component.getFloats();
         float target = id(name, fallback);
@@ -26,9 +31,9 @@ public final class ModelData {
                 meta.setCustomModelDataComponent(component);
                 return true;
             }
-            return false;
+            return resetItemModel;
         }
-        if (floats.size() == 1 && floats.get(0) == target) return false;
+        if (floats.size() == 1 && floats.get(0) == target) return resetItemModel;
         component.setFloats(List.of(target));
         meta.setCustomModelDataComponent(component);
         return true;
