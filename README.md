@@ -1,8 +1,8 @@
-# SpreeCore 1.2 — Spree SMP native Paper plugin
+# SpreeCore 1.3 — Spree SMP native Paper plugin
 
 A Java 21 / Paper **1.21.11** replacement for these ten Skript files.
 
-**Build format:** Java source with GitHub Actions producing an installable `SpreeCore-1.2.0.jar`. A test server is still required for gameplay and visual verification.
+**Build format:** Java source with GitHub Actions producing an installable `SpreeCore-1.3.0.jar`. A test server is still required for gameplay and visual verification.
 
 **Previously added in 1.1:** `/spree` dashboard now links to a complete admin-only graphical settings editor. Every primitive configuration entry in `config.yml` is automatically grouped and editable, so adding new values later does not require rewriting the menu. Resource-pack model selectors show custom models only when the player installs the matching pack, while non-pack clients keep vanilla item appearances.
 
@@ -131,3 +131,33 @@ Seven weapons use **one PDC item registry** and one shared listener, instead of 
 - **Non-invasive nametags:** native scoreboard team suffixes are only added when a player is *not already in another team's scoreboard entry*. This deliberately avoids removing factions/party teams and altering friendly-fire or collision semantics. A pre-existing shared scoreboard team may prevent overhead indicators for its members; their tab indicators remain visible. If you use another nametag/team plugin, coordinate the integrations rather than forcing a team override.
 - **Tentative item rules inactive:** old draft thresholds remain editable for future decisions, but they are disabled by default. No server-wide inventory item confiscation while they're still being decided.
 
+
+
+## v1.3: Fractured Killstreak, combat balancing and Spree consumable
+
+- `/spree settings` opens every editable setting for admins. `/spreesettings` and
+  `/spreecore:spree settings` are alternatives when another plugin takes `/spree`.
+- A **Fractured Killstreak** is still stored as `-1` so saved `players.yml`
+  remains compatible. The player-facing text is Fractured, not a negative number.
+- Tab and overhead nametags default to a dark-cyan gem (`◆`) and **bold cyan**
+  streak numbers. Both indicators remain independently configurable.
+- Players lose half their positive streak **rounded down** on all deaths. A
+  normal PvP death at 0 stays 0; an environmental death at 0 becomes Fractured.
+- `/spreeadmin giveitem <online-player> [1-64]` grants **Spree consumables**:
+  a custom-model Heart of the Sea that gives **exactly +1** per right click,
+  consumes one item, and never wastes the item at the maximum streak. The admin
+  player manager also contains a Give Spree Item button (shift = 5).
+- **Environmental-death Spree Tokens are separate**: their existing automatic
+  pickup/reclaim rules and trap-kill rewards are preserved for backwards
+  compatibility, including the ability to clear a Fractured state by reclaiming
+  your own token. This avoids silently changing anti-farming gameplay.
+- `/spree settings` -> Combat Balancing controls direct mace damage against
+  players (default 75%) and self-damage from TNT primed by that player (default
+  50%). Mobs and TNT damage to other people retain vanilla damage.
+- TNT records its igniter in persistent entity data, allowing attribution after
+  chunk reload. Nearby unambiguous TNT chain explosions and recently clicked
+  beds/respawn anchors/crystals are considered for credit. Unknown-source or
+  conflicting simultaneous explosions are **not** guessed. Attribution expires
+  after a configurable period (default 12s) to avoid crediting unrelated deaths.
+- Always test on a copy of your world before deploying. External scoreboard
+  plugins may own nametags, so SpreeCore leaves their teams untouched.

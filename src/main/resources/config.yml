@@ -1,23 +1,23 @@
-# SpreeCore 1.2 - admins can edit every setting in /spree > Edit All Settings.
+# SpreeCore 1.3 - editable from /spree settings or /spreesettings (admin-only).
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
   prefix: '&9&lSPREE &8| &f'
   max-killstreak: 30
-  recovery-label: '&cRECOVERY'
+  fractured-label: '&c&lFractured Killstreak'
   actionbar-interval-ticks: 40
   save-interval-seconds: 120
   announce-joining-streak: 10
 
-# Vanilla-compatible indicators: ✦12 in the tab list and overhead name tags.
+# Vanilla-compatible indicators: ◆ §b§l12 in the tab list and overhead name tags.
 # Overhead tags use scoreboard suffixes when the player is NOT already in a team.
 # Existing faction/party team membership is preserved (no forced team removal).
 display:
   streak-indicators:
     tab-enabled: true
     nametag-enabled: true
-    symbol: '✦'
-    recovery-symbol: '↺'
+    symbol: '◆'
+    fractured-symbol: '✕'
 
 killstreak:
   max-health-hearts: 20
@@ -26,7 +26,7 @@ killstreak:
   anti-farm:
     enabled: true
     same-victim-cooldown-seconds: 300
-    block-rewards-for-negative-victim: true
+    block-rewards-for-fractured-victim: true
   revenge:
     enabled: true
     bonus-streak: 2
@@ -128,6 +128,19 @@ legendary:
       launch-ticks-between-hits: 10
       launch-hits: 6
       launch-damage-per-hit-hearts: 0.75
+
+# These options are visible and editable in /spree settings > Combat Balancing.
+# Multipliers apply to the unmitigated base damage, before armor/enchantments.
+combat:
+  mace:
+    enabled: true
+    player-damage-multiplier: 0.75
+  tnt:
+    enabled: true
+    igniter-self-damage-multiplier: 0.50
+  explosive-kill-credit:
+    enabled: true
+    window-seconds: 12
 
 # Untimed locator / hunt / juggernaut events are separate from 5-minute mini events.
 events:

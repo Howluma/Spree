@@ -1,5 +1,5 @@
 name: SpreeCore
-version: 1.2.0
+version: 1.3.0
 main: dev.howluma.spreecore.SpreeCorePlugin
 api-version: '1.21.11'
 authors: [Howluma]
@@ -7,6 +7,10 @@ description: Native Paper rewrite of Spree SMP killstreaks, events, tokens and l
 commands:
   spree:
     description: Open the Spree menu
+  spreesettings:
+    description: Open the admin settings editor directly
+    permission: spree.admin
+    aliases: [spreeconfig]
   spreehud:
     aliases: [togglehud]
     description: Toggle killstreak action bar

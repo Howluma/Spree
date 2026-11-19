@@ -10,6 +10,8 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.event.block.Action;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -24,7 +26,8 @@ import java.util.regex.Pattern;
 /** Killstreaks, recovery, tokens, item gates, passives, and efficient HUD updates. */
 public final class StreakManager implements Listener {
     private final SpreeCorePlugin plugin;
-    private final NamespacedKey tokenOwner, tokenValue, tokenSerial;
+    private final NamespacedKey tokenOwner, tokenValue, tokenSerial, spreeConsumable;
+    private final Map<UUID, Integer> lastSpreeItemTick = new HashMap<>();
     private final Map<UUID, Long> tokenWarnings = new HashMap<>();
     private final Set<UUID> managedGlow = new HashSet<>();
     private static final Pattern LEGACY_WORTH = Pattern.compile("Worth:\\s*\\+(\\d+)");
@@ -35,12 +38,13 @@ public final class StreakManager implements Listener {
         tokenOwner = new NamespacedKey(plugin, "token_owner");
         tokenValue = new NamespacedKey(plugin, "token_value");
         tokenSerial = new NamespacedKey(plugin, "token_serial");
+        spreeConsumable = new NamespacedKey(plugin, "spree_consumable");
     }
     private FileConfiguration c() { return plugin.getConfig(); }
     public PlayerDataStore.Profile get(Player player) { return plugin.data().get(player); }
     public int streak(OfflinePlayer player) { return plugin.data().get(player).streak; }
     public int cap() { return c().getInt("general.max-killstreak", 30); }
-    public String display(int streak) { return Text.formatStreak(streak, c().getString("general.recovery-label", "&cRECOVERY")); }
+    public String display(int streak) { return Text.formatStreak(streak, c().getString("general.fractured-label", "&c&lFractured Killstreak")); }
 
     /** Single entry point for every stat modification; handles best, HUD, health, relic leader. */
     public void setStreak(UUID id, int amount, boolean admin) {
@@ -147,6 +151,7 @@ public final class StreakManager implements Listener {
     }
     @EventHandler public void quit(PlayerQuitEvent event) {
         tokenWarnings.remove(event.getPlayer().getUniqueId());
+        lastSpreeItemTick.remove(event.getPlayer().getUniqueId());
         managedGlow.remove(event.getPlayer().getUniqueId());
         plugin.data().dirty();
     }
@@ -154,7 +159,8 @@ public final class StreakManager implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void death(PlayerDeathEvent event) {
         Player victim = event.getEntity();
-        Player killer = victim.getKiller();
+        Player killer = plugin.combat().killer(victim);
+        plugin.combat().clearVictim(victim.getUniqueId());
         if (victim.equals(killer)) killer = null;
         PlayerDataStore.Profile victimProfile = get(victim);
         int old = victimProfile.streak;
@@ -164,7 +170,7 @@ public final class StreakManager implements Listener {
         if (killer == null) {
             if (old >= 0) dropToken(victim, SpreeMath.killGain(old));
             setStreak(victim.getUniqueId(), SpreeMath.naturalDeathStreak(old), false);
-            if (old == 0) Text.send(victim, plugin.prefix() + "&cYou are in Recovery. Reclaim your token or get a kill.");
+            if (old == 0) Text.send(victim, plugin.prefix() + "&cYou have a Fractured Killstreak. Reclaim your own token or get a kill.");
             else Text.send(victim, plugin.prefix() + "&7Natural death: your streak is now " + display(streak(victim)));
         } else {
             victimProfile.revengeAgainst = killer.getUniqueId();
@@ -196,7 +202,7 @@ public final class StreakManager implements Listener {
     }
     private boolean eligibleKill(PlayerDataStore.Profile killer, UUID victim, int oldStreak) {
         if (!c().getBoolean("killstreak.anti-farm.enabled", true)) return true;
-        if (oldStreak < 0 && c().getBoolean("killstreak.anti-farm.block-rewards-for-negative-victim", true)) return false;
+        if (oldStreak < 0 && c().getBoolean("killstreak.anti-farm.block-rewards-for-fractured-victim", true)) return false;
         long now = System.currentTimeMillis();
         long cooldown = Math.max(0, c().getLong("killstreak.anti-farm.same-victim-cooldown-seconds", 300)) * 1000L;
         killer.recentVictims.entrySet().removeIf(entry -> now - entry.getValue() > cooldown);
@@ -206,6 +212,55 @@ public final class StreakManager implements Listener {
         plugin.data().dirty();
         return true;
     }
+    /** A distinct consumable: unlike environmental-death trap tokens, this grants exactly +1 on use. */
+    public ItemStack createSpreeItem(int amount) {
+        if (amount < 1 || amount > 64) throw new IllegalArgumentException("Amount must be 1-64");
+        ItemStack item = new ItemStack(Material.HEART_OF_THE_SEA, amount);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(Text.c("&3◆ &b&lSpree"));
+        meta.setLore(List.of(Text.c("&7Right-click to gain &b&l+1 Killstreak"),
+                Text.c("&8Consumed on use")));
+        meta.getPersistentDataContainer().set(spreeConsumable, PersistentDataType.BYTE, (byte) 1);
+        plugin.models().token(meta);
+        item.setItemMeta(meta);
+        return item;
+    }
+    public void giveSpreeItem(Player player, int amount) {
+        Map<Integer, ItemStack> leftover = player.getInventory().addItem(createSpreeItem(amount));
+        for (ItemStack item : leftover.values()) player.getWorld().dropItemNaturally(player.getLocation(), item);
+    }
+    // Right-click-air events may arrive pre-cancelled when vanilla has no action.
+    // Handle those while cancelling the normal Heart of the Sea interaction.
+    @EventHandler(priority = EventPriority.HIGH)
+    public void useSpreeItem(PlayerInteractEvent event) {
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
+        EquipmentSlot hand = event.getHand();
+        if (hand == null) return;
+        ItemStack item = hand == EquipmentSlot.HAND
+                ? event.getPlayer().getInventory().getItemInMainHand()
+                : event.getPlayer().getInventory().getItemInOffHand();
+        if (item.getType() != Material.HEART_OF_THE_SEA || !item.hasItemMeta()
+                || !item.getItemMeta().getPersistentDataContainer().has(spreeConsumable, PersistentDataType.BYTE)) return;
+        event.setCancelled(true);
+        Player player = event.getPlayer();
+        int tick = player.getTicksLived();
+        if (lastSpreeItemTick.getOrDefault(player.getUniqueId(), -1) == tick) return;
+        lastSpreeItemTick.put(player.getUniqueId(), tick);
+        if (streak(player) >= cap()) {
+            Text.action(player, "&cYou are already at the maximum killstreak.");
+            return; // Never waste the item at the cap.
+        }
+        ItemStack remaining = item.clone();
+        if (remaining.getAmount() == 1) remaining = new ItemStack(Material.AIR);
+        else remaining.setAmount(remaining.getAmount() - 1);
+        if (hand == EquipmentSlot.HAND) player.getInventory().setItemInMainHand(remaining);
+        else player.getInventory().setItemInOffHand(remaining);
+        addStreak(player, 1);
+        Text.send(player, plugin.prefix() + "&b&l+1 Killstreak &7from Spree!");
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.25f);
+    }
+
     private void dropToken(Player player, int value) {
         ItemStack item = new ItemStack(Material.HEART_OF_THE_SEA);
         ItemMeta meta = item.getItemMeta();
@@ -250,7 +305,7 @@ public final class StreakManager implements Listener {
                 event.setCancelled(true);
                 long now = System.currentTimeMillis();
                 if (now - tokenWarnings.getOrDefault(player.getUniqueId(), 0L) > 2000L) {
-                    Text.action(player, "&cYou can only reclaim your own token at zero or during Recovery.");
+                    Text.action(player, "&cReclaim your own token at zero or while Fractured.");
                     tokenWarnings.put(player.getUniqueId(), now);
                 }
                 return;
@@ -261,7 +316,7 @@ public final class StreakManager implements Listener {
                 if (current < 0) {
                     setStreak(player.getUniqueId(), 0, false);
                     player.setHealth(Math.min(player.getAttribute(Attribute.MAX_HEALTH).getValue(), player.getHealth() + 2));
-                    Text.send(player, plugin.prefix() + "&aRecovery completed! You're back at zero.");
+                    Text.send(player, plugin.prefix() + "&aFractured Killstreak repaired! You're back at zero.");
                 } else Text.send(player, plugin.prefix() + "&aYour own token was reclaimed (no bonus).");
             } else {
                 addStreak(player, token.value());
