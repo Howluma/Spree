@@ -1,0 +1,40 @@
+name: SpreeCore
+version: 1.0.0
+main: dev.howluma.spreecore.SpreeCorePlugin
+api-version: '1.21.11'
+authors: [Howluma]
+description: Native Paper rewrite of Spree SMP killstreaks, events, tokens and legendary weapons.
+commands:
+  spree:
+    description: Open the Spree menu
+  spreehud:
+    aliases: [togglehud]
+    description: Toggle killstreak action bar
+  killstreak:
+    aliases: [ks]
+    description: Check current killstreak
+  stats:
+    aliases: [stat, statistics, mystats]
+    description: View player stats
+  leaderboard:
+    aliases: [lb, topstreak, streaktop]
+    description: Show killstreak leaderboard
+  spreeinfo:
+    description: Show active thresholds and effects
+  spreeadmin:
+    aliases: [sa]
+    permission: spree.admin
+    description: Admin player management, import, and plugin reload
+  spreeevent:
+    permission: spree.admin
+    description: Control hunt, juggernaut, locator, Blood's Bane, and timed events
+  legendary:
+    aliases: [relic]
+    description: Browse or administer legendary weapons and forges
+permissions:
+  spree.admin:
+    description: Manage all Spree systems
+    default: op
+  spree.legendary.give:
+    description: Spawn legendary test items
+    default: op

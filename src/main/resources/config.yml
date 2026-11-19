@@ -1,0 +1,141 @@
+# SpreeCore 1.0 - change numbers and use /spreeadmin reload.
+# Values labeled hearts use Minecraft HEARTS (two health points per heart).
+general:
+  prefix: '&9&lSPREE &8| &f'
+  max-killstreak: 30
+  recovery-label: '&cRECOVERY'
+  actionbar-interval-ticks: 40
+  save-interval-seconds: 120
+  announce-joining-streak: 10
+
+killstreak:
+  max-health-hearts: 20
+  base-health-hearts: 10
+  # Original formula: +1 heart at 3, 5, 7, 9 ... up to the cap.
+  anti-farm:
+    enabled: true
+    same-victim-cooldown-seconds: 300
+    block-rewards-for-negative-victim: true
+  revenge:
+    enabled: true
+    bonus-streak: 2
+  restrictions:
+    totem: 1
+    netherite-sword: 2
+    netherite-axe: 5
+    enchanted-golden-apple: 8
+    netherite-helmet: 12
+    ender-pearl: 14
+    max-ender-pearls: 3
+  potion-bonuses:
+    enabled: true
+    tier-one-min-streak: 2
+    tier-one-seconds: 112
+    tier-two-min-streak: 6
+    tier-two-seconds: 135
+    speed-tier-three-min-streak: 12
+    strength-tier-three-min-streak: 17
+    tier-three-seconds: 480
+  passives:
+    fire-resistance-streak: 4
+    hero-streak: 7
+    weaving-streak: 10
+    speed-streak: 15
+    glowing-streak: 15
+
+legendary:
+  enabled: true
+  # Old Skript weapons have lore tags rather than PDC IDs. Keep this on during
+  # migration, then run /spreeadmin migrateitems and disable it.
+  accept-legacy-lore-items: true
+  crafting-enabled: true
+  prevent-storage: true
+  forging:
+    duration-seconds: 900
+    coordinate-broadcast-seconds: 180
+    announce-death-of-holder: true
+    # A forge keeps counting down while its owner is offline. They can collect on join.
+  weapons:
+    tundra:
+      cooldown-seconds: 40
+      arm-seconds: 8
+      freeze-seconds: 2
+      passive-chance: 0.07
+      slow-seconds: 2
+    butcherer:
+      cooldown-seconds: 35
+      sacrifice-hearts: 5
+      strength-level: 3
+      strength-seconds: 10
+      wither-chance: 0.05
+      wither-level: 3
+      wither-seconds: 2
+    stormbreaker:
+      cooldown-seconds: 55
+      active-radius: 6
+      active-damage-hearts: 3
+      launch-velocity: 0.8
+      passive-chance: 0.10
+      passive-extra-damage-hearts: 1.5
+    aquafier:
+      cooldown-seconds: 60
+      absorb-search-radius: 8
+      absorb-blocks-max: 65
+      active-seconds: 15
+      speed-level: 3
+      active-damage-multiplier: 1.20
+      combo-window-seconds: 2
+      combo-hit-count: 4
+      drowning-damage-hearts: 3.5
+    darkheart:
+      cooldown-seconds: 15
+      dash-ticks: 6
+      dash-speed: 0.9
+      dash-radius: 1.8
+      dash-damage-hearts: 3.5
+      lifedrain-hits: 4
+      lifedrain-hearts: 2
+    hailstorm:
+      cooldown-seconds: 30
+      arm-seconds: 30
+      frost-every-shots: 3
+      frost-level: 3
+      frost-seconds: 3
+      volley-arrows: 10
+      volley-interval-ticks: 10
+      volley-damage-hearts: 0.5
+      replenished-arrows: true
+    bloodsbane:
+      minimum-leader-streak: 15
+      cooldown-seconds: 55
+      arm-seconds: 8
+      combo-reset-seconds: 7
+      combo-per-hit: 0.04
+      combo-max-stacks: 10
+      launch-ticks-between-hits: 10
+      launch-hits: 6
+      launch-damage-per-hit-hearts: 0.75
+
+# Untimed locator / hunt / juggernaut events are separate from 5-minute mini events.
+events:
+  hunt:
+    target-kill-bonus: 2
+    hunter-kill-bonus: 3
+  juggernaut:
+    bonus-hearts: 10
+    kill-bonus: 2
+    slay-bonus: 4
+  timed:
+    default-seconds: 300
+    bloodmoon:
+      extra-streak-per-kill: 1
+    surge:
+      minimum-streak: 10
+      strength-level: 1
+      resistance-level: 1
+    chaos:
+      minimum-streak: 10
+      cooldown-multiplier: 0.70
+    race:
+      kills-to-win: 3
+      winner-bonus: 3
