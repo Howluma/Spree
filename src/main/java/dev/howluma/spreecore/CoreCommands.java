@@ -89,6 +89,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             }
             case "spreeinfo" -> showInfo(sender);
             case "spreeadmin" -> {if(admin(sender))adminCommand(sender,args);}
+            case "fatesigil" -> {if(admin(sender))giveFateSigils(sender,args);}
             case "spreeset" -> {
                 if (!admin(sender)) return true;
                 if (args.length != 2) message(sender, "&cUsage: /spreeset <player> <value>");
@@ -105,6 +106,49 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         }
         return true;
     }
+    /**
+     * /fatesigil [amount] for a player, or /fatesigil give <player> [amount]
+     * for admins/console. Only authentic PDC-tagged Fate Sigils are generated.
+     */
+    private void giveFateSigils(CommandSender sender, String[] args) {
+        Player target;
+        int amount=1;
+        if(args.length<=1 && (args.length==0 || !args[0].equalsIgnoreCase("give"))) {
+            target=requirePlayer(sender);
+            if(target==null)return;
+            if(args.length==1){
+                Integer requested=number(sender,args[0]);
+                if(requested==null)return;
+                amount=requested;
+            }
+        }else if((args.length==2 || args.length==3) && args[0].equalsIgnoreCase("give")){
+            target=Bukkit.getPlayerExact(args[1]);
+            if(target==null){
+                message(sender,"&cThat player must be online. Usage: /fatesigil give <player> [amount]");
+                return;
+            }
+            if(args.length==3){
+                Integer requested=number(sender,args[2]);
+                if(requested==null)return;
+                amount=requested;
+            }
+        }else{
+            message(sender,"&cUsage: /fatesigil [amount] or /fatesigil give <player> [amount]");
+            return;
+        }
+        if(amount<1||amount>64){
+            message(sender,"&cGive between 1 and 64 Fate Sigils at a time.");
+            return;
+        }
+        int dropped=plugin.fate().give(target,amount);
+        message(sender,"&aGave &b"+amount+" &aFate Sigil"+(amount==1?"":"s")
+                +" &ato &f"+target.getName()+"&a.");
+        if(dropped>0) message(sender,"&e"+dropped+" dropped at their feet because their inventory is full.");
+        if(!sender.equals(target))
+            message(target,"&aReceived &b"+amount+" &aFate Sigil"+(amount==1?"":"s")+".");
+        plugin.getLogger().info(sender.getName()+" granted "+amount+" Fate Sigils to "+target.getName());
+    }
+
     private void withdraw(Player player, String[] args) {
         if (!player.hasPermission("spree.withdraw")) {
             message(player, "&cYou cannot withdraw Spree.");
@@ -180,6 +224,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     private void adminHelp(CommandSender s) {
         Text.send(s,"&9&lSPREE ADMIN &7- GUI: /spreeadmin");
         Text.send(s,"&bShortcuts: &f/spreeset <player> <value> &7and &f/spreesetall <value>");
+        Text.send(s,"&bFate Sigils: &f/fatesigil [amount] &7or &f/fatesigil give <player> [amount]");
         for(String line:List.of("set <player> <value>","add <player> <value>","remove <player> <value>",
                 "reset <player>","fracture <player>","giveitem <player> [amount]","setall <value>","resetall (twice to confirm)",
                 "update [player]","reload","migrateitems","importskript [force]"))
@@ -396,6 +441,12 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             else if((args.length==3 && args[0].equalsIgnoreCase("set"))
                     || (args.length==2 && args[0].equalsIgnoreCase("setall"))) options=spreeSuggestions();
             else if(args.length==2 && args[0].equalsIgnoreCase("importskript"))options=List.of("force");
+        }else if(root.equals("fatesigil") && sender.hasPermission("spree.admin")) {
+            if(args.length==1) options=List.of("give","1","5","16","32","64");
+            else if(args.length==2 && args[0].equalsIgnoreCase("give"))
+                options=Bukkit.getOnlinePlayers().stream().map(Player::getName).sorted().toList();
+            else if(args.length==3 && args[0].equalsIgnoreCase("give"))
+                options=List.of("1","5","16","32","64");
         }else if(root.equals("spreeset") && sender.hasPermission("spree.admin")) {
             if(args.length==1) options=plugin.data().all().stream().map(profile -> profile.name).sorted().toList();
             else if(args.length==2) options=spreeSuggestions();
