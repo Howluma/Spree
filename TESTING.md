@@ -15,6 +15,14 @@ Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable th
 - [ ] Set `killstreak.mace-unlock-level` to 2 in `/spree settings`; level 1 must lose access, level 2 must regain it. Restore to 1. Change `killstreak.health-per-level-hearts`, verify live update, then reset to 0.5.
 - [ ] Confirm `Spree Surge` is marked **Paused** in the admin GUI and cannot start through `/spreeevent surge on`.
 
+## Killstreak tier-color regression (v1.4.1)
+
+- [ ] Tab, overhead tag and action bar show gray bold numbers at levels 0 and 4; green at 5-9; yellow at 10-14; gold at 15-19; red at 20-24; purple at 25-29; dark red at 30.
+- [ ] The original navy sword symbol remains navy; Fractured stays red and never shows -1.
+- [ ] /killstreak, /stats, /leaderboard, dashboard and admin player manager match the tab/HUD tier.
+- [ ] Admin can change color 5-9 through /spree settings, see a preview, persist it after restart and reset; invalid color strings are rejected.
+- [ ] Upgrading with an existing config.yml supplies default tier colors while preserving customized settings.
+
 ## Existing mechanics regression
 
 - [ ] Dying from PvP or environment at streak 7 leaves 3; at 5 leaves 2; at 1 leaves 0. Natural death at zero enters Fractured.

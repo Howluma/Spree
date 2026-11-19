@@ -1,16 +1,16 @@
-# SpreeCore v1.4.0 — Spree SMP
+# SpreeCore v1.4.1 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.4.0.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.4.1.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.4.0.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.4.1.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -34,11 +34,23 @@ At zero or Fractured, direct mace attacks against **players and mobs** are cance
 
 **Unchanged streak rules:** PvP and environmental deaths halve an existing positive streak, rounded down. Environmental death at 0 creates Fractured (`-1` in `players.yml` for migration compatibility); Fractured never goes below `-1`. The anti-farming cooldown, revenge bonus, item use, and death-token logic stay intact. `/spreeadmin giveitem <player> [1–64]` gives a Heart of the Sea Spree consumable; right click consumes one and adds exactly one killstreak. Original environmental-death tokens auto-claim on pickup using separate logic.
 
-## Dark-blue tab and nametag indicators
+## Dark-blue theme and tiered killstreak colors
 
-The default indicator is `⚔ 12`, using **dark blue** for the crossed swords (`&1`) and **bold blue** for the number (`&9&l`). Fractured uses a red `⚔ ✕` marker and **no visible negative number**. Config options remain under `display.streak-indicators`, including independently enabling/disabling tab and nametag changes and selecting an alternate symbol. Old stock `◆`/`✦` values are migrated to `⚔`, but other customized symbols are preserved. SpreeCore avoids replacing unrelated scoreboard teams to preserve team gameplay, so third-party scoreboard plugins may take precedence over overhead nametags.
+SpreeCore preserves the navy UI and sword symbol (`&1`), but **numbers in the tab list, overhead nametags, HUD, `/killstreak`, `/stats`, `/leaderboard`, and player manager change color every five levels**, as in the original Skript:
 
-The admin inventories use navy/blue panes and deep-blue rather than cyan labels. The regular `/spree` dashboard does not reveal live event status or unpublished legendary weapons.
+| Streak | Number color |
+| --- | --- |
+| 0-4 | Gray (`&7`) |
+| 5-9 | Green (`&a`) |
+| 10-14 | Yellow (`&e`) |
+| 15-19 | Gold (`&6`) |
+| 20-24 | Red (`&c`) |
+| 25-29 | Purple (`&5`) |
+| 30+ | Dark red (`&4`) |
+
+Numbers remain bold in tab and overhead names; Fractured keeps a separate red symbol, never displaying `-1`. Admins can change individual tier colors in `/spree settings` > Tab & Nametag Indicators. The setting accepts single vanilla chat color codes (`&0`-`&f`) or hex (`<#RRGGBB>`), including updates with existing user configs. The Spree sword symbol and overall GUI remain dark blue.
+
+Overhead tags use scoreboard suffixes only where an existing team does not own the player, preserving friendly-fire/collision rules of other plugins.
 
 ## Commands
 

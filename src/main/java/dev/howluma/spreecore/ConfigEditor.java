@@ -12,6 +12,10 @@ public final class ConfigEditor {
         public boolean toggle() { return defaultValue instanceof Boolean; }
         public boolean number() { return defaultValue instanceof Number; }
         private String shown(Object value) {
+            if (path.startsWith("display.streak-indicators.tier-colors.")) {
+                String code = String.valueOf(value);
+                return "&7" + code.replace("&", "\uFF06") + "  " + code + "\u25A0";
+            }
             if (path.startsWith("combat.") && path.endsWith("multiplier") && value instanceof Number number)
                 return format(number.doubleValue() * 100) + "%";
             return format(value);
@@ -95,6 +99,9 @@ public final class ConfigEditor {
         return s == null ? new Result(false, "Setting no longer exists.") : set(path, String.valueOf(s.defaultValue()));
     }
     public static String validate(String path, Object value) {
+        if (path.startsWith("display.streak-indicators.tier-colors."))
+            return value instanceof String str && str.matches("(?i)(?:&[0-9a-f]|<#[0-9a-f]{6}>)")
+                    ? null : "Use a single vanilla color code or six-digit RGB hex.";
         if (!(value instanceof Number number)) return null;
         double amount = number.doubleValue();
         if (!Double.isFinite(amount)) return "Enter a finite number.";
@@ -153,7 +160,13 @@ public final class ConfigEditor {
             default -> capitalize(id.substring(id.lastIndexOf('.') + 1));
         };
     }
-    private static String label(String path) { return capitalize(path.substring(path.lastIndexOf('.') + 1)); }
+    private static String label(String path) {
+        if (path.startsWith("display.streak-indicators.tier-colors.")) {
+            int first = Integer.parseInt(path.substring(path.lastIndexOf('.') + 1));
+            return first >= 30 ? "Level 30+ Number Color" : "Levels " + first + "-" + (first + 4) + " Number Color";
+        }
+        return capitalize(path.substring(path.lastIndexOf('.') + 1));
+    }
     private static String capitalize(String s) {
         String[] parts = s.replace('-', ' ').replace('_', ' ').split(" ");
         StringJoiner words = new StringJoiner(" ");

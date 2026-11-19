@@ -25,17 +25,39 @@ public final class StreakIndicators implements Listener {
 
     StreakIndicators(SpreeCorePlugin plugin) { this.plugin = plugin; }
 
+    /** Original Spree SMP colors, changing at every five kills through the default 30 cap. */
     static String color(int streak) {
-        return streak < 0 ? "&c&l" : streak == 0 ? "&7&l" : "&9&l";
+        if (streak < 0) return "&c&l";
+        if (streak >= 30) return "&4&l";
+        if (streak >= 25) return "&5&l";
+        if (streak >= 20) return "&c&l";
+        if (streak >= 15) return "&6&l";
+        if (streak >= 10) return "&e&l";
+        if (streak >= 5) return "&a&l";
+        return "&7&l";
+    }
+    /** Admin-configured colors always retain bold numbers and the distinct Fractured status. */
+    public String streakColor(int streak) {
+        if (streak < 0) return "&c&l";
+        int tier = Math.min(30, (streak / 5) * 5);
+        String custom = plugin.getConfig().getString("display.streak-indicators.tier-colors." + tier);
+        if (custom == null || !custom.matches("(?i)(?:&[0-9a-f]|<#[0-9a-f]{6}>)")) return color(streak);
+        return custom + "&l";
     }
     static String tabLabel(String name, int streak, String symbol, String fracturedSymbol) {
+        return tabLabel(name, streak, symbol, fracturedSymbol, color(streak));
+    }
+    static String tabLabel(String name, int streak, String symbol, String fracturedSymbol, String numberColor) {
         String gemColor = streak < 0 ? "&c" : streak == 0 ? "&8" : "&1";
-        return "&f" + name + " " + gemColor + symbol + " " + color(streak)
+        return "&f" + name + " " + gemColor + symbol + " " + numberColor
                 + (streak < 0 ? fracturedSymbol : Integer.toString(streak));
     }
     static String nametagSuffix(int streak, String symbol, String fracturedSymbol) {
+        return nametagSuffix(streak, symbol, fracturedSymbol, color(streak));
+    }
+    static String nametagSuffix(int streak, String symbol, String fracturedSymbol, String numberColor) {
         String gemColor = streak < 0 ? "&c" : streak == 0 ? "&8" : "&1";
-        return " " + gemColor + symbol + " " + color(streak)
+        return " " + gemColor + symbol + " " + numberColor
                 + (streak < 0 ? fracturedSymbol : Integer.toString(streak));
     }
     private String safeSymbol(String key, String fallback) {
@@ -55,7 +77,8 @@ public final class StreakIndicators implements Listener {
         if (!player.isOnline()) return;
         if (tabEnabled()) {
             previousTabNames.putIfAbsent(player.getUniqueId(), player.getPlayerListName());
-            String display = Text.c(tabLabel(player.getName(), plugin.streaks().streak(player), symbol(), recoverySymbol()));
+            int streak = plugin.streaks().streak(player);
+            String display = Text.c(tabLabel(player.getName(), streak, symbol(), recoverySymbol(), streakColor(streak)));
             if (!display.equals(player.getPlayerListName())) player.setPlayerListName(display);
         } else restoreTab(player);
         // Each viewer may have a different scoreboard. Deduplicate identical scoreboards.
@@ -94,7 +117,8 @@ public final class StreakIndicators implements Listener {
             touched.add(board);
         }
         if (!team.hasEntry(entry)) team.addEntry(entry);
-        String suffix = Text.c(nametagSuffix(plugin.streaks().streak(target), symbol(), recoverySymbol()));
+        int streak = plugin.streaks().streak(target);
+        String suffix = Text.c(nametagSuffix(streak, symbol(), recoverySymbol(), streakColor(streak)));
         if (!suffix.equals(team.getSuffix())) team.setSuffix(suffix);
     }
     private void clearTags(String entry) {

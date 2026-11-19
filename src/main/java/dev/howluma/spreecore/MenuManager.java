@@ -73,7 +73,7 @@ public final class MenuManager implements Listener {
         Inventory inv = create(h, 3, "&9&lSPREE &8| &fDashboard");
         var profile = plugin.data().get(p);
         inv.setItem(11, icon(Material.NETHER_STAR, "&9&lYour Killstreak",
-                "&7Current: &9" + plugin.streaks().display(profile.streak),
+                "&7Current: " + plugin.indicators().streakColor(profile.streak) + plugin.streaks().display(profile.streak),
                 "&7Personal best: &f" + profile.best));
         inv.setItem(13, icon(Material.WRITABLE_BOOK, "&f&lYour Statistics",
                 "&7Kills: &f" + profile.kills, "&7Deaths: &f" + profile.deaths,
@@ -184,7 +184,7 @@ public final class MenuManager implements Listener {
             h.players.put(slot, profile.id);
             ItemStack head = icon(Material.PLAYER_HEAD, "&f&l" + profile.name,
                     online == null ? "&8● Offline" : "&a● Online",
-                    "&7Killstreak: &9" + plugin.streaks().display(profile.streak),
+                    "&7Killstreak: " + plugin.indicators().streakColor(profile.streak) + plugin.streaks().display(profile.streak),
                     "&7Best: &f" + profile.best + "   &7K/D: &f" + profile.kills + "/" + profile.deaths,
                     "&eClick to manage");
             if (online != null && head.getItemMeta() instanceof org.bukkit.inventory.meta.SkullMeta skull) {
@@ -218,7 +218,7 @@ public final class MenuManager implements Listener {
         Inventory inv = create(h, 6, "&9&lSPREE &8| &fManage " + profile.name);
         inv.setItem(4, icon(Material.PLAYER_HEAD, "&9&l" + profile.name,
                 target != null ? "&aOnline" : "&8Offline - edits are saved",
-                "&7Current: &9" + plugin.streaks().display(profile.streak),
+                "&7Current: " + plugin.indicators().streakColor(profile.streak) + plugin.streaks().display(profile.streak),
                 "&7Personal best: &f" + profile.best,
                 "&7Kills: &f" + profile.kills + " &8| &7Deaths: &f" + profile.deaths,
                 "&7Streaks ended: &f" + profile.ended));
@@ -226,7 +226,7 @@ public final class MenuManager implements Listener {
         inv.setItem(11, icon(Material.REDSTONE, "&c-1 Killstreak", "&7Decrease by one", "&7Minimum: 0"));
         inv.setItem(13, icon(Material.EMERALD, "&a+1 Killstreak", "&7Increase by one"));
         inv.setItem(14, icon(Material.EMERALD_BLOCK, "&a+5 Killstreak", "&7Increase by five"));
-        inv.setItem(12, icon(Material.NETHER_STAR, "&9&lCurrent: " + plugin.streaks().display(profile.streak),
+        inv.setItem(12, icon(Material.NETHER_STAR, "&9&lCurrent: " + plugin.indicators().streakColor(profile.streak) + plugin.streaks().display(profile.streak),
                 "&7Max: &f" + plugin.streaks().cap(), "&7Click Exact Value to set a number"));
         inv.setItem(20, icon(Material.AMETHYST_SHARD, "&c&lSet Fractured Killstreak",
                 "&7Marks the player as Fractured", "&7Internally preserves the legacy penalty", "&eClick to apply"));

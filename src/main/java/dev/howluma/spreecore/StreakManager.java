@@ -113,7 +113,7 @@ public final class StreakManager implements Listener {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerDataStore.Profile profile = get(player);
             if (profile.hideHud) continue;
-            String color = profile.streak < 0 ? "&c&l" : profile.streak == 0 ? "&7&l" : "&9&l";
+            String color = plugin.indicators().streakColor(profile.streak);
             Text.action(player, "&1⚔ &7Killstreak: " + color + display(profile.streak));
         }
     }
@@ -128,7 +128,7 @@ public final class StreakManager implements Listener {
             tabName(player);
             plugin.legendaries().migrate(player);
             if (streak(player) >= c().getInt("general.announce-joining-streak", 10))
-                Bukkit.broadcastMessage(Text.c(plugin.prefix() + "&f" + player.getName() + " &7joined on a &9" + streak(player) + " &7killstreak!"));
+                Bukkit.broadcastMessage(Text.c(plugin.prefix() + "&f" + player.getName() + " &7joined on a " + plugin.indicators().streakColor(streak(player)) + streak(player) + " &7killstreak!"));
         }, 2L);
     }
     @EventHandler public void respawn(PlayerRespawnEvent event) {

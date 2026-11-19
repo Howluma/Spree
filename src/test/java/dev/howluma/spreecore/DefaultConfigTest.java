@@ -29,6 +29,9 @@ class DefaultConfigTest {
         assertTrue(c.getBoolean("display.streak-indicators.nametag-enabled"));
         assertEquals("⚔", c.getString("display.streak-indicators.symbol"));
         assertTrue(c.getString("general.fractured-label").contains("Fractured Killstreak"));
+        String[] expected = {"&7","&a","&e","&6","&c","&5","&4"};
+        for (int i=0; i<expected.length; i++)
+            assertEquals(expected[i], c.getString("display.streak-indicators.tier-colors."+(i*5)));
     }
     @Test void combatDefaultsPreserved() {
         var c = config();

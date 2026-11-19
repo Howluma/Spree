@@ -23,4 +23,10 @@ class ConfigEditorTest {
         assertNotNull(ConfigEditor.validate("killstreak.max-health-hearts", 201));
         assertNotNull(ConfigEditor.validate("events.timed.chaos.cooldown-multiplier", Double.NaN));
     }
+    @Test void tierColorEditorRejectsInvalidOrMultiColorValues() {
+        assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.5", "&a"));
+        assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.10", "<#123ABC>"));
+        assertNotNull(ConfigEditor.validate("display.streak-indicators.tier-colors.5", "&a&c"));
+        assertNotNull(ConfigEditor.validate("display.streak-indicators.tier-colors.5", "&x"));
+    }
 }

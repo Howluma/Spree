@@ -53,7 +53,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             case "killstreak" -> {
                 PlayerDataStore.Profile p=args.length>0?lookup(args[0]):sender instanceof Player player?plugin.data().get(player):null;
                 if(p==null)message(sender,"&cPlayer not found.");
-                else message(sender,"&f"+p.name+" &7killstreak: &9"+plugin.streaks().display(p.streak));
+                else message(sender,"&f"+p.name+" &7killstreak: "+plugin.indicators().streakColor(p.streak)+plugin.streaks().display(p.streak));
             }
             case "stats" -> {
                 PlayerDataStore.Profile p=args.length>0?lookup(args[0]):sender instanceof Player player?plugin.data().get(player):null;
@@ -61,7 +61,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 else {
                     Text.send(sender,"&8&m------------------------------");
                     Text.send(sender,"&9&lSPREE STATS &f"+p.name);
-                    Text.send(sender,"&7Current: &9"+plugin.streaks().display(p.streak)+" &7| Best: &9"+p.best);
+                    Text.send(sender,"&7Current: "+plugin.indicators().streakColor(p.streak)+plugin.streaks().display(p.streak)+" &7| Best: "+plugin.indicators().streakColor(p.best)+p.best);
                     Text.send(sender,"&7Kills: &f"+p.kills+" &7Deaths: &f"+p.deaths+" &7Streaks ended: &f"+p.ended);
                     Text.send(sender,"&8&m------------------------------");
                 }
@@ -72,7 +72,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 if(leaders.isEmpty())Text.send(sender,"&7No players yet.");
                 for(int index=0;index<leaders.size();index++) {
                     var profile=leaders.get(index);
-                    Text.send(sender,"&9#"+(index+1)+" &f"+profile.name+" &7- &9"+plugin.streaks().display(profile.streak));
+                    Text.send(sender,"&9#"+(index+1)+" &f"+profile.name+" &7- "+plugin.indicators().streakColor(profile.streak)+plugin.streaks().display(profile.streak));
                 }
             }
             case "spreeinfo" -> showInfo(sender);
