@@ -15,12 +15,12 @@ Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable th
 - [ ] Set `killstreak.mace-unlock-level` to 2 in `/spree settings`; level 1 must lose access, level 2 must regain it. Restore to 1. Change `killstreak.health-per-level-hearts`, verify live update, then reset to 0.5.
 - [ ] Confirm `Spree Surge` is marked **Paused** in the admin GUI and cannot start through `/spreeevent surge on`.
 
-## Killstreak tier-color and tab icon regression (v1.4.2)
+## Killstreak tier-color and tab icon regression (v1.4.3)
 
-- [ ] The sword symbol uses the same dark blue (&1) at all streaks in action bar, tab, and nametag (including zero and Fractured).
+- [ ] The sword symbol uses the menu-heading blue (&9) at all streaks in action bar, tab, and nametag (including zero and Fractured).
 - [ ] Only the tab shows a gray `|` separating the player's name and the Spree indicator.
 - [ ] Tab, overhead tag and action bar show gray bold numbers at levels 0 and 4; green at 5-9; yellow at 10-14; gold at 15-19; red at 20-24; purple at 25-29; dark red at 30.
-- [ ] The original navy sword symbol remains navy; Fractured stays red and never shows -1.
+- [ ] The sword symbol stays menu-blue (&9), including for Fractured; the Fractured marker remains red and never shows -1.
 - [ ] /killstreak, /stats, /leaderboard, dashboard and admin player manager match the tab/HUD tier.
 - [ ] Admin can change color 5-9 through /spree settings, see a preview, persist it after restart and reset; invalid color strings are rejected.
 - [ ] Upgrading with an existing config.yml supplies default tier colors while preserving customized settings.
@@ -32,7 +32,7 @@ Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable th
 - [ ] Environmental-death Spree Tokens retain their separate pickup/reclaim behavior; anti-farm limits still work.
 - [ ] TNT igniter receives 50% self-damage while others take normal damage. Explosive kills give player credit whenever the ownership evidence is reliable.
 - [ ] Legendary weapons, forging, Blood's Bane, event-only Juggernaut hearts and health recalculations still work.
-- [ ] Tab and overhead (where no other plugin owns the team) display `⚔ 12` with navy symbol and bold blue number; Fractured shows the red marker. Custom symbol changes apply immediately and persist.
+- [ ] Tab and overhead (where no other plugin owns the team) display `⚔ 12` with menu-blue symbol and a bold five-kill-tier number; Fractured shows the red marker. Custom symbol changes apply immediately and persist.
 - [ ] `/spree settings` and `/spreesettings` work for operators/admins, not other players. Browse all config categories; retired passives, potion bonuses, item unlocks and old health cap must be absent.
 - [ ] `/spree` for ordinary players does not show live events or the admin-only legendary list. Main menu uses deeper blue than prior cyan.
 - [ ] Restart with a backup copy of existing 1.3 `players.yml` and `config.yml`. User stats and Fractured statuses survive, and the old gem icon migrates without overwriting a manually customized symbol.

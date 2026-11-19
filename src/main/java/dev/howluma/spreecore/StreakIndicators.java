@@ -20,7 +20,7 @@ import java.util.*;
 public final class StreakIndicators implements Listener {
     private static final String TEAM_PREFIX = "spc_";
     /** Match the action-bar icon color across all streak levels. */
-    static final String ICON_COLOR = "&1";
+    static final String ICON_COLOR = "&9";
     private final SpreeCorePlugin plugin;
     private final Set<Scoreboard> touched = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<UUID, String> previousTabNames = new HashMap<>();

@@ -1,16 +1,16 @@
-# SpreeCore v1.4.2 — Spree SMP
+# SpreeCore v1.4.3 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.4.2.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.4.3.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.4.2.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.4.3.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -36,7 +36,7 @@ At zero or Fractured, direct mace attacks against **players and mobs** are cance
 
 ## Dark-blue theme and tiered killstreak colors
 
-SpreeCore preserves the navy UI and sword symbol (`&1`), but **numbers in the tab list, overhead nametags, HUD, `/killstreak`, `/stats`, `/leaderboard`, and player manager change color every five levels**, as in the original Skript:
+SpreeCore preserves the navy UI and the blue sword symbol (`&9`, matching menu headings), but **numbers in the tab list, overhead nametags, HUD, `/killstreak`, `/stats`, `/leaderboard`, and player manager change color every five levels**, as in the original Skript:
 
 | Streak | Number color |
 | --- | --- |
@@ -48,7 +48,7 @@ SpreeCore preserves the navy UI and sword symbol (`&1`), but **numbers in the ta
 | 25-29 | Purple (`&5`) |
 | 30+ | Dark red (`&4`) |
 
-Numbers remain bold in tab and overhead names; Fractured keeps a separate red symbol, never displaying `-1`. Admins can change individual tier colors in `/spree settings` > Tab & Nametag Indicators. The setting accepts single vanilla chat color codes (`&0`-`&f`) or hex (`<#RRGGBB>`), including updates with existing user configs. The sword icon uses the same dark-blue `&1` as the action bar, including at zero and Fractured. The tab list alone uses a dark-gray `|` separator between player name and streak (e.g. `Howluma | ⚔ 12`). The overhead nametag and action bar do not include the separator. Bold numbers still change color every five kills. The overall GUI remains dark blue.
+Numbers remain bold in tab and overhead names; Fractured keeps a separate red symbol, never displaying `-1`. Admins can change individual tier colors in `/spree settings` > Tab & Nametag Indicators. The setting accepts single vanilla chat color codes (`&0`-`&f`) or hex (`<#RRGGBB>`), including updates with existing user configs. The sword icon uses the same brighter blue `&9` as the action bar and menu headings, including at zero and Fractured. The tab list alone uses a dark-gray `|` separator between player name and streak (e.g. `Howluma | ⚔ 12`). The overhead nametag and action bar do not include the separator. Bold numbers still change color every five kills. The overall GUI remains dark blue.
 
 Overhead tags use scoreboard suffixes only where an existing team does not own the player, preserving friendly-fire/collision rules of other plugins.
 

@@ -207,7 +207,7 @@ public final class StreakManager implements Listener {
         if (amount < 1 || amount > 64) throw new IllegalArgumentException("Amount must be 1-64");
         ItemStack item = new ItemStack(Material.HEART_OF_THE_SEA, amount);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(Text.c("&1⚔ &9&lSpree"));
+        meta.setDisplayName(Text.c("&9⚔ &9&lSpree"));
         meta.setLore(List.of(Text.c("&7Right-click to gain &9&l+1 Killstreak"),
                 Text.c("&8Consumed on use")));
         meta.getPersistentDataContainer().set(spreeConsumable, PersistentDataType.BYTE, (byte) 1);

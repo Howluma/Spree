@@ -1,4 +1,4 @@
-# SpreeCore 1.4.1 - tiered killstreak color display; editable via /spree settings.
+# SpreeCore 1.4.3 - brighter menu-matched blue sword icons and tiered killstreak numbers.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -9,7 +9,7 @@ general:
   save-interval-seconds: 120
   announce-joining-streak: 10
 
-# Navy sword symbol with five-kill color tiers for bold streak numbers.
+# Blue (&9) sword symbol matches menu headings; bold number colors change every five kills.
 # Overhead tags use scoreboard suffixes when the player is NOT already in a team.
 # Existing faction/party team membership is preserved (no forced team removal).
 display:
