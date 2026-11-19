@@ -289,9 +289,17 @@ public final class MenuManager implements Listener {
                 "&eClick to enter an exact number"));
         inv.setItem(34, icon(Material.BOOK, "&fEdit Streaks Ended", "&7Current: &f" + profile.ended,
                 "&eClick to enter an exact number"));
-        inv.setItem(40, icon(Material.CLOCK, "&aRefresh This Player",
+        inv.setItem(37, icon(Material.HEAVY_CORE, "&b&lSet Talent",
+                "&7Choose an exact Talent at any milestone",
+                "&7Bypass random offers and Fate Sigils",
+                "&eClick to select a Talent to test"));
+        inv.setItem(39, icon(Material.ENCHANTED_BOOK, "&b&lSet Perk",
+                "&7Choose an exact Perk at any milestone",
+                "&7Supports stacking copies within configured limits",
+                "&eClick to select a Perk to test"));
+        inv.setItem(41, icon(Material.CLOCK, "&aRefresh This Player",
                 target == null ? "&7Changes take effect on next login" : "&7Reapply health and nameplates"));
-        inv.setItem(42, icon(Material.HEART_OF_THE_SEA, "&9&lGive Spree Item",
+        inv.setItem(43, icon(Material.HEART_OF_THE_SEA, "&9&lGive Spree Item",
                 target == null ? "&8Player must be online" : "&7Right-click item for +1 killstreak",
                 "&eClick: give 1 &8| &eShift-click: give 5"));
         inv.setItem(49, icon(Material.ARROW, "&9Back to Players"));
@@ -458,7 +466,9 @@ public final class MenuManager implements Listener {
                     case 30 -> promptStat(p, h.target, PlayerField.KILLS);
                     case 32 -> promptStat(p, h.target, PlayerField.DEATHS);
                     case 34 -> promptStat(p, h.target, PlayerField.ENDED);
-                    case 42 -> {
+                    case 37 -> plugin.adminUpgrades().openMilestones(p,h.target,ProgressionCatalog.Kind.TALENT,0);
+                    case 39 -> plugin.adminUpgrades().openMilestones(p,h.target,ProgressionCatalog.Kind.PERK,0);
+                    case 43 -> {
                         Player online = Bukkit.getPlayer(h.target);
                         if (online == null) Text.send(p, plugin.prefix() + "&cPlayer must be online.");
                         else {
@@ -468,7 +478,7 @@ public final class MenuManager implements Listener {
                         }
                         openPlayer(p, h.target);
                     }
-                    case 40 -> {
+                    case 41 -> {
                         Player online = Bukkit.getPlayer(h.target);
                         if (online != null) {
                             plugin.streaks().update(online);
