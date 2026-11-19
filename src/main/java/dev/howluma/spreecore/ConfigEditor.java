@@ -117,7 +117,7 @@ public final class ConfigEditor {
             if(path.endsWith("-hearts"))return between(v,0,20);
             if(path.endsWith("-seconds"))return between(v,0,3600);
             if(path.endsWith("-items"))return between(v,0,256);
-            if(path.endsWith("-hits-required") || path.endsWith("-levels"))return between(v,1,20);
+            if(path.endsWith(".hits-required") || path.endsWith(".protected-levels"))return between(v,1,20);
         }
         if (path.startsWith("perks.") && value instanceof Number perkNumber) {
             if (path.endsWith(".max-copies")) return between(perkNumber.doubleValue(), 1, 8);
