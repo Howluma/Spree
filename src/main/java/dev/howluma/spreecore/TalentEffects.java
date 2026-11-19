@@ -186,63 +186,150 @@ public final class TalentEffects implements Listener {
         plugin.talentFeedback().activated(attacker,"mace_smash",seconds);
     }
 
+    /** Damage multipliers only: these run BEFORE Paper computes the final hit. */
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void combat(EntityDamageByEntityEvent e){
-        if(e.getDamage()<=0)return;
-        if(!(e.getEntity() instanceof Player victim))return;
+        if(e.getDamage()<=0 || !(e.getEntity() instanceof Player victim))return;
         Player attacker=credited(e);
-        if(attacker==null||attacker.equals(victim))return;
-        // Any PvP hit interrupts the victim's own offensive combo.
-        combos.remove(victim.getUniqueId());
+        if(attacker==null || attacker.equals(victim))return;
         if(has(attacker,"executioner") && victim.getHealth()<
-                maxHealth(victim)*td("executioner.health-threshold-fraction",.5))
+                maxHealth(victim)*td("executioner.health-threshold-fraction",.5)){
             e.setDamage(e.getDamage()*(1+td("executioner.bonus-damage-fraction",.10)));
+            if(e.getFinalDamage()>0)plugin.talentFeedback().passive(attacker,"executioner");
+        }
+        if(e.getDamager() instanceof Player
+                && e.getCause()==EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                && has(attacker,"combo_breaker")){
+            Combo previous=combos.get(attacker.getUniqueId());
+            int threshold=Math.max(1,ti("combo-breaker.hits-required",3));
+            if(previous!=null && previous.victim().equals(victim.getUniqueId())
+                    && System.currentTimeMillis()-previous.lastHit()
+                        <=ti("combo-breaker.window-seconds",5)*1000L
+                    && previous.hits()>=threshold) {
+                e.setDamage(e.getDamage()*(1+td("combo-breaker.bonus-damage-fraction",.10)));
+                if(e.getFinalDamage()>0 && previous.hits()==threshold)
+                    plugin.talentFeedback().passive(attacker,"combo_breaker");
+            }
+        }
+    }
 
-        if(e.getDamager() instanceof Player) {
+    @SuppressWarnings("deprecation")
+    private boolean actualShieldBlock(EntityDamageByEntityEvent e,Player defender,Player attacker){
+        if(!defender.isBlocking()
+                ||e.getCause()!=EntityDamageEvent.DamageCause.ENTITY_ATTACK)return false;
+        // Paper retains a damage modifier for the actual damage that the shield
+        // absorbed. Merely raising a shield does NOT qualify for Riposte.
+        try {
+            return e.isApplicable(EntityDamageEvent.DamageModifier.BLOCKING)
+                    && e.getDamage(EntityDamageEvent.DamageModifier.BLOCKING)<-0.01;
+        } catch(UnsupportedOperationException | IllegalArgumentException ex) {
+            // A future server that removes the modifier should not grant a
+            // free Riposte on every raised-shield hit.
+            return false;
+        }
+    }
+
+    /**
+     * Only a real, successful shield disable may activate Sunder.
+     * Paper exposes the actual vanilla cooldown here; modifying it before
+     * application is much safer than scheduling a guessed shield cooldown.
+     */
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void shieldDisable(PlayerShieldDisableEvent e) {
+        if(!(e.getDamager() instanceof Player attacker)
+                || !axe(attacker.getInventory().getItemInMainHand().getType())
+                || !has(attacker,"sunder") || !available(attacker,"sunder"))return;
+        int extra=Math.max(0,ti("sunder.extra-shield-disable-ticks",30));
+        if(extra<=0)return;
+        e.setCooldown(Math.min(72000,e.getCooldown()+extra));
+        start(attacker,"sunder",ti("sunder.cooldown-seconds",45));
+    }
+
+    /** A shield block may reduce damage to zero, so handle it separately. */
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void blockedShield(EntityDamageByEntityEvent e) {
+        if(!(e.getEntity() instanceof Player defender)
+                ||!(e.getDamager() instanceof Player attacker)
+                ||defender.equals(attacker)
+                ||!has(defender,"riposte")
+                ||!actualShieldBlock(e,defender,attacker)
+                ||!available(defender,"riposte"))return;
+        int length=Math.max(1,ti("riposte.duration-seconds",2));
+        boolean slow=apply(attacker,PotionEffectType.SLOWNESS,1,length);
+        jumpBlocked.put(attacker.getUniqueId(),System.currentTimeMillis()+length*1000L);
+        start(defender,"riposte",ti("riposte.cooldown-seconds",45));
+        // Riposte's stun is real even if a stronger slowness effect already exists.
+    }
+
+    /** Count ONLY un-cancelled, non-blocked hits; do not burn cooldowns on misses. */
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void landedHit(EntityDamageByEntityEvent e){
+        if(e.getFinalDamage()<=0 || !(e.getEntity() instanceof Player victim))return;
+        Player attacker=credited(e);
+        if(attacker==null || attacker.equals(victim))return;
+        // Being struck interrupts the defender's offensive combo.
+        combos.remove(victim.getUniqueId());
+        boolean melee=e.getDamager() instanceof Player
+                &&e.getCause()==EntityDamageEvent.DamageCause.ENTITY_ATTACK;
+        if(melee) {
             if(has(attacker,"combo_breaker")){
                 long now=System.currentTimeMillis();
                 Combo previous=combos.get(attacker.getUniqueId());
-                int hits=previous!=null&&previous.victim().equals(victim.getUniqueId())
-                        &&now-previous.lastHit()<=ti("combo-breaker.window-seconds",5)*1000L
+                int hits=previous!=null && previous.victim().equals(victim.getUniqueId())
+                        && now-previous.lastHit()
+                            <=ti("combo-breaker.window-seconds",5)*1000L
                         ?previous.hits():0;
-                if(hits>=ti("combo-breaker.hits-required",3))
-                    e.setDamage(e.getDamage()*(1+td("combo-breaker.bonus-damage-fraction",.10)));
                 combos.put(attacker.getUniqueId(),new Combo(victim.getUniqueId(),hits+1,now));
             }
-            if(has(attacker,"concussive_blow")&&ready(attacker,"concussive",ti("concussive-blow.cooldown-seconds",45)))
-                apply(victim,PotionEffectType.MINING_FATIGUE,1,ti("concussive-blow.duration-seconds",5));
+            if(has(attacker,"concussive_blow") && available(attacker,"concussive")
+                    &&apply(victim,PotionEffectType.MINING_FATIGUE,1,
+                            ti("concussive-blow.duration-seconds",5)))
+                start(attacker,"concussive",ti("concussive-blow.cooldown-seconds",45));
 
-            if(victim.isBlocking()) {
-                if(has(victim,"riposte") && ready(victim,"riposte",ti("riposte.cooldown-seconds",45))){
-                    apply(attacker,PotionEffectType.SLOWNESS,1,ti("riposte.duration-seconds",2));
-                    jumpBlocked.put(attacker.getUniqueId(),System.currentTimeMillis()+ti("riposte.duration-seconds",2)*1000L);
-                }
-                if(has(attacker,"sunder")&&axe(attacker.getInventory().getItemInMainHand().getType())
-                        &&ready(attacker,"sunder",ti("sunder.cooldown-seconds",45)))
-                    Bukkit.getScheduler().runTask(plugin,()->{
-                        if(victim.isOnline())victim.setCooldown(Material.SHIELD,
-                                Math.max(100+ti("sunder.extra-shield-disable-ticks",30),victim.getCooldown(Material.SHIELD)+ti("sunder.extra-shield-disable-ticks",30)));
-                    });
-            }
             if(has(attacker,"bloodlust") && attacker.getCooledAttackStrength(0)>=.9){
-                int hits=bloodlust.merge(attacker.getUniqueId(),1,Integer::sum);
-                if(hits>=ti("bloodlust.hits-required",5)){
-                    if(ready(attacker,"bloodlust_heal",ti("bloodlust.cooldown-seconds",15)))heal(attacker,td("bloodlust.heal-hearts",1));
-                    bloodlust.put(attacker.getUniqueId(),0);
+                int needed=Math.max(1,ti("bloodlust.hits-required",5));
+                int count=Math.min(needed,bloodlust.getOrDefault(attacker.getUniqueId(),0)+1);
+                if(count>=needed && available(attacker,"bloodlust_heal")
+                        &&attacker.getHealth()<maxHealth(attacker)-0.01) {
+                    heal(attacker,td("bloodlust.heal-hearts",1));
+                    start(attacker,"bloodlust_heal",ti("bloodlust.cooldown-seconds",15));
+                    count=0;
                 }
+                bloodlust.put(attacker.getUniqueId(),count);
             }
         }
-        if(has(attacker,"battle_sense"))
-            sensed.put(attacker.getUniqueId(),new Sense(victim.getUniqueId(),System.currentTimeMillis()+ti("battle-sense.duration-seconds",8)*1000L));
-        if(has(attacker,"scavenger") && ThreadLocalRandom.current().nextDouble()<td("scavenger.chance",.15)
-                && ready(attacker,"scavenger",ti("scavenger.cooldown-seconds",90))){
+        if(has(attacker,"battle_sense")){
+            Sense previous=sensed.get(attacker.getUniqueId());
+            long now=System.currentTimeMillis();
+            if(previous==null || now>=previous.expires()
+                    ||!previous.target().equals(victim.getUniqueId()))
+                plugin.talentFeedback().passive(attacker,"battle_sense");
+            sensed.put(attacker.getUniqueId(),new Sense(victim.getUniqueId(),
+                    now+ti("battle-sense.duration-seconds",8)*1000L));
+        }
+        if(has(attacker,"scavenger") && available(attacker,"scavenger")
+                &&ThreadLocalRandom.current().nextDouble()<td("scavenger.chance",.15)){
             int cap=plugin.getConfig().getInt("privileges.max-wind-charges",64)
                     +(has(attacker,"expanded_reserves")?ti("expanded-reserves.extra-items",64):0);
-            int held=0;
-            for(ItemStack item:attacker.getInventory().getContents())
-                if(item!=null&&item.getType()==Material.WIND_CHARGE)held+=item.getAmount();
-            int amount=Math.min(ti("scavenger.wind-charges",4),Math.max(0,cap-held));
-            if(amount>0)attacker.getInventory().addItem(new ItemStack(Material.WIND_CHARGE,amount));
+            int held=0,free=0;
+            for(ItemStack item:attacker.getInventory().getStorageContents()) {
+                if(item==null || item.getType().isAir())free+=64;
+                else if(item.getType()==Material.WIND_CHARGE) {
+                    held+=item.getAmount();
+                    free+=Math.max(0,item.getMaxStackSize()-item.getAmount());
+                }
+            }
+            // This chance does not spend its cooldown if the inventory is full,
+            // or if the configured carrying limit has already been reached.
+            int amount=Math.min(ti("scavenger.wind-charges",4),Math.min(
+                    Math.max(0,cap-held),free));
+            if(amount>0){
+                Map<Integer,ItemStack> overflow=attacker.getInventory()
+                        .addItem(new ItemStack(Material.WIND_CHARGE,amount));
+                int delivered=amount-overflow.values().stream().mapToInt(ItemStack::getAmount).sum();
+                if(delivered>0)start(attacker,"scavenger",
+                        ti("scavenger.cooldown-seconds",90));
+            }
         }
     }
 
