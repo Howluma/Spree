@@ -14,7 +14,7 @@ import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.TNTPrimeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -155,9 +155,11 @@ public final class CombatManager implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBlockIgnite(BlockIgniteEvent event) {
-        if (event.getPlayer() != null) rememberBlast(event.getBlock().getLocation().add(0.5, 0.5, 0.5),
-                event.getPlayer().getUniqueId());
+    public void onTntPrime(TNTPrimeEvent event) {
+        // Only record actual TNT priming, never generic fire/nearby clicks.
+        Entity origin = event.getPrimingEntity();
+        UUID owner = origin instanceof TNTPrimed primed ? tntOwner(primed) : directPlayer(origin);
+        if (owner != null) rememberBlast(event.getBlock().getLocation().add(0.5, 0.5, 0.5), owner);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -176,7 +178,10 @@ public final class CombatManager implements Listener {
 
     private UUID attacker(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
-        if (damager instanceof TNTPrimed tnt) return tntOwner(tnt);
+        if (damager instanceof TNTPrimed tnt) {
+            UUID owner = tntOwner(tnt);
+            return owner != null ? owner : directPlayer(event.getDamageSource().getCausingEntity());
+        }
         if (damager instanceof EnderCrystal crystal) return storedOwner(crystal);
         UUID direct = directPlayer(damager);
         if (direct != null) return direct;
@@ -196,10 +201,12 @@ public final class CombatManager implements Listener {
                     config().getDouble("combat.mace.player-damage-multiplier", 0.75)));
         }
         if (config().getBoolean("combat.tnt.enabled", true)
-                && event.getDamager() instanceof TNTPrimed tnt
-                && target.getUniqueId().equals(tntOwner(tnt))) {
-            event.setDamage(CombatMath.scaleDamage(event.getDamage(),
-                    config().getDouble("combat.tnt.igniter-self-damage-multiplier", 0.50)));
+                && event.getDamager() instanceof TNTPrimed tnt) {
+            UUID owner = tntOwner(tnt);
+            if (owner == null) owner = directPlayer(event.getDamageSource().getCausingEntity());
+            if (target.getUniqueId().equals(owner))
+                event.setDamage(CombatMath.scaleDamage(event.getDamage(),
+                        config().getDouble("combat.tnt.igniter-self-damage-multiplier", 0.50)));
         }
     }
 
