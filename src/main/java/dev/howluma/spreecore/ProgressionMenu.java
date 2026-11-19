@@ -101,7 +101,7 @@ public final class ProgressionMenu implements Listener {
         inv.setItem(22, icon(Material.ECHO_SHARD, "&b&lFate Sigil",
                 "&7Reroll saved upgrades with a crafted Sigil",
                 "&7Recipe: 4 Ominous Trial Keys, 4 Netherite Ingots,",
-                "&7Heart of the Sea in the center",
+                "&7Real Spree item in the center",
                 "&eClick to see reroll options"));
         inv.setItem(18, icon(Material.ARROW, "&9Back to Dashboard"));
         inv.setItem(26, icon(Material.BARRIER, "&cClose"));
@@ -223,7 +223,7 @@ public final class ProgressionMenu implements Listener {
         inv.setItem(22, icon(Material.EMERALD, "&fSigils in inventory: &b"
                 + (plugin.fate().has(player) ? "Available" : "None"),
                 "&7Recipe: 4 Ominous Trial Keys, 4 Netherite Ingots,",
-                "&7Heart of the Sea in the center"));
+                "&7Real Spree item in the center"));
         inv.setItem(18, icon(Material.ARROW, "&9Back to Progression"));
         inv.setItem(26, icon(Material.BARRIER, "&cClose"));
         player.openInventory(inv);
