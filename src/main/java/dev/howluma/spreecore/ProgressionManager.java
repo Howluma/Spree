@@ -1,5 +1,6 @@
 package dev.howluma.spreecore;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -135,6 +136,95 @@ public final class ProgressionManager {
         plugin.streaks().update(player);
         if (kind == ProgressionCatalog.Kind.PRIVILEGE) plugin.privilegeRules().enforce(player);
         return new Result(true, (sigil ? "Reselected " : "Unlocked ") + option.name() + "!");
+    }
+
+
+    /** Admin-only GUI editing, bypassing normal randomized offers but retaining milestone rules. */
+    public static boolean validAdminChoice(ProgressionCatalog.Kind kind, int level, int maximum, String optionId) {
+        if (kind == null || level > maximum || !ProgressionCatalog.milestone(kind, level)) return false;
+        return switch (kind) {
+            case TALENT -> ProgressionCatalog.find(kind, optionId) != null;
+            case PERK -> PerkType.fromId(optionId) != null;
+            default -> false;
+        };
+    }
+
+    public Result adminSet(UUID target, ProgressionCatalog.Kind kind, int level, String optionId) {
+        if (!validAdminChoice(kind, level, plugin.streaks().cap(), optionId))
+            return new Result(false, "Invalid Talent/Perk or milestone.");
+        PlayerDataStore.Profile profile = plugin.data().get(target);
+        String chosenName;
+        if (kind == ProgressionCatalog.Kind.TALENT) {
+            for (var entry : profile.talentChoices.entrySet()) {
+                if (entry.getKey() != level && optionId.equals(entry.getValue()))
+                    return new Result(false, "That Talent is already assigned at level " + entry.getKey() + ".");
+            }
+            var talent = ProgressionCatalog.find(kind, optionId);
+            chosenName = talent.name();
+            profile.talentChoices.put(level, optionId);
+            profile.talentOffers.remove(level); // Invalidate an obsolete pre-assignment offer.
+        } else {
+            PerkType perk = PerkType.fromId(optionId);
+            if (!plugin.getConfig().getBoolean("perks.enabled", true)
+                    || !plugin.getConfig().getBoolean("perks." + perk.id + ".enabled", true))
+                return new Result(false, "This Perk is disabled in plugin settings.");
+            int maxCopies = Math.max(0, Math.min(8, plugin.getConfig().getInt(
+                    "perks." + perk.id + ".max-copies", perk.defaultMaxCopies)));
+            String old = profile.perkRolls.get(level);
+            if (!perk.id.equals(old)
+                    && PerkMath.copies(profile.perkRolls, perk, Integer.MAX_VALUE) >= maxCopies)
+                return new Result(false, "That Perk has reached its maximum " + maxCopies + " copies.");
+            chosenName = perk.display;
+            profile.perkRolls.put(level, perk.id);
+        }
+        plugin.data().dirty();
+        refreshAdminTarget(target);
+        plugin.data().save();
+        boolean active = level <= profile.streak;
+        return new Result(true, "Set " + chosenName + " at level " + level
+                + (active ? " (active now)." : " (saved; active when that streak is reached)."));
+    }
+
+    public Result adminClearTalent(UUID target, int level) {
+        if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.TALENT, level)
+                || level > plugin.streaks().cap())
+            return new Result(false, "Invalid Talent milestone.");
+        PlayerDataStore.Profile profile = plugin.data().get(target);
+        if (profile.talentChoices.remove(level) == null)
+            return new Result(false, "No Talent assigned at that milestone.");
+        profile.talentOffers.remove(level);
+        plugin.data().dirty();
+        refreshAdminTarget(target);
+        plugin.data().save();
+        return new Result(true, "Cleared Talent at level " + level + ".");
+    }
+
+    public Result adminAutoRollPerk(UUID target, int level) {
+        if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.PERK, level)
+                || level > plugin.streaks().cap())
+            return new Result(false, "Invalid Perk milestone.");
+        PlayerDataStore.Profile profile = plugin.data().get(target);
+        String original = profile.perkRolls.get(level);
+        if (original == null) return new Result(false, "No Perk assigned at that level.");
+        if (Math.max(profile.streak, profile.best) < level)
+            return new Result(false, "Automatic rolls require a previously reached milestone.");
+        profile.perkRolls.remove(level);
+        plugin.perks().ensureRolls(profile);
+        String chosen = profile.perkRolls.get(level);
+        if (chosen == null) {
+            profile.perkRolls.put(level, original);
+            return new Result(false, "No eligible Perk is available for an automatic roll.");
+        }
+        plugin.data().dirty();
+        refreshAdminTarget(target);
+        plugin.data().save();
+        return new Result(true, "Rolled " + PerkType.fromId(chosen).display + " for level " + level
+                + (chosen.equals(original) ? " (same result; try selecting one manually)." : "."));
+    }
+
+    private void refreshAdminTarget(UUID target) {
+        Player online = Bukkit.getPlayer(target);
+        if (online != null && !online.isDead()) plugin.streaks().update(online);
     }
 
     /** Spend exactly one Sigil and offer new Talent choices for an unlocked Talent. */
