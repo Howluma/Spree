@@ -130,12 +130,17 @@ public final class ProgressionMenu implements Listener {
             var option = ProgressionCatalog.find(kind, current);
             Material material = option != null ? option.icon()
                     : unlocked ? Material.LIME_DYE : Material.GRAY_DYE;
-            inv.setItem(cells[i], icon(material, "&9&lLevel " + level,
-                    coloredStatus(unlocked, current, reroll),
-                    option != null ? "&f" + option.name() : "&7Not chosen yet",
-                    option != null ? "&7" + option.description() : "&8One choice per milestone",
-                    unlocked ? (current != null && !reroll ? "&aAlready claimed - hover to inspect" :
-                            "&eClick to " + (reroll ? "rechoose" : "choose")) : "&8Reach level " + level + " first"));
+            List<String> details=new ArrayList<>();
+            details.add(coloredStatus(unlocked, current, reroll));
+            details.add(option != null ? "&f" + option.name() : "&7Not chosen yet");
+            details.add(option != null ? "&7" + option.description() : "&8One choice per milestone");
+            if(kind==ProgressionCatalog.Kind.TALENT && option!=null) {
+                details.add(plugin.talentFeedback().cooldownLore(player,option.id()));
+                details.add("&7All cooldowns: &b/spree cooldowns");
+            }
+            details.add(unlocked ? (current != null && !reroll ? "&aAlready claimed - hover to inspect" :
+                    "&eClick to " + (reroll ? "rechoose" : "choose")) : "&8Reach level " + level + " first");
+            inv.setItem(cells[i],icon(material,"&9&lLevel "+level,details.toArray(String[]::new)));
             h.levels.put(cells[i], level);
         }
         inv.setItem(22, icon(kind.icon, "&9&l" + kind.title,
@@ -299,7 +304,12 @@ public final class ProgressionMenu implements Listener {
             for (int i=0; i<Math.min(guideCells.length,all.size()); i++) {
                 int slot=guideCells[i];
                 var option=all.get(i);
-                inv.setItem(slot, icon(option.icon(),"&9&l"+option.name(),
+                if(kind==ProgressionCatalog.Kind.TALENT)
+                    inv.setItem(slot,icon(option.icon(),"&9&l"+option.name(),
+                            "&7"+option.description(),
+                            plugin.talentFeedback().cooldownLore(player,option.id()),
+                            "&7Check cooldowns: &b/spree cooldowns"));
+                else inv.setItem(slot, icon(option.icon(),"&9&l"+option.name(),
                         "&7"+option.description(), "&7"+kind.title+" only"));
             }
         }
