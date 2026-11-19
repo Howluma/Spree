@@ -70,30 +70,48 @@ public final class MenuManager implements Listener {
 
     public void openMain(Player p) {
         Holder h = holder(Screen.MAIN);
-        Inventory inv = create(h, 3, "&9&lSPREE &8| &fDashboard");
+        Inventory inv = create(h, 4, "&9&lSPREE &8| &fDashboard");
         var profile = plugin.data().get(p);
-        inv.setItem(11, icon(Material.NETHER_STAR, "&9&lYour Killstreak",
-                "&7Current: " + plugin.indicators().streakColor(profile.streak) + plugin.streaks().display(profile.streak),
-                "&7Personal best: &f" + profile.best));
-        inv.setItem(13, icon(Material.WRITABLE_BOOK, "&f&lYour Statistics",
-                "&7Kills: &f" + profile.kills, "&7Deaths: &f" + profile.deaths,
-                "&7Streaks ended: &f" + profile.ended, "&aClick for details"));
-        inv.setItem(15, icon(Material.PLAYER_HEAD, "&6&lLeaderboard",
-                "&7Compare killstreaks with other players", "&aClick to view"));
-        inv.setItem(20, icon(Material.BOOK, "&9&lCurrent Streak Buffs",
-                currentBuffLore(plugin.getConfig(), profile.streak)));
+        // 4-column symmetric dashboard, identical for all player ranks.
+        inv.setItem(10, icon(Material.NETHER_STAR, "&9&lProgression",
+                "&7Level: &f" + plugin.streaks().display(profile.streak),
+                "&7Make your Privilege, Talent, Infusion choices",
+                "&7Perks roll automatically",
+                "&bClick to manage upgrades"));
+        inv.setItem(12, icon(Material.WRITABLE_BOOK, "&f&lStatistics",
+                "&7Kills: &f" + profile.kills + " &8| &7Deaths: &f" + profile.deaths,
+                "&7Personal best: &f" + profile.best, "&bClick to view"));
+        inv.setItem(14, icon(Material.PLAYER_HEAD, "&6&lLeaderboard",
+                "&7Compare killstreaks with other players", "&bClick to view"));
+        inv.setItem(16, icon(Material.KNOWLEDGE_BOOK, "&9&lHow Everything Works",
+                "&7Short guides split into categories",
+                "&7Explore talents, perks, infusions, privileges",
+                "&bClick to learn"));
+        int infusionCount = (int) profile.infusionChoices.entrySet().stream()
+                .filter(e -> e.getKey() <= profile.streak).count();
+        inv.setItem(19, icon(Material.POTION, "&9&lActive Bonuses",
+                "&7Max health: &f+" + ConfigEditor.format(
+                        Math.max(0, profile.streak)*plugin.getConfig().getDouble("killstreak.health-per-level-hearts",.5)) + " hearts",
+                "&7Permanent Infusions: &f" + infusionCount,
+                "&7Glowing: " + (profile.streak >= plugin.getConfig().getInt("hunt.glowing-level",10)?"&aYes":"&8No"),
+                "&bClick to see your build"));
         inv.setItem(21, icon(Material.ENCHANTED_BOOK, "&9&lYour Perks",
-                plugin.perks().activeLore(profile)));
-        inv.setItem(22, icon(profile.hideHud ? Material.GRAY_DYE : Material.LIME_DYE,
-                "&fKillstreak HUD: " + (profile.hideHud ? "&cOFF" : "&aON"),
-                "&7Toggle the action bar display", "&eClick to toggle"));
-        if (p.hasPermission("spree.admin")) {
-            inv.setItem(18, icon(Material.COMMAND_BLOCK, "&eAdmin Control Center",
-                    "&7Player manager, events and legendaries"));
-            inv.setItem(24, icon(Material.COMPARATOR, "&aEdit Plugin Settings",
-                    "&7All configuration options, organized"));
+                "&7" + profile.perkRolls.size() + " rolled milestones",
+                "&7Small bonuses, duplicates stack", "&bClick to view all"));
+        inv.setItem(23, icon(profile.hideHud?Material.GRAY_DYE:Material.LIME_DYE,
+                "&fKillstreak HUD: " + (profile.hideHud?"&cOFF":"&aON"),
+                "&bClick to toggle"));
+        inv.setItem(25, icon(Material.COMPASS, "&c&lWanted Status",
+                "&7Why higher streaks make you a target",
+                "&7Bounties, glowing, coordinates and teams",
+                "&bClick for milestones"));
+        if(p.hasPermission("spree.admin")) {
+            inv.setItem(29,icon(Material.COMMAND_BLOCK,"&e&lAdmin Control",
+                    "&7Players, events and legendary weapons","&eClick to manage"));
+            inv.setItem(33,icon(Material.COMPARATOR,"&a&lPlugin Settings",
+                    "&7All categories, arranged and editable","&eClick to configure"));
         }
-        inv.setItem(26, icon(Material.BARRIER, "&cClose"));
+        inv.setItem(31, icon(Material.BARRIER, "&cClose"));
         p.openInventory(inv);
     }
     /** Show only active buffs on the book, never the full list of future unlocks. */
@@ -322,14 +340,17 @@ public final class MenuManager implements Listener {
         switch(h.screen) {
             case MAIN -> {
                 switch(slot) {
-                    case 13 -> p.performCommand("stats");
-                    case 15 -> p.performCommand("leaderboard");
-                    case 18 -> { if (p.hasPermission("spree.admin")) openAdmin(p); }
-                    case 20 -> p.performCommand("spreeinfo");
-                    case 21 -> p.performCommand("spree perks");
-                    case 22 -> { p.performCommand("spreehud"); openMain(p); }
-                    case 24 -> { if (p.hasPermission("spree.admin")) openSettings(p); }
-                    case 26 -> p.closeInventory();
+                    case 10 -> plugin.progressMenus().open(p);
+                    case 12 -> plugin.progressMenus().openStats(p);
+                    case 14 -> p.performCommand("leaderboard");
+                    case 16 -> plugin.progressMenus().openGuide(p);
+                    case 19 -> plugin.progressMenus().open(p);
+                    case 21 -> plugin.progressMenus().openSlots(p, ProgressionCatalog.Kind.PERK, false);
+                    case 23 -> { p.performCommand("spreehud"); openMain(p); }
+                    case 25 -> plugin.progressMenus().openWanted(p);
+                    case 29 -> { if(p.hasPermission("spree.admin")) openAdmin(p); }
+                    case 33 -> { if(p.hasPermission("spree.admin")) openSettings(p); }
+                    case 31 -> p.closeInventory();
                     default -> {}
                 }
             }
