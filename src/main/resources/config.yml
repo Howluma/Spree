@@ -1,4 +1,4 @@
-# SpreeCore 1.6.4 - escalating PvP bounties for defeating higher killstreaks.
+# SpreeCore 1.7.0 - bounty tokens, hunt milestones, and player progression.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -53,7 +53,6 @@ killstreak:
     weaving-level: 5
     speed-level: 10
     strength-level: 15
-    glowing-level: 20
   # Convert owned streak levels into right-click +1 Spree items.
   withdrawal:
     enabled: true
@@ -67,6 +66,20 @@ killstreak:
     bonus-streak: 2
   # Milestones above are the only current potion perks. The rest of the
   # progression, item unlocks, and temporary event rules are unchanged.
+
+# Wanted status announces each five levels and adds escalating target penalties.
+hunt:
+  glowing-level: 10
+  coordinates-level: 15
+  coordinate-interval-minutes: 15
+  no-teams-level: 20
+  announcements:
+    '5': '&9&lSPREE &8| &a{player} is on fire! &7(5 killstreak)'
+    '10': '&9&lSPREE &8| &e{player} is unstoppable! &7(10 killstreak)'
+    '15': '&9&lSPREE &8| &6{player} is being hunted! &7(15 killstreak)'
+    '20': '&9&lSPREE &8| &c{player} is a lone wolf! &7(20 killstreak)'
+    '25': '&9&lSPREE &8| &5{player} is most wanted! &7(25 killstreak)'
+    '30': '&9&lSPREE &8| &4{player} has become legendary! &7(30 killstreak)'
 
 # Two Perk rolls per 5 levels (2, 4, 7, 9, ...).
 # Each milestone's roll is stored permanently in players.yml, never rerolled.

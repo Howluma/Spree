@@ -1,16 +1,16 @@
-# SpreeCore v1.6.4 — Spree SMP
+# SpreeCore v1.7.0 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.4.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.7.0.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.4.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.7.0.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -74,6 +74,26 @@ and lowers your streak to 25. `/spree withdraw all` is equivalent to
 - If another plugin intercepts `/spree`, use
   `/spreecore:spree withdraw` instead.
 
+## Wanted status and bounty tokens (v1.7.0)
+
+Environmental deaths still halve the player's current killstreak, but
+their dropped Spree token now carries **the same tiered amount an eligible
+player killer would have received**: level 5 yields +2, 10 +3, 15 +4,
+20 +5, 25 +6 and 30 +7. This retains the prior token ownership/recovery
+rules and anti-farm behavior while no longer rewarding environmental
+death more than PvP.
+
+An escalating status system broadcasts announcements at each multiple
+of five killstreak levels (5/10/15/20/25/30). At 10, the player receives
+continuous Glowing with a color matching the current five-level killstreak
+tier where SpreeCore owns their display scoreboard team. At 15, their
+world and coordinates are broadcast every 15 minutes. At 20, they are
+removed from vanilla scoreboard gameplay teams every second; SpreeCore's
+**own singleton display-only scoreboard team** remains for colored glowing.
+External parties/clans maintained by independent plugins may require
+separate integration. All these thresholds and announcement texts are
+editable in /spree settings.
+
 ## Escalating hunt rewards and TNT credit (v1.6.4)
 
 **Qualifying PvP kills earn +1 Spree plus +1 for every five levels of the
@@ -106,11 +126,9 @@ option is off. Existing server choices in config.yml are preserved.
 Separately configured timed/Juggernaut/Hunt event bonuses still apply
 when those events are running.
 
-**Environmental-death Spree Tokens are intentionally unchanged**: they
-still use HALF of the prior killstreak (e.g. level 30 drops a +15 token)
-rather than this new PvP bounty formula, so owners can keep their existing
-natural-death recovery flow. These tokens do not originate from a
-qualifying PvP kill. Right-click **Spree** consumables still give +1.
+**Environmental-death Spree Tokens now use the same tiered value as a
+PvP kill** (e.g. level 30 drops a +7 token), but dying naturally still
+halves the victim's killstreak. Right-click **Spree** items still give +1.
 
 When an explosion is attributed to an online player, the normal player-kill
 branch awards streak and does **not** drop an environmental-death token.

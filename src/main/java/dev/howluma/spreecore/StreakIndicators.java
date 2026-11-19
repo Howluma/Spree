@@ -85,7 +85,7 @@ public final class StreakIndicators implements Listener {
 
     private boolean glowMilestone(int streak) {
         return MilestoneEffects.unlocked(streak,
-                plugin.getConfig().getInt("killstreak.milestones.glowing-level", 20));
+                plugin.getConfig().getInt("hunt.glowing-level", 10));
     }
 
     /** Vanilla glowing outlines are colored via the scoreboard team's color. */

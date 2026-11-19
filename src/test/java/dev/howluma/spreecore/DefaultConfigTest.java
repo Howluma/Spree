@@ -65,6 +65,16 @@ class DefaultConfigTest {
         assertTrue(c.getBoolean("killstreak.anti-farm.enabled"));
         assertTrue(c.getBoolean("killstreak.anti-farm.block-rewards-for-fractured-victim"));
     }
+    @Test void wantedPenaltiesStartAtIntendedMilestones() {
+        var c = config();
+        assertEquals(10, c.getInt("hunt.glowing-level"));
+        assertEquals(15, c.getInt("hunt.coordinates-level"));
+        assertEquals(15, c.getInt("hunt.coordinate-interval-minutes"));
+        assertEquals(20, c.getInt("hunt.no-teams-level"));
+        assertTrue(c.getString("hunt.announcements.5").contains("{player} is on fire!"));
+        assertTrue(c.getString("hunt.announcements.10").contains("{player} is unstoppable!"));
+        assertFalse(c.contains("killstreak.milestones.glowing-level"));
+    }
     @Test void combatDefaultsPreserved() {
         var c = config();
         assertEquals(0.75, c.getDouble("combat.mace.player-damage-multiplier"));

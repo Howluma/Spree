@@ -34,7 +34,7 @@ final class MilestoneEffects {
         maintain(player, PotionEffectType.STRENGTH, 1,
                 unlocked(streak, plugin.getConfig().getInt("killstreak.milestones.strength-level", 15)));
         maintain(player, PotionEffectType.GLOWING, 0,
-                eventGlow || unlocked(streak, plugin.getConfig().getInt("killstreak.milestones.glowing-level", 20)));
+                eventGlow || unlocked(streak, plugin.getConfig().getInt("hunt.glowing-level", 10)));
     }
 
     private void maintain(Player player, PotionEffectType type, int amplifier, boolean enabled) {

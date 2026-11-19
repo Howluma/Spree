@@ -19,6 +19,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private CombatManager combat;
     private PerkManager perks;
     private CapacityPerk capacity;
+    private HuntManager hunt;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
@@ -38,6 +39,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         commands = new CoreCommands(this);
         indicators = new StreakIndicators(this);
         combat = new CombatManager(this);
+        hunt = new HuntManager(this);
         Bukkit.getPluginManager().registerEvents(streaks, this);
         Bukkit.getPluginManager().registerEvents(legendaries, this);
         Bukkit.getPluginManager().registerEvents(forges, this);
@@ -48,6 +50,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         // Register after core combat so final melee damage multipliers apply in order.
         Bukkit.getPluginManager().registerEvents(perks, this);
         Bukkit.getPluginManager().registerEvents(capacity, this);
+        Bukkit.getPluginManager().registerEvents(hunt, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
                 "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
@@ -62,6 +65,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private void heartbeat() {
         heartbeatCount++;
         events.tick();
+        hunt.tick();
         forges.tick();
         legendaries.tick();
         // Potions/health only need refreshing every 4 seconds, not scanning inventories each tick.
@@ -85,6 +89,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (streaks != null) streaks.shutdown();
         if (perks != null) perks.shutdown();
         if (capacity != null) capacity.shutdown();
+        if (hunt != null) hunt.shutdown();
         if (data != null) data.save();
     }
     public PlayerDataStore data() { return data; }
@@ -99,6 +104,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public CombatManager combat() { return combat; }
     public PerkManager perks() { return perks; }
     public CapacityPerk capacity() { return capacity; }
+    public HuntManager hunt() { return hunt; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
@@ -106,7 +112,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
             scheduleConfigurableTasks();
         if (path.startsWith("killstreak.") || path.startsWith("events.juggernaut."))
             streaks.refreshOnline();
-        if (path.startsWith("display.streak-indicators.") || path.equals("killstreak.milestones.glowing-level"))
+        if (path.startsWith("display.streak-indicators.") || path.equals("hunt.glowing-level"))
             indicators.refreshOnline();
         if (path.startsWith("perks.")) {
             perks.initializeExisting();
@@ -157,7 +163,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
         // The old progression is retired. Remove saved legacy settings too,
         // otherwise it would appear that the old perks are still configurable.
         for (String removed : new String[]{"killstreak.max-health-hearts", "killstreak.potion-bonuses",
-                "killstreak.passives", "killstreak.restrictions", "events.timed.surge"}) {
+                "killstreak.passives", "killstreak.restrictions", "events.timed.surge",
+                "killstreak.milestones.glowing-level"}) {
             if (getConfig().isSet(removed)) {
                 getConfig().set(removed, null);
                 changed = true;

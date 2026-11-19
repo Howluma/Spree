@@ -1,13 +1,25 @@
-# SpreeCore v1.6.4 — test-server checklist
+# SpreeCore v1.7.0 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Wanted status and token payouts (v1.7.0)
+
+- [ ] Natural death halves the positive streak; a 30 streak now drops a +7 Spree token (not +15).
+- [ ] At 5 and 10 the entire server receives the exact 'on fire' and 'unstoppable' messages, and 15/20/25/30 each have their own announcement.
+- [ ] At 10, Glowing remains permanent while streak >=10; color follows each five-level tier where SpreeCore owns scoreboard presentation.
+- [ ] After 15+ for 15 minutes, world and integer XYZ appear in public chat; coordinates stop at 14 or on disconnect.
+- [ ] At 20, players cannot remain on ordinary vanilla scoreboard teams but stay in a dedicated SpreeCore cosmetic team for colored glowing.
+- [ ] At 19, vanilla scoreboard team membership is unaffected; when dropping below 20, the no-team restriction ends.
+- [ ] Reconnecting does not immediately broadcast a player's coordinates; the timer starts anew.
+- [ ] A player at 20 with a foreign scoreboard team loses that team but no other players are removed.
+- [ ] Confirm third-party party, faction, nametag and team plugins on staging.
 
 ## Escalating kill rewards; revenge stays off (v1.6.4)
 
 - [ ] Player kills at victim pre-death streak 0/4 award +1; 5/9 award +2; 10/14 award +3; 15/19 award +4; 20/24 award +5; 25/29 award +6; 30 awards +7.
 - [ ] Victim at 30 is reduced to 15 on death while the eligible killer receives +7; anti-farm disallows rewards from Fractured victims and repeat kills inside the existing cooldown.
 - [ ] The pre-death reward formula is used for melee, projectiles, TNT, and credited end crystals, without duplicating an environmental-death token.
-- [ ] Natural/environmental death at 30 still drops the original half-streak +15 token, not the new +7 kill bounty.
+- [ ] Natural/environmental death at 30 drops a +7 token matching the kill bounty, while the victim's streak still halves from 30 to 15.
 - [ ] Default revenge.enabled=false; a server with the legacy setting already OFF keeps it OFF after /spreeadmin reload and restart.
 - [ ] Event-specific kill bonuses still stack on top of a *qualifying* kill's base reward, and no event bonus is awarded for anti-farm-protected kills.
 - [ ] /spreeinfo describes the new tier formula and /spree settings > Hunt Kill Rewards can edit base, tier interval, and increment.

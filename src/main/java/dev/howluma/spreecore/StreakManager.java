@@ -63,12 +63,17 @@ public final class StreakManager implements Listener {
         List<PerkManager.Award> newPerks = plugin.perks().ensureRolls(p);
         plugin.data().dirty();
         Player online = Bukkit.getPlayer(id);
-        if (online != null && !newPerks.isEmpty()) {
-            List<String> unlocked = new ArrayList<>();
-            for (PerkManager.Award award : newPerks)
-                if (award.milestone() <= newStreak) unlocked.add(award.type().display);
-            if (!unlocked.isEmpty())
-                Text.send(online, plugin.prefix() + "&aPerks unlocked: &f" + String.join(", ", unlocked));
+        if (online != null && newStreak > old && !admin) {
+            List<String> gainedPerks = new ArrayList<>();
+            for (int level = Math.max(1, old + 1); level <= newStreak; level++) {
+                if (!PerkMath.isPerkMilestone(level)) continue;
+                String perk = p.perkRolls.get(level);
+                PerkType type = PerkType.fromId(perk);
+                if (type != null) gainedPerks.add("&f" + type.display + " &8(level " + level + ")");
+            }
+            if (!gainedPerks.isEmpty())
+                Text.send(online, plugin.prefix() + "&9Perk gained: &f" + String.join("&7, ", gainedPerks));
+            plugin.hunt().announceReached(online, old, newStreak);
         }
         if (online != null) {
             // Do not change a dead player's inventory/health during PlayerDeathEvent:
@@ -180,7 +185,10 @@ public final class StreakManager implements Listener {
         if (old > 0) victimProfile.ended++;
         plugin.data().dirty();
         if (killer == null) {
-            if (old >= 0) dropToken(victim, SpreeMath.naturalDeathTokenGain(old));
+            if (old >= 0) dropToken(victim, SpreeMath.killGain(old,
+                    c().getInt("killstreak.kill-rewards.base-reward", 1),
+                    c().getInt("killstreak.kill-rewards.levels-per-tier", 5),
+                    c().getInt("killstreak.kill-rewards.extra-per-tier", 1)));
             setStreak(victim.getUniqueId(), SpreeMath.naturalDeathStreak(old), false);
             if (old == 0) Text.send(victim, plugin.prefix() + "&cYou have a Fractured Killstreak. Reclaim your own token or get a kill.");
             else Text.send(victim, plugin.prefix() + "&7Natural death: your streak is now " + display(streak(victim)));
