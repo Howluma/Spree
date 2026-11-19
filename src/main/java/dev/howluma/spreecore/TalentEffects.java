@@ -62,6 +62,20 @@ public final class TalentEffects implements Listener {
         plugin.data().dirty();
         return true;
     }
+    /** Prevent stacking emergency defensive triggers on the same damage spike.
+     * Each Talent keeps its own full cooldown; any other emergency defense
+     * must wait ten seconds after an automatic defensive activation.
+     */
+    private boolean defensiveReady(Player p,String key,long personalCooldownSeconds){
+        Map<String,Long> timers=plugin.data().get(p).talentCooldowns;
+        long now=System.currentTimeMillis();
+        if(now<timers.getOrDefault(key,0L)
+                ||now<timers.getOrDefault("defensive_shared",0L))return false;
+        timers.put(key,now+personalCooldownSeconds*1000L);
+        timers.put("defensive_shared",now+10000L);
+        plugin.data().dirty();
+        return true;
+    }
     private void apply(Player p,PotionEffectType type,int amplifier,int seconds){
         PotionEffect old=p.getPotionEffect(type);
         if(old!=null&&old.getAmplifier()>amplifier)return;
@@ -193,11 +207,13 @@ public final class TalentEffects implements Listener {
         if(!(e.getEntity() instanceof Player p)||e.getFinalDamage()<=0)return;
         if(e.getCause()==EntityDamageEvent.DamageCause.FALL&&has(p,"acrobat"))
             e.setDamage(e.getDamage()*.60);
-        if(has(p,"iron_will") && e.getFinalDamage()>=6 && ready(p,"iron_will",75))
-            apply(p,PotionEffectType.RESISTANCE,0,5);
+        // Give the life-saving option priority when both could activate.
         if(has(p,"second_wind") && p.getHealth()-e.getFinalDamage()<=maxHealth(p)*.30
-                && ready(p,"second_wind",90))
+                && defensiveReady(p,"second_wind",90))
             apply(p,PotionEffectType.ABSORPTION,0,8);
+        else if(has(p,"iron_will") && e.getFinalDamage()>=6
+                && defensiveReady(p,"iron_will",75))
+            apply(p,PotionEffectType.RESISTANCE,0,5);
         if(has(p,"escape_artist") && (p.hasPotionEffect(PotionEffectType.SLOWNESS)
                 ||p.getLocation().getBlock().getType()==Material.COBWEB)
                 && ready(p,"escape_artist",50)){
