@@ -22,6 +22,11 @@ commands:
     permission: spree.admin
     description: Set every saved player's killstreak without resetting their progression
     usage: '/spreesetall <value>'
+  fatesigil:
+    aliases: [givesigil]
+    permission: spree.admin
+    description: Give yourself or another online player authentic Fate Sigils
+    usage: '/fatesigil [amount] or /fatesigil give <player> [amount]'
   spreehud:
     aliases: [togglehud]
     description: Toggle killstreak action bar
