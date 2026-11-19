@@ -27,7 +27,7 @@ public final class ProgressionManager {
         PlayerDataStore.Profile p = profile(player);
         if (p.streak <= 0) return false;
         for (var choice : chosen(p, kind).entrySet())
-            if (choice.getKey() <= p.streak && choice.getValue().equals(id)) return true;
+            if (choice.getKey() <= SpreeMath.benefitLevel(p.streak) && choice.getValue().equals(id)) return true;
         return false;
     }
     public boolean hasPrivilege(Player p, String id) {
@@ -40,11 +40,11 @@ public final class ProgressionManager {
         return active(p, ProgressionCatalog.Kind.INFUSION, id);
     }
     public boolean milestoneUnlocked(Player p, ProgressionCatalog.Kind kind, int level) {
-        return ProgressionCatalog.milestone(kind, level) && level <= profile(p).streak;
+        return level <= SpreeMath.BENEFIT_CAP && ProgressionCatalog.milestone(kind, level) && level <= profile(p).streak;
     }
     public int available(Player p, ProgressionCatalog.Kind kind) {
         int count = 0;
-        for (int level : ProgressionCatalog.milestones(kind, plugin.streaks().cap()))
+        for (int level : ProgressionCatalog.milestones(kind, plugin.streaks().progressionCap()))
             if (milestoneUnlocked(p, kind, level) &&
                     !chosen(profile(p), kind).containsKey(level)) count++;
         return count;
@@ -55,7 +55,7 @@ public final class ProgressionManager {
         for (ProgressionCatalog.Kind kind : List.of(ProgressionCatalog.Kind.PRIVILEGE,
                 ProgressionCatalog.Kind.TALENT, ProgressionCatalog.Kind.INFUSION)) {
             int count = 0;
-            for (int level = Math.max(1, previous + 1); level <= current; level++)
+            for (int level = Math.max(1, previous + 1); level <= Math.min(SpreeMath.BENEFIT_CAP, current); level++)
                 if (ProgressionCatalog.milestone(kind, level)
                         && !chosen(profile(player), kind).containsKey(level)) count++;
             if (count > 0) messages.add("&b" + count + " " + kind.title);
@@ -150,7 +150,7 @@ public final class ProgressionManager {
     }
 
     public Result adminSet(UUID target, ProgressionCatalog.Kind kind, int level, String optionId) {
-        if (!validAdminChoice(kind, level, plugin.streaks().cap(), optionId))
+        if (!validAdminChoice(kind, level, plugin.streaks().progressionCap(), optionId))
             return new Result(false, "Invalid Talent/Perk or milestone.");
         PlayerDataStore.Profile profile = plugin.data().get(target);
         String chosenName;
@@ -187,7 +187,7 @@ public final class ProgressionManager {
 
     public Result adminClearTalent(UUID target, int level) {
         if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.TALENT, level)
-                || level > plugin.streaks().cap())
+                || level > plugin.streaks().progressionCap())
             return new Result(false, "Invalid Talent milestone.");
         PlayerDataStore.Profile profile = plugin.data().get(target);
         if (profile.talentChoices.remove(level) == null)
@@ -201,7 +201,7 @@ public final class ProgressionManager {
 
     public Result adminAutoRollPerk(UUID target, int level) {
         if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.PERK, level)
-                || level > plugin.streaks().cap())
+                || level > plugin.streaks().progressionCap())
             return new Result(false, "Invalid Perk milestone.");
         PlayerDataStore.Profile profile = plugin.data().get(target);
         String original = profile.perkRolls.get(level);
