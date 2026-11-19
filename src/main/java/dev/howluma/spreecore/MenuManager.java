@@ -131,19 +131,29 @@ public final class MenuManager implements Listener {
     public void openAdmin(Player p) {
         if (!p.hasPermission("spree.admin")) return;
         Holder h = holder(Screen.ADMIN);
-        Inventory inv = create(h, 3, "&9&lSPREE &8| &fAdmin Control");
-        inv.setItem(10, icon(Material.PLAYER_HEAD, "&9Players", "&7Manage killstreaks individually"));
-        inv.setItem(12, icon(Material.LIGHTNING_ROD, "&eEvents", "&7Start and stop server events"));
-        inv.setItem(14, icon(Material.DIAMOND_SWORD, "&9Legendary Weapons", "&7Preview items and reset forges"));
-        inv.setItem(16, icon(Material.EMERALD_BLOCK, "&aRefresh Player Health", "&7Recalculate health for all online players"));
-        inv.setItem(18, icon(Material.TNT, "&9&lCombat Balancing",
-                "&7Mace PvP damage: &9" + Math.round(plugin.getConfig().getDouble("combat.mace.player-damage-multiplier", 0.75) * 100) + "%",
-                "&7TNT igniter self-damage: &9" + Math.round(plugin.getConfig().getDouble("combat.tnt.igniter-self-damage-multiplier", 0.50) * 100) + "%",
-                "&eClick to edit both and kill-credit timing"));
-        inv.setItem(20, icon(Material.COMPARATOR, "&a&lSettings Editor", "&7Every value in config.yml, organized", "&7Click to configure the plugin"));
-        inv.setItem(22, icon(Material.TNT, "&cReset Every Killstreak", "&4Requires a second click within 5 seconds"));
-        inv.setItem(24, icon(Material.ARROW, "&9Back to Dashboard"));
-        inv.setItem(26, icon(Material.BARRIER, "&cClose"));
+        Inventory inv = create(h, 4, "&9&lSPREE &8| &fAdmin Center");
+        // Match the public dashboard: four equal columns and a centered exit.
+        inv.setItem(10, icon(Material.PLAYER_HEAD, "&9&lPlayers",
+                "&7Individual killstreaks and statistics", "&eClick to manage"));
+        inv.setItem(12, icon(Material.LIGHTNING_ROD, "&e&lEvents",
+                "&7Hunt, Juggernaut, timed modes", "&eClick to manage"));
+        inv.setItem(14, icon(Material.DIAMOND_SWORD, "&9&lLegendary Weapons",
+                "&7Preview, test, reset forges", "&eClick to manage"));
+        inv.setItem(16, icon(Material.TNT, "&9&lCombat Balance",
+                "&7Mace, TNT, explosion credit", "&eClick to configure"));
+        inv.setItem(19, icon(Material.COMPARATOR, "&a&lAll Plugin Settings",
+                "&7Grouped categories, editable values", "&eClick to configure"));
+        inv.setItem(21, icon(Material.EMERALD_BLOCK, "&a&lRefresh Players",
+                "&7Recalculate health and effects", "&eClick to apply"));
+        inv.setItem(23, icon(Material.BARRIER, "&c&lReset All Killstreaks",
+                "&7Double-click confirmation required", "&4Danger: resets every current streak"));
+        inv.setItem(25, icon(Material.KNOWLEDGE_BOOK, "&9&lProgression Guide",
+                "&7Review Privileges, Talents and Infusions", "&eClick to browse"));
+        inv.setItem(29, icon(Material.ARROW, "&9Back to Dashboard"));
+        inv.setItem(31, icon(Material.BARRIER, "&cClose"));
+        inv.setItem(33, icon(Material.PAPER, "&7Server Status",
+                "&7Players online: &f"+Bukkit.getOnlinePlayers().size(),
+                "&7SpreeCore: &f"+plugin.getPluginMeta().getVersion()));
         p.openInventory(inv);
     }
     public void openSettings(Player p) { openSettings(p,0); }
@@ -354,10 +364,10 @@ public final class MenuManager implements Listener {
                     case 10 -> openPlayers(p,0);
                     case 12 -> openEvents(p,true);
                     case 14 -> openLegendary(p);
-                    case 16 -> {plugin.streaks().refreshOnline();Text.send(p,"&aRecalculated health for all online players.");}
-                    case 18 -> openConfigCategory(p,"combat",0);
-                    case 20 -> openSettings(p);
-                    case 22 -> {
+                    case 16 -> openConfigCategory(p,"combat",0);
+                    case 19 -> openSettings(p);
+                    case 21 -> {plugin.streaks().refreshOnline();Text.send(p,"&aRecalculated health for all online players.");}
+                    case 23 -> {
                         long now=System.currentTimeMillis();
                         if(resetConfirm.getOrDefault(p.getUniqueId(),0L)>now) {
                             resetConfirm.remove(p.getUniqueId());
@@ -366,8 +376,9 @@ public final class MenuManager implements Listener {
                             p.closeInventory();
                         } else {resetConfirm.put(p.getUniqueId(),now+5000);Text.send(p,"&cClick again within 5 seconds to confirm.");}
                     }
-                    case 24 -> openMain(p);
-                    case 26 -> p.closeInventory();
+                    case 25 -> plugin.progressMenus().openGuide(p);
+                    case 29 -> openMain(p);
+                    case 31 -> p.closeInventory();
                     default -> {}
                 }
             }

@@ -162,6 +162,8 @@ public final class ConfigEditor {
             case "general" -> "General & Interface";
             case "combat" -> "Combat Balancing";
             case "perks" -> "Stackable Perks";
+            case "hunt" -> "Wanted Status & Hunt";
+            case "privileges" -> "Privilege Item Limits";
             case "resource-pack" -> "Resource Pack Models";
             case "killstreak" -> "Killstreak & Health";
             case "killstreak.anti-farm" -> "Anti-Farming";

@@ -15,6 +15,7 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import com.destroystokyo.paper.event.player.PlayerAttemptPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
@@ -148,6 +149,41 @@ public final class PrivilegeRules implements Listener {
         int extra=plugin.progression().hasTalent(p,"expanded_reserves")?64:0;
         cap(p,Material.WIND_CHARGE,setting("max-wind-charges",64)+extra);
         cap(p,Material.EXPERIENCE_BOTTLE,setting("max-experience-bottles",64)+extra);
+    }
+    private int itemLimit(Player p, Material type) {
+        if(type==Material.TOTEM_OF_UNDYING)
+            return owns(p,"last_stand")?setting("max-totems",1):0;
+        if(type==Material.ENCHANTED_GOLDEN_APPLE)
+            return owns(p,"forbidden_fruit")?setting("max-enchanted-apples",4):0;
+        int extra=plugin.progression().hasTalent(p,"expanded_reserves")?64:0;
+        if(type==Material.WIND_CHARGE)return setting("max-wind-charges",64)+extra;
+        if(type==Material.EXPERIENCE_BOTTLE)return setting("max-experience-bottles",64)+extra;
+        return -1;
+    }
+    @EventHandler(priority=EventPriority.LOWEST,ignoreCancelled=true)
+    public void attemptPickup(PlayerAttemptPickupItemEvent e) {
+        Player p=e.getPlayer();ItemStack stack=e.getItem().getItemStack();
+        int cap=itemLimit(p,stack.getType());
+        if(cap<0)return;
+        int held=0;
+        for(ItemStack existing:p.getInventory().getContents())
+            if(existing!=null&&existing.getType()==stack.getType())held+=existing.getAmount();
+        int room=Math.max(0,cap-held);
+        if(room>=stack.getAmount())return; // ordinary or Capacity-managed pickup.
+        e.setCancelled(true);
+        if(room<=0)return;
+        ItemStack portion=stack.clone();
+        portion.setAmount(room);
+        Map<Integer,ItemStack> leftovers=p.getInventory().addItem(portion);
+        int notTaken=leftovers.values().stream().mapToInt(ItemStack::getAmount).sum();
+        int taken=room-notTaken;
+        if(taken<=0)return;
+        if(taken>=stack.getAmount())e.getItem().remove();
+        else {
+            ItemStack remaining=stack.clone();
+            remaining.setAmount(stack.getAmount()-taken);
+            e.getItem().setItemStack(remaining);
+        }
     }
     public void tick(){for(Player p:Bukkit.getOnlinePlayers())enforce(p);}
     @EventHandler public void join(PlayerJoinEvent e){
