@@ -163,14 +163,12 @@ public final class AdminUpgradeMenu implements Listener {
                         "perks."+perk.id+".max-copies",perk.defaultMaxCopies)));
                 boolean enabled=plugin.getConfig().getBoolean("perks.enabled",true)
                         &&plugin.getConfig().getBoolean("perks."+perk.id+".enabled",true);
-                inv.setItem(slot,icon(perk.icon(),"&b&l"+perk.display,
-                        "&7Bonus per copy: &f"+ ConfigEditor.format(
-                                perk==PerkType.CAPACITY||perk==PerkType.REACH
-                                        ?perk.defaultPerCopy:perk.defaultPerCopy*100)
-                                +(perk==PerkType.CAPACITY?" items":perk==PerkType.REACH?" blocks":"%"),
-                        "&7Total assigned: &f"+copies+" &7/ &f"+max,
-                        !enabled?"&cDisabled by server config":
-                                perk.id.equals(selected)?"&aCurrently assigned":"&eClick to assign"));
+                List<String> lore=new ArrayList<>(
+                        Arrays.asList(plugin.perks().detailLore(perk, profile)));
+                lore.add("&7Saved copies: &f"+copies+" &8/ &f"+max+" allowed");
+                lore.add(!enabled?"&cDisabled by server config":
+                        perk.id.equals(selected)?"&aCurrently assigned":"&eClick to assign");
+                inv.setItem(slot,icon(perk.icon(),"&b&l"+perk.display, lore.toArray(String[]::new)));
                 h.choices.put(slot,perk.id);
             }
             inv.setItem(49,icon(Material.ENCHANTED_BOOK,"&9Roll Automatic Perk",
