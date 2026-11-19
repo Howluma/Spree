@@ -185,7 +185,10 @@ public final class ProgressionManager {
         if (sigil && !plugin.fate().consume(player)) return new Result(false, "Fate Sigil missing.");
         if (change != null) applyReselection(choices, level, optionId, change);
         else choices.put(level, optionId);
-        if (kind == ProgressionCatalog.Kind.TALENT) p.talentOffers.remove(level);
+        if (kind == ProgressionCatalog.Kind.TALENT) {
+            p.talentOffers.remove(level);
+            p.retiredTalentMilestones.remove(level); // Free replacement of retired Industrious
+        }
         plugin.data().dirty();
         plugin.streaks().update(player);
         if (kind == ProgressionCatalog.Kind.TALENT) plugin.talentFeedback().unlocked(player,optionId);
@@ -224,6 +227,7 @@ public final class ProgressionManager {
             chosenName = talent.name();
             profile.talentChoices.put(level, optionId);
             profile.talentOffers.remove(level); // Invalidate an obsolete pre-assignment offer.
+            profile.retiredTalentMilestones.remove(level);
         } else {
             PerkType perk = PerkType.fromId(optionId);
             if (!plugin.getConfig().getBoolean("perks.enabled", true)
