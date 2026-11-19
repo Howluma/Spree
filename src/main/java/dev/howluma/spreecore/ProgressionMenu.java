@@ -155,13 +155,14 @@ public final class ProgressionMenu implements Listener {
             String id = plugin.data().get(player).perkRolls.get(level);
             if (id == null || level > plugin.streaks().streak(player)) continue;
             PerkType perk = PerkType.fromId(id);
-            int current = plugin.streaks().streak(player);
-            String state = level > current ? "&8Inactive / locked" : "&aActive";
-            int slot = slots[index++];
-            inv.setItem(slot, icon(perk == null ? Material.GRAY_DYE : perk.icon(),
-                    "&9&lLevel " + level, perk == null ? "&8Not earned yet" : "&f" + perk.display,
-                    perk == null ? "&7Gain killstreak to roll" : state,
-                    "&7Perks roll automatically, duplicates stack"));
+            if (perk == null) continue;
+            List<String> lore = new ArrayList<>();
+            lore.add("&7Unlocked at killstreak &b" + level);
+            lore.addAll(Arrays.asList(plugin.perks().detailLore(perk, plugin.data().get(player))));
+            lore.add("&aPerk earned and active");
+            lore.add("&8Duplicates stack; perks stop at level 30");
+            inv.setItem(slots[index++], icon(perk.icon(), "&9&l" + perk.display + " &8(Lv " + level + ")",
+                    lore.toArray(String[]::new)));
         }
         inv.setItem(40, icon(Material.ECHO_SHARD, "&b&lReroll All Perks",
                 "&7Use 1 Fate Sigil to reroll",
@@ -280,12 +281,11 @@ public final class ProgressionMenu implements Listener {
             for (int i=0; i<Math.min(guideCells.length,all.size()); i++) {
                 int slot=guideCells[i];
                 var perk=all.get(i);
-                inv.setItem(slot, icon(perk.icon(),"&9&l"+perk.display,
-                        "&7Bonus per roll: &f"+ ConfigEditor.format(perk==PerkType.CAPACITY ||
-                                        perk==PerkType.REACH ? perk.defaultPerCopy : perk.defaultPerCopy*100) +
-                                (perk==PerkType.CAPACITY?" items":perk==PerkType.REACH?" blocks":"%"),
-                        "&7Max duplicates: &f"+perk.defaultMaxCopies,
-                        "&7Automatically assigned at Perk milestones"));
+                List<String> lore = new ArrayList<>(
+                        Arrays.asList(plugin.perks().detailLore(perk, plugin.data().get(player))));
+                lore.add("&7Automatically rolled at Perk milestones");
+                inv.setItem(slot, icon(perk.icon(), "&9&l" + perk.display,
+                        lore.toArray(String[]::new)));
             }
         } else {
             List<ProgressionCatalog.Option> all=ProgressionCatalog.options(kind);
