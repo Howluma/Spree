@@ -101,7 +101,8 @@ public final class ConfigEditor {
     public static String validate(String path, Object value) {
         if (path.startsWith("perks.") && value instanceof Number perkNumber) {
             if (path.endsWith(".max-copies")) return between(perkNumber.doubleValue(), 1, 8);
-            if (path.endsWith(".per-copy")) return between(perkNumber.doubleValue(), 0, .10);
+            if (path.endsWith(".per-copy"))
+                return between(perkNumber.doubleValue(), 0, path.equals("perks.capacity.per-copy") ? 16 : .10);
         }
         if (path.startsWith("display.streak-indicators.tier-colors."))
             return value instanceof String str && str.matches("(?i)(?:&[0-9a-f]|<#[0-9a-f]{6}>)")

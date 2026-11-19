@@ -1,16 +1,16 @@
-# SpreeCore v1.6.1 — Spree SMP
+# SpreeCore v1.6.2 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.1.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.2.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.1.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.2.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -134,6 +134,31 @@ The four milestone levels are editable through `/spree settings` >
 **Milestone Buffs**. A lost streak removes only SpreeCore-owned buffs;
 independent potions and stronger legendary abilities are not intentionally removed.
 
+## Capacity Perk (v1.6.2)
+
+**Capacity** adds +4 items to the maximum size of an inventory stack per
+copy, up to four copies by default: 64 -> 68 -> 72 -> 76 -> 80.
+An item with a natural limit of 16 increases to 20/24/28/32 instead.
+Only naturally stackable items are eligible; tools, weapons and armor
+remain unstackable. Other plugins' custom max-stack settings are preserved.
+
+Vanilla Minecraft 1.21.11 only respects extra stack capacity when the
+item has an explicit MAX_STACK_SIZE component; simply changing a player's
+Inventory#getMaxStackSize is not sufficient. SpreeCore temporarily adds
+that component to eligible items in the player's inventory, marking
+its own modifications and restoring them on drops, death and transfers
+to other inventories. Large stacks are split into vanilla-sized parts;
+if there is no free room, excess items are dropped, never deleted.
+
+The Perk is saved at its milestone and disables/restores on level changes
+without rerolling. Its default +16 maximum is safely under the vanilla
+99-item absolute limit. Use `/spree perks` and `/spree settings`.
+
+**Test inventory transfers on your staging server before enabling on the
+main server.** Cursor interactions, inventory-sorting plugins, custom
+GUIs, item pickup mechanics and automated transfers can interfere with
+per-player stack-limit rules. No resource pack or client mod is needed.
+
 ## Scale Perk (v1.6.1)
 
 **Scale** joins the existing random, stackable Perk pool, without removing
@@ -178,6 +203,7 @@ milestones; regaining levels restores the same Perks with no rerolls.
 | Insight | +5% naturally gained XP | 4 |
 | Reach | **+0.05 block entity attack reach** | **3 (+0.15 blocks)** |
 | Scale | **-5% player size and hitbox** | **3 (-15%)** |
+| Capacity | **+4 items per inventory stack** | **4 (+16 items)** |
 
 All percentages are **per copy, added together**, not multiplicative.
 Power does not boost TNT or end-crystal explosions. The 0.15-block maximum

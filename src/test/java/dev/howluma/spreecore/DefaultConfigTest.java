@@ -28,7 +28,7 @@ class DefaultConfigTest {
         assertFalse(c.contains("killstreak.max-health-hearts"));
         assertFalse(c.contains("events.timed.surge"));
     }
-    @Test void allTwelveMinorPerksHaveSafeDefaults() {
+    @Test void allThirteenMinorPerksHaveSafeDefaults() {
         var c = config();
         assertTrue(c.getBoolean("perks.enabled"));
         for (PerkType type : PerkType.values()) {
@@ -41,6 +41,8 @@ class DefaultConfigTest {
         assertEquals(3, c.getInt("perks.reach.max-copies"));
         assertEquals(0.05, c.getDouble("perks.scale.per-copy"));
         assertEquals(3, c.getInt("perks.scale.max-copies"));
+        assertEquals(4.0, c.getDouble("perks.capacity.per-copy"));
+        assertEquals(4, c.getInt("perks.capacity.max-copies"));
     }
     @Test void darkBlueIndicatorDefaults() {
         var c = config();

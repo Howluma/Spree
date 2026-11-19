@@ -1,4 +1,4 @@
-# SpreeCore 1.6.1 - stackable Scale Perk (5% player size reduction per copy).
+# SpreeCore 1.6.2 - Capacity Perk (+4 items per inventory stack per copy).
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -114,6 +114,10 @@ perks:
     enabled: true
     per-copy: 0.05  # -5% player size and hitbox per copy; up to -15%
     max-copies: 3
+  capacity:
+    enabled: true
+    per-copy: 4  # +4 items in each naturally stackable inventory slot
+    max-copies: 4  # 64 -> 68 -> 72 -> 76 -> 80
 
 legendary:
   enabled: true

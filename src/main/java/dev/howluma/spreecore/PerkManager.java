@@ -55,7 +55,8 @@ public final class PerkManager implements Listener {
     }
     private double perCopy(PerkType type) {
         double configured = plugin.getConfig().getDouble(key(type, "per-copy"), type.defaultPerCopy);
-        return Double.isFinite(configured) ? Math.max(0, Math.min(.10, configured)) : type.defaultPerCopy;
+        double limit = type == PerkType.CAPACITY ? 16 : .10;
+        return Double.isFinite(configured) ? Math.max(0, Math.min(limit, configured)) : type.defaultPerCopy;
     }
 
     /** Allocate all previously reached levels on upgrade and when a milestone is crossed. */
@@ -93,7 +94,8 @@ public final class PerkManager implements Listener {
         // Server-side hard limits prevent accidental extreme config values.
         // Entity reach maxes at +0.20 blocks; player scale cannot shrink
         // by more than 15%, even if an admin raises a copy limit.
-        double limit = type == PerkType.REACH ? .20 : type == PerkType.SCALE ? .15 : .30;
+        double limit = type == PerkType.REACH ? .20 : type == PerkType.SCALE ? .15
+                : type == PerkType.CAPACITY ? 32 : .30;
         return Math.min(limit, total);
     }
 
@@ -103,9 +105,10 @@ public final class PerkManager implements Listener {
         for (PerkType type : PerkType.values()) {
             int copies = stacks(profile, type);
             if (copies <= 0) continue;
-            double amount = Math.min(type == PerkType.REACH ? .20 : type == PerkType.SCALE ? .15 : .30,
-                    copies * perCopy(type));
-            String unit = type == PerkType.REACH ? format(amount) + " blocks" : format(amount * 100) + "%";
+            double amount = Math.min(type == PerkType.REACH ? .20 : type == PerkType.SCALE ? .15
+                    : type == PerkType.CAPACITY ? 32 : .30, copies * perCopy(type));
+            String unit = type == PerkType.REACH ? format(amount) + " blocks"
+                    : type == PerkType.CAPACITY ? format(amount) + " items" : format(amount * 100) + "%";
             String subject = switch (type) {
                 case POWER -> " damage dealt";
                 case FORTITUDE -> " damage resistance";
@@ -119,6 +122,7 @@ public final class PerkManager implements Listener {
                 case INSIGHT -> " XP earned";
                 case REACH -> " entity reach";
                 case SCALE -> " player size";
+                case CAPACITY -> " per inventory stack";
             };
             String sign = type == PerkType.SCALE ? "-" : "+";
             lines.add("&9" + type.display + " &8x" + copies + " &7(" + sign + unit + subject + ")");
@@ -157,6 +161,7 @@ public final class PerkManager implements Listener {
         sync(player, PerkType.EFFICIENCY, Attribute.BLOCK_BREAK_SPEED, AttributeModifier.Operation.MULTIPLY_SCALAR_1);
         sync(player, PerkType.REACH, Attribute.ENTITY_INTERACTION_RANGE, AttributeModifier.Operation.ADD_NUMBER);
         sync(player, PerkType.SCALE, Attribute.SCALE, AttributeModifier.Operation.MULTIPLY_SCALAR_1);
+        plugin.capacity().refresh(player);
     }
 
     /** Remove only modifiers owned by SpreeCore. */

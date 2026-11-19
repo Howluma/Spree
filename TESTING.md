@@ -1,6 +1,17 @@
-# SpreeCore v1.6.1 — test-server checklist
+# SpreeCore v1.6.2 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Capacity Perk and inventory safety (v1.6.2)
+
+- [ ] Test four copies: default 64 stacks increase 68/72/76/80; 16 stacks increase 20/24/28/32.
+- [ ] Holding full stacks still allows additional pickups until boosted maximum.
+- [ ] Item counts remain correct when dropping items, moving to chests, shulkers, crafting tables, hoppers, or closing inventories.
+- [ ] Item counts remain correct on death (including keepInventory), on Spree withdrawal, and when losing the Perk at full inventory.
+- [ ] No player without Capacity can obtain boosted capacity by trading, picking up drops or using containers.
+- [ ] Max-stack metadata belonging to a different plugin is unchanged.
+- [ ] All eligible stacks render correctly on an unmodded client with no resource pack.
+- [ ] No item duplication, disappearance or left-behind custom capacity components.
 
 ## Scale Perk and player hitbox (v1.6.1)
 
