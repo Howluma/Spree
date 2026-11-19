@@ -2,6 +2,7 @@ package dev.howluma.spreecore;
 
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import io.papermc.paper.event.entity.EntityAttemptSmashAttackEvent;
+import io.papermc.paper.event.player.PlayerShieldDisableEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.damage.DamageType;
@@ -21,6 +22,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.event.inventory.CraftItemEvent;
@@ -45,6 +47,7 @@ public final class TalentEffects implements Listener {
     private final Map<UUID,Integer> bloodlust = new HashMap<>();
     private final Map<UUID,Long> jumpBlocked = new HashMap<>();
     private final Map<UUID,Sense> sensed = new HashMap<>();
+    private final Map<UUID,Integer> insuranceOnRespawn = new HashMap<>();
     private final NamespacedKey jumpKey,stepKey,appleKey,rodKey;
 
     TalentEffects(SpreeCorePlugin plugin) {
@@ -57,32 +60,34 @@ public final class TalentEffects implements Listener {
     private boolean has(Player p,String talent){return plugin.progression().hasTalent(p,talent);}
     private int ti(String name,int fallback){return plugin.getConfig().getInt("talents."+name,fallback);}
     private double td(String name,double fallback){return plugin.getConfig().getDouble("talents."+name,fallback);}
-    private boolean ready(Player p,String key,long seconds){
-        Map<String,Long> perPlayer=plugin.data().get(p).talentCooldowns;
-        long now=System.currentTimeMillis();
-        if(now<perPlayer.getOrDefault(key,0L))return false;
-        perPlayer.put(key,now+seconds*1000L);
-        plugin.data().dirty();
-        return true;
+
+    private boolean available(Player p,String key){
+        return System.currentTimeMillis()>=plugin.data().get(p).talentCooldowns.getOrDefault(key,0L);
     }
-    /** Prevent stacking emergency defensive triggers on the same damage spike.
-     * Each Talent keeps its own full cooldown; any other emergency defense
-     * must wait ten seconds after an automatic defensive activation.
-     */
-    private boolean defensiveReady(Player p,String key,long personalCooldownSeconds){
-        Map<String,Long> timers=plugin.data().get(p).talentCooldowns;
-        long now=System.currentTimeMillis();
-        if(now<timers.getOrDefault(key,0L)
-                ||now<timers.getOrDefault("defensive_shared",0L))return false;
-        timers.put(key,now+personalCooldownSeconds*1000L);
-        timers.put("defensive_shared",now+ti("defense.shared-cooldown-seconds",10)*1000L);
+    /** Start a timer only AFTER the ability really activated. */
+    private void start(Player p,String key,int seconds){
+        int bounded=Math.max(0,Math.min(3600,seconds));
+        plugin.data().get(p).talentCooldowns.put(key,
+                System.currentTimeMillis()+(long)bounded*1000L);
         plugin.data().dirty();
-        return true;
+        plugin.talentFeedback().activated(p,key,bounded);
     }
-    private void apply(Player p,PotionEffectType type,int amplifier,int seconds){
+    /** Emergency Talents have their own cooldown plus a shared 10s anti-stack. */
+    private boolean defensiveAvailable(Player p,String key){
+        return available(p,key)&&available(p,"defensive_shared");
+    }
+    private void startDefense(Player p,String key,int seconds){
+        plugin.data().get(p).talentCooldowns.put("defensive_shared",
+                System.currentTimeMillis()+
+                1000L*Math.max(0,ti("defense.shared-cooldown-seconds",10)));
+        start(p,key,seconds);
+    }
+    private boolean apply(Player p,PotionEffectType type,int amplifier,int seconds){
+        int duration=Math.max(1,seconds)*20;
         PotionEffect old=p.getPotionEffect(type);
-        if(old!=null&&old.getAmplifier()>amplifier)return;
-        p.addPotionEffect(new PotionEffect(type,seconds*20,amplifier,true,false,true),true);
+        if(old!=null&&(old.getAmplifier()>amplifier
+                ||(old.getAmplifier()==amplifier&&old.getDuration()>=duration)))return false;
+        return p.addPotionEffect(new PotionEffect(type,duration,amplifier,true,false,true),true);
     }
     private static boolean axe(Material type){return type.name().endsWith("_AXE");}
     private static Player credited(EntityDamageByEntityEvent event){
@@ -128,8 +133,10 @@ public final class TalentEffects implements Listener {
         comboClear(p.getUniqueId());
          jumpBlocked.remove(p.getUniqueId());
         sensed.remove(p.getUniqueId());
+        insuranceOnRespawn.remove(p.getUniqueId());
     }
     private void comboClear(UUID id){combos.remove(id);bloodlust.remove(id);}
+    public void clearCombatCombo(Player player) { comboClear(player.getUniqueId()); }
     public void shutdown(){for(Player p:Bukkit.getOnlinePlayers())clear(p);}
 
     @EventHandler public void quit(PlayerQuitEvent e){clear(e.getPlayer());}
@@ -176,7 +183,7 @@ public final class TalentEffects implements Listener {
         if(seconds==0) return;
         timers.put("mace_smash",now+seconds*1000L);
         plugin.data().dirty();
-        Text.action(attacker,"&9Mace slam connected &8| &f"+seconds+"s cooldown");
+        plugin.talentFeedback().activated(attacker,"mace_smash",seconds);
     }
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
