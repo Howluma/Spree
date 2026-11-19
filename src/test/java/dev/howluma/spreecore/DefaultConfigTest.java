@@ -90,9 +90,9 @@ class DefaultConfigTest {
         assertEquals("&9&lFate Sigil",c.getString("fate-sigil.display-name"));
         assertTrue(c.getBoolean("fate-sigil.recipe.enabled"));
         assertEquals(1,c.getInt("fate-sigil.recipe.result-amount"));
-        assertEquals("HEART_OF_THE_SEA",c.getString("fate-sigil.recipe.slot-5"));
+        assertEquals("SPREE_ITEM",c.getString("fate-sigil.recipe.slot-5"));
         String[] expected={"OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY",
-                "NETHERITE_INGOT","HEART_OF_THE_SEA","NETHERITE_INGOT",
+                "NETHERITE_INGOT","SPREE_ITEM","NETHERITE_INGOT",
                 "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY"};
         for (int i=0;i<expected.length;i++)
             assertEquals(expected[i],c.getString("fate-sigil.recipe.slot-"+(i+1)));
