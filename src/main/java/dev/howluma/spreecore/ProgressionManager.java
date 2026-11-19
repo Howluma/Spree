@@ -134,6 +134,7 @@ public final class ProgressionManager {
         if (kind == ProgressionCatalog.Kind.TALENT) p.talentOffers.remove(level);
         plugin.data().dirty();
         plugin.streaks().update(player);
+        if (kind == ProgressionCatalog.Kind.TALENT) plugin.talentFeedback().unlocked(player,optionId);
         if (kind == ProgressionCatalog.Kind.PRIVILEGE) plugin.privilegeRules().enforce(player);
         return new Result(true, (sigil ? "Reselected " : "Unlocked ") + option.name() + "!");
     }
@@ -179,6 +180,10 @@ public final class ProgressionManager {
         }
         plugin.data().dirty();
         refreshAdminTarget(target);
+        if(kind==ProgressionCatalog.Kind.TALENT && level<=profile.streak) {
+            Player online=Bukkit.getPlayer(target);
+            if(online!=null&&!online.isDead())plugin.talentFeedback().unlocked(online,optionId);
+        }
         plugin.data().save();
         boolean active = level <= profile.streak;
         return new Result(true, "Set " + chosenName + " at level " + level
