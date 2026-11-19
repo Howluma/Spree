@@ -118,9 +118,10 @@ public final class StreakManager implements Listener {
     public void refreshOnline() { for (Player player : Bukkit.getOnlinePlayers()) update(player); }
     public void renderHud() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (get(player).hideHud) continue;
-            String color = streak(player) < 0 ? "&c" : streak(player) >= 10 ? "&9&l" : "&9";
-            Text.action(player, "&9⚔ &fKillstreak: " + color + display(streak(player)));
+            PlayerDataStore.Profile profile = get(player);
+            if (profile.hideHud) continue;
+            String color = profile.streak < 0 ? "&c" : profile.streak >= 10 ? "&9&l" : "&9";
+            Text.action(player, "&9⚔ &fKillstreak: " + color + display(profile.streak));
         }
     }
     public void shutdown() { /* Temporary effects expire naturally. */ }
@@ -133,6 +134,7 @@ public final class StreakManager implements Listener {
             update(player);
             enforceInventory(player);
             tabName(player);
+            plugin.legendaries().migrate(player);
             if (streak(player) >= c().getInt("general.announce-joining-streak", 10))
                 Bukkit.broadcastMessage(Text.c(plugin.prefix() + "&f" + player.getName() + " &7joined on a &9" + streak(player) + " &7killstreak!"));
         }, 2L);
@@ -214,6 +216,7 @@ public final class StreakManager implements Listener {
         meta.setLore(List.of(Text.c("&8&oSpree Token"), Text.c("&aWorth: +" + value + " Spree"),
                 Text.c("&7Dropped by &f" + player.getName()), Text.c("&7Pick up to claim the Spree")));
         meta.getPersistentDataContainer().set(tokenOwner, PersistentDataType.STRING, player.getUniqueId().toString());
+        plugin.models().token(meta);
         meta.getPersistentDataContainer().set(tokenValue, PersistentDataType.INTEGER, value);
         meta.getPersistentDataContainer().set(tokenSerial, PersistentDataType.STRING, UUID.randomUUID().toString());
         item.setItemMeta(meta);

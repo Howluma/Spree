@@ -1,0 +1,41 @@
+{
+  "model": {
+    "type": "minecraft:range_dispatch",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "entries": [
+      {
+        "threshold": 721001,
+        "model": {
+          "type": "minecraft:model",
+          "model": "spree:item/tundra_tanto"
+        }
+      },
+      {
+        "threshold": 721004,
+        "model": {
+          "type": "minecraft:model",
+          "model": "spree:item/aquafier"
+        }
+      },
+      {
+        "threshold": 721005,
+        "model": {
+          "type": "minecraft:model",
+          "model": "spree:item/darkheart"
+        }
+      },
+      {
+        "threshold": 721007,
+        "model": {
+          "type": "minecraft:model",
+          "model": "spree:item/bloods_bane"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/diamond_sword"
+    }
+  }
+}

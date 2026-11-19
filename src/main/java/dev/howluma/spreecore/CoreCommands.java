@@ -21,7 +21,20 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     }
     @Override public boolean onCommand(CommandSender sender,Command command,String alias,String[] args) {
         switch(command.getName().toLowerCase(Locale.ROOT)) {
-            case "spree" -> {Player p=requirePlayer(sender);if(p!=null)plugin.menus().openMain(p);}
+            case "spree" -> {
+                Player p=requirePlayer(sender);
+                if(p!=null) {
+                    if(args.length>0 && args[0].equalsIgnoreCase("settings")) {
+                        if(p.hasPermission("spree.admin"))plugin.menus().openSettings(p);
+                        else message(p,"&cOnly admins can change plugin settings.");
+                    } else if(args.length>0 && args[0].equalsIgnoreCase("value")) {
+                        if(args.length<2 || !plugin.menus().submitInput(p,String.join(" ",Arrays.copyOfRange(args,1,args.length))))
+                            message(p,"&cSelect a setting in /spree settings before entering a value.");
+                    } else if(args.length>0 && args[0].equalsIgnoreCase("cancel")) {
+                        if(!plugin.menus().submitInput(p,"cancel"))message(p,"&7Nothing to cancel.");
+                    } else plugin.menus().openMain(p);
+                }
+            }
             case "spreehud" -> {
                 Player p=requirePlayer(sender);
                 if(p!=null){var profile=plugin.data().get(p);profile.hideHud=!profile.hideHud;plugin.data().dirty();
@@ -96,7 +109,11 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         String cmd=args[0].toLowerCase(Locale.ROOT);
         switch(cmd) {
             case "help" -> adminHelp(sender);
-            case "reload" -> {plugin.reloadSpreeConfiguration();message(sender,"&aConfiguration reloaded. UI task intervals need a restart to change.");}
+            case "reload" -> {plugin.reloadSpreeConfiguration();message(sender,"&aConfiguration, effects and schedules reloaded.");}
+            case "settings" -> {
+                Player p=requirePlayer(sender);
+                if(p!=null)plugin.menus().openSettings(p);
+            }
             case "migrateitems" -> {
                 int count=0;
                 for(Player p:Bukkit.getOnlinePlayers())count+=plugin.legendaries().migrate(p);
@@ -232,8 +249,10 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     @Override public List<String> onTabComplete(CommandSender sender,Command command,String alias,String[] args) {
         String root=command.getName().toLowerCase(Locale.ROOT);
         List<String> options=new ArrayList<>();
-        if(root.equals("spreeadmin") && sender.hasPermission("spree.admin")) {
-            if(args.length==1)options=List.of("set","add","remove","reset","recovery","setall","resetall","update","reload","migrateitems","importskript","help");
+        if(root.equals("spree") && sender.hasPermission("spree.admin") && args.length==1)
+            options=List.of("settings","value","cancel");
+        else if(root.equals("spreeadmin") && sender.hasPermission("spree.admin")) {
+            if(args.length==1)options=List.of("set","add","remove","reset","recovery","setall","resetall","update","reload","settings","migrateitems","importskript","help");
             else if(args.length==2 && List.of("set","add","remove","reset","recovery","update").contains(args[0]))
                 options=plugin.data().all().stream().map(p->p.name).sorted().toList();
             else if(args.length==2 && args[0].equalsIgnoreCase("importskript"))options=List.of("force");

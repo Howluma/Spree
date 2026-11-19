@@ -1,0 +1,27 @@
+{
+  "model": {
+    "type": "minecraft:range_dispatch",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "entries": [
+      {
+        "threshold": 721002,
+        "model": {
+          "type": "minecraft:model",
+          "model": "spree:item/blood_butcherer"
+        }
+      },
+      {
+        "threshold": 721003,
+        "model": {
+          "type": "minecraft:model",
+          "model": "spree:item/stormbreaker"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/diamond_axe"
+    }
+  }
+}
