@@ -101,6 +101,7 @@ public final class TalentEffects implements Listener {
                 has(p,"acrobat")?.10:0);
         modifier(p,Attribute.STEP_HEIGHT,stepKey,AttributeModifier.Operation.ADD_NUMBER,
                 has(p,"trailblazer")?.4:0);
+        plugin.quickHands().refresh(p);
     }
     public void clear(Player p){
         for(var pair:Map.of(jumpKey,Attribute.JUMP_STRENGTH,stepKey,Attribute.STEP_HEIGHT).entrySet())

@@ -25,6 +25,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private ProgressionMenu progressMenus;
     private PrivilegeRules privilegeRules;
     private TalentEffects talents;
+    private QuickHands quickHands;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
@@ -49,6 +50,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         hunt = new HuntManager(this);
         privilegeRules = new PrivilegeRules(this);
         talents = new TalentEffects(this);
+        quickHands = new QuickHands(this);
         progressMenus = new ProgressionMenu(this);
         Bukkit.getPluginManager().registerEvents(streaks, this);
         Bukkit.getPluginManager().registerEvents(legendaries, this);
@@ -65,6 +67,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(progressMenus, this);
         Bukkit.getPluginManager().registerEvents(privilegeRules, this);
         Bukkit.getPluginManager().registerEvents(talents, this);
+        Bukkit.getPluginManager().registerEvents(quickHands, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
                 "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
@@ -109,6 +112,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (capacity != null) capacity.shutdown();
         if (hunt != null) hunt.shutdown();
         if (talents != null) talents.shutdown();
+        if (quickHands != null) quickHands.shutdown();
         if (data != null) data.save();
     }
     public PlayerDataStore data() { return data; }
@@ -129,6 +133,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public ProgressionMenu progressMenus() { return progressMenus; }
     public PrivilegeRules privilegeRules() { return privilegeRules; }
     public TalentEffects talents() { return talents; }
+    public QuickHands quickHands() { return quickHands; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
