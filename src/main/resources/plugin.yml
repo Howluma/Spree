@@ -1,5 +1,5 @@
 name: SpreeCore
-version: 1.7.2
+version: 1.7.3
 main: dev.howluma.spreecore.SpreeCorePlugin
 api-version: '1.21.11'
 authors: [Howluma]
@@ -12,6 +12,16 @@ commands:
     description: Open the admin settings editor directly
     permission: spree.admin
     aliases: [spreeconfig]
+  spreeset:
+    aliases: [setspree]
+    permission: spree.admin
+    description: Set a saved player's exact killstreak (also works while offline)
+    usage: '/spreeset <player> <value>'
+  spreesetall:
+    aliases: [setallspree]
+    permission: spree.admin
+    description: Set every saved player's killstreak without resetting their progression
+    usage: '/spreesetall <value>'
   spreehud:
     aliases: [togglehud]
     description: Toggle killstreak action bar
