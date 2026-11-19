@@ -85,10 +85,16 @@ public final class ProgressionManager {
     }
     public List<ProgressionCatalog.Option> availableOptions(Player player,
             ProgressionCatalog.Kind kind, int level, boolean replacing) {
+        return optionsFor(kind, chosen(profile(player), kind), level, replacing);
+    }
+    /** Pure option filtering shared by the GUI and regression tests. */
+    static List<ProgressionCatalog.Option> optionsFor(ProgressionCatalog.Kind kind,
+            Map<Integer,String> assigned, int level, boolean replacing) {
         if (kind == ProgressionCatalog.Kind.PERK) return List.of();
-        PlayerDataStore.Profile p = profile(player);
-        Set<String> taken = pickedExcept(p, kind, level);
-        String own = chosen(p, kind).get(level);
+        Set<String> taken = new HashSet<>();
+        for (var e : assigned.entrySet())
+            if (e.getKey() != level) taken.add(e.getValue());
+        String own = assigned.get(level);
         // With all six Privileges/Infusions obtained, the player must still be
         // allowed to reconfigure their order. Choosing a used option swaps slots.
         return ProgressionCatalog.options(kind).stream()
