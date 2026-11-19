@@ -14,8 +14,11 @@ class ConfigEditorTest {
         assertNull(ConfigEditor.validate("resource-pack.models.tundra", 721001));
         assertNotNull(ConfigEditor.validate("resource-pack.models.tundra", 20000000));
         assertNotNull(ConfigEditor.validate("general.max-killstreak", -1));
-        assertNull(ConfigEditor.validate("general.max-killstreak", 30));
-        assertNotNull(ConfigEditor.validate("general.max-killstreak", 1001));
+        assertNotNull(ConfigEditor.validate("general.max-killstreak", 30));
+        assertNull(ConfigEditor.validate("general.max-killstreak", 31));
+        assertNull(ConfigEditor.validate("general.max-killstreak", 1001));
+        assertNull(ConfigEditor.validate("general.max-killstreak", 1_000_000_000));
+        assertNotNull(ConfigEditor.validate("general.max-killstreak", 1_000_000_001L));
     }
     @Test void validatesCooldownsAndHealth() {
         assertNull(ConfigEditor.validate("legendary.weapons.hailstorm.cooldown-seconds", 30));
