@@ -56,6 +56,8 @@ public final class MenuManager implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(Text.c(name));
         meta.setLore(Arrays.stream(lore).map(Text::c).toList());
+        if (material == Material.ECHO_SHARD) plugin.models().sigil(meta);
+        if (material == Material.HEART_OF_THE_SEA) plugin.models().token(meta);
         item.setItemMeta(meta);
         return item;
     }
