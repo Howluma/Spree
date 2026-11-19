@@ -119,7 +119,7 @@ public final class ProgressionMenu implements Listener {
         if (kind == ProgressionCatalog.Kind.PERK) { openConfirm(player, kind, 0); return; }
         Holder h = holder(reroll ? Screen.SIGIL_SLOTS : Screen.SLOTS, kind, 0);
         Inventory inv = inventory(h, 6, "&9&l" + kind.title + (reroll ? " &8| &fReselect" : " &8| &fMilestones"));
-        List<Integer> levels = ProgressionCatalog.milestones(kind, plugin.streaks().cap());
+        List<Integer> levels = ProgressionCatalog.milestones(kind, plugin.streaks().progressionCap());
         int[] cells = milestonesSlots();
         for (int i=0; i<Math.min(6, levels.size()); i++) {
             int level = levels.get(i);
@@ -149,7 +149,7 @@ public final class ProgressionMenu implements Listener {
         Inventory inv = inventory(h, 6, "&9&lSPREE &8| &fYour Perks");
         int[] slots = {10,12,14,16,19,21,23,25,28,30,32,34};
         int index = 0;
-        for (int level : ProgressionCatalog.milestones(ProgressionCatalog.Kind.PERK, plugin.streaks().cap())) {
+        for (int level : ProgressionCatalog.milestones(ProgressionCatalog.Kind.PERK, plugin.streaks().progressionCap())) {
             if (index >= slots.length) break;
             String id = plugin.data().get(player).perkRolls.get(level);
             if (id == null || level > plugin.streaks().streak(player)) continue;
