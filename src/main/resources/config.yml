@@ -1,10 +1,10 @@
-# SpreeCore 1.4.3 - brighter menu-matched blue sword icons and tiered killstreak numbers.
+# SpreeCore 1.5.0 - milestone buffs, colored glowing, and compact active-buffs book.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
   prefix: '&9&lSPREE &8| &f'
   max-killstreak: 30
-  fractured-label: '&c&lFractured Killstreak'
+  fractured-label: '&c&lFractured'
   actionbar-interval-ticks: 40
   save-interval-seconds: 120
   announce-joining-streak: 10
@@ -36,6 +36,13 @@ killstreak:
   health-per-level-hearts: 0.5
   # Direct mace attacks are unavailable at 0 or Fractured.
   mace-unlock-level: 1
+  # All levels are editable in /spree settings > Milestone Buffs.
+  # Buffs remain active while at or above the required streak.
+  milestones:
+    weaving-level: 5
+    speed-level: 10
+    strength-level: 15
+    glowing-level: 20
   anti-farm:
     enabled: true
     same-victim-cooldown-seconds: 300
@@ -43,8 +50,8 @@ killstreak:
   revenge:
     enabled: true
     bonus-streak: 2
-  # Item unlocks, potion bonuses and passive streak perks are intentionally absent.
-  # Separate legendary abilities, anti-farming and temporary event rules remain.
+  # Milestones above are the only current potion perks. The rest of the
+  # progression, item unlocks, and temporary event rules are unchanged.
 
 legendary:
   enabled: true

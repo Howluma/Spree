@@ -35,6 +35,13 @@ class StreakIndicatorsTest {
         assertTrue(tab.contains(" &8| &9\u2694 "));
         assertFalse(nametag.contains("|"));
     }
+    @Test void glowColorUsesExactFiveKillTierIncludingCustomHex() {
+        assertEquals(org.bukkit.ChatColor.RED, StreakIndicators.glowColor("&c&l"));
+        assertEquals(org.bukkit.ChatColor.DARK_PURPLE, StreakIndicators.glowColor("&5&l"));
+        assertEquals(org.bukkit.ChatColor.DARK_RED, StreakIndicators.glowColor("&4&l"));
+        assertEquals(org.bukkit.ChatColor.RED, StreakIndicators.glowColor("<#FF5555>&l"));
+        assertEquals(org.bukkit.ChatColor.WHITE, StreakIndicators.glowColor("not-a-color"));
+    }
     @Test void fracturedIsAStatusNotAMinusOne() {
         String tab = StreakIndicators.tabLabel("Howluma", -1, "\u2694", "\u2715");
         assertEquals("&fHowluma &8| &9\u2694 &c&l\u2715", tab);

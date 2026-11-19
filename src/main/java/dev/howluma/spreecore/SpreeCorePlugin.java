@@ -94,7 +94,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
             scheduleConfigurableTasks();
         if (path.startsWith("killstreak.") || path.startsWith("events.juggernaut."))
             streaks.refreshOnline();
-        if (path.startsWith("display.streak-indicators.")) indicators.refreshOnline();
+        if (path.startsWith("display.streak-indicators.") || path.equals("killstreak.milestones.glowing-level"))
+            indicators.refreshOnline();
         if (path.startsWith("resource-pack."))
             for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
         if (path.equals("legendary.crafting-enabled") || path.startsWith("legendary.forging."))
@@ -107,8 +108,15 @@ public final class SpreeCorePlugin extends JavaPlugin {
         String label = getConfig().getString("general.recovery-label");
         if (label != null) {
             getConfig().set("general.fractured-label",
-                    label.contains("RECOVERY") ? "&c&lFractured Killstreak" : label);
+                    label.contains("RECOVERY") ? "&c&lFractured" : label);
             getConfig().set("general.recovery-label", null);
+            changed = true;
+        }
+        // Shorten the default label on existing 1.4.3 installations without
+        // overwriting deliberately customized server labels.
+        String currentLabel = getConfig().getString("general.fractured-label", "&c&lFractured");
+        if ("&c&lFractured Killstreak".equals(currentLabel)) {
+            getConfig().set("general.fractured-label", "&c&lFractured");
             changed = true;
         }
         String symbol = getConfig().getString("display.streak-indicators.symbol", "⚔");

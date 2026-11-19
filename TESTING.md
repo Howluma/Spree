@@ -1,6 +1,20 @@
-# SpreeCore v1.4 — test-server checklist
+# SpreeCore v1.5 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Milestone perk and current-buffs book regression (v1.5.0)
+
+- [ ] At level 0 and Fractured, the book shows only "No active Spree buffs" and no permanent effects.
+- [ ] Level 1 displays only the actual health bonus and mace permission.
+- [ ] Level 5 has Weaving I; level 10 adds Speed I; level 15 adds Strength II (amplifier 1); level 20 adds Glowing.
+- [ ] Effects refresh indefinitely while eligible, with no flashing, and vanish when the streak falls below their threshold.
+- [ ] 20-24 glowing outlines are red, 25-29 purple, 30+ dark red. Hex-configured tier colors use the nearest vanilla team color.
+- [ ] Existing faction/party scoreboard teams are not stolen or recolored; document the glow limitation for affected players.
+- [ ] Temporarily gaining Strength III from Blood Butcher or Speed III from Aquafier works; the milestone buff resumes after expiration.
+- [ ] Death and respawn, relog, Fractured state, and plugin disable leave no lingering Spree-owned effects.
+- [ ] The book has no unreached tiers and updates immediately after a streak change or milestone-setting edit.
+- [ ] Existing config with the v1.4.3 default Fractured Killstreak label changes to Fractured; custom labels are preserved.
+- [ ] The HUD says "Killstreak: Fractured" (not "Killstreak: Fractured Killstreak").
 
 ## New temporary progression
 

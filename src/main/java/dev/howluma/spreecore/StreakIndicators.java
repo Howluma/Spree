@@ -72,6 +72,51 @@ public final class StreakIndicators implements Listener {
     private boolean tabEnabled() { return plugin.getConfig().getBoolean("display.streak-indicators.tab-enabled", true); }
     private boolean tagEnabled() { return plugin.getConfig().getBoolean("display.streak-indicators.nametag-enabled", true); }
 
+    private boolean glowMilestone(int streak) {
+        return MilestoneEffects.unlocked(streak,
+                plugin.getConfig().getInt("killstreak.milestones.glowing-level", 20));
+    }
+
+    /** Vanilla glowing outlines are colored via the scoreboard team's color. */
+    static ChatColor glowColor(String decoratedColor) {
+        if (decoratedColor == null) return ChatColor.WHITE;
+        if (decoratedColor.length() >= 2 && decoratedColor.charAt(0) == '&') {
+            ChatColor named = ChatColor.getByChar(decoratedColor.charAt(1));
+            if (named != null && named.isColor()) return named;
+        }
+        // Legacy scoreboard team colors are limited to 16 named colors.
+        // If the displayed tier uses hex RGB, choose the closest vanilla color.
+        if (decoratedColor.startsWith("<#") && decoratedColor.length() >= 9) {
+            try {
+                int rgb = Integer.parseInt(decoratedColor.substring(2, 8), 16);
+                ChatColor[] palette = {
+                        ChatColor.BLACK, ChatColor.DARK_BLUE, ChatColor.DARK_GREEN, ChatColor.DARK_AQUA,
+                        ChatColor.DARK_RED, ChatColor.DARK_PURPLE, ChatColor.GOLD, ChatColor.GRAY,
+                        ChatColor.DARK_GRAY, ChatColor.BLUE, ChatColor.GREEN, ChatColor.AQUA,
+                        ChatColor.RED, ChatColor.LIGHT_PURPLE, ChatColor.YELLOW, ChatColor.WHITE
+                };
+                int[] colors = {
+                        0x000000, 0x0000AA, 0x00AA00, 0x00AAAA,
+                        0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA,
+                        0x555555, 0x5555FF, 0x55FF55, 0x55FFFF,
+                        0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF
+                };
+                ChatColor best = ChatColor.WHITE;
+                long bestDistance = Long.MAX_VALUE;
+                for (int i = 0; i < colors.length; i++) {
+                    int other = colors[i];
+                    long dr = ((rgb >> 16) & 255) - ((other >> 16) & 255);
+                    long dg = ((rgb >> 8) & 255) - ((other >> 8) & 255);
+                    long db = (rgb & 255) - (other & 255);
+                    long distance = dr * dr + dg * dg + db * db;
+                    if (distance < bestDistance) { bestDistance = distance; best = palette[i]; }
+                }
+                return best;
+            } catch (NumberFormatException ignored) { /* Keep the standard color. */ }
+        }
+        return ChatColor.WHITE;
+    }
+
     /** Apply the player's own tab name and update every relevant viewer scoreboard. */
     public void refreshPlayer(Player player) {
         if (!player.isOnline()) return;
@@ -81,12 +126,13 @@ public final class StreakIndicators implements Listener {
             String display = Text.c(tabLabel(player.getName(), streak, symbol(), recoverySymbol(), streakColor(streak)));
             if (!display.equals(player.getPlayerListName())) player.setPlayerListName(display);
         } else restoreTab(player);
-        // Each viewer may have a different scoreboard. Deduplicate identical scoreboards.
-        if (tagEnabled()) for (Scoreboard scoreboard : visibleScoreboards()) updateTag(scoreboard, player);
-        else clearTags(player.getName());
+        // Glow colors require a team even with the nametag indicator disabled.
+        // Never steal a team owned by another plugin (friendly-fire/collision).
+        if (tagEnabled() || glowMilestone(plugin.streaks().streak(player))) {
+            for (Scoreboard scoreboard : visibleScoreboards()) updateTag(scoreboard, player);
+        } else clearTags(player.getName());
     }
     public void refreshOnline() {
-        if (!tagEnabled()) removeAllTags();
         for (Player player : Bukkit.getOnlinePlayers()) refreshPlayer(player);
     }
     private Collection<Scoreboard> visibleScoreboards() {
@@ -118,8 +164,11 @@ public final class StreakIndicators implements Listener {
         }
         if (!team.hasEntry(entry)) team.addEntry(entry);
         int streak = plugin.streaks().streak(target);
-        String suffix = Text.c(nametagSuffix(streak, symbol(), recoverySymbol(), streakColor(streak)));
+        String suffix = tagEnabled()
+                ? Text.c(nametagSuffix(streak, symbol(), recoverySymbol(), streakColor(streak))) : "";
         if (!suffix.equals(team.getSuffix())) team.setSuffix(suffix);
+        ChatColor color = glowMilestone(streak) ? glowColor(streakColor(streak)) : ChatColor.WHITE;
+        if (team.getColor() != color) team.setColor(color);
     }
     private void clearTags(String entry) {
         for (Scoreboard board : List.copyOf(touched)) {

@@ -29,12 +29,13 @@ public final class StreakManager implements Listener {
     private final NamespacedKey tokenOwner, tokenValue, tokenSerial, spreeConsumable;
     private final Map<UUID, Integer> lastSpreeItemTick = new HashMap<>();
     private final Map<UUID, Long> tokenWarnings = new HashMap<>();
-    private final Set<UUID> managedGlow = new HashSet<>();
+    private final MilestoneEffects milestones;
     private static final Pattern LEGACY_WORTH = Pattern.compile("Worth:\\s*\\+(\\d+)");
     private static final Pattern LEGACY_OWNER = Pattern.compile("Owner ID:\\s*([0-9a-fA-F-]{36})");
 
     StreakManager(SpreeCorePlugin plugin) {
         this.plugin = plugin;
+        milestones = new MilestoneEffects(plugin);
         tokenOwner = new NamespacedKey(plugin, "token_owner");
         tokenValue = new NamespacedKey(plugin, "token_value");
         tokenSerial = new NamespacedKey(plugin, "token_serial");
@@ -44,7 +45,7 @@ public final class StreakManager implements Listener {
     public PlayerDataStore.Profile get(Player player) { return plugin.data().get(player); }
     public int streak(OfflinePlayer player) { return plugin.data().get(player).streak; }
     public int cap() { return c().getInt("general.max-killstreak", 30); }
-    public String display(int streak) { return Text.formatStreak(streak, c().getString("general.fractured-label", "&c&lFractured Killstreak")); }
+    public String display(int streak) { return Text.formatStreak(streak, c().getString("general.fractured-label", "&c&lFractured")); }
 
     /** Single entry point for every stat modification; handles best, HUD, health, relic leader. */
     public void setStreak(UUID id, int amount, boolean admin) {
@@ -94,19 +95,10 @@ public final class StreakManager implements Listener {
                 player.setHealth(Math.max(1.0, newMax));
             }
         }
-        // Only temporary event/forge visibility remains. All automatic
-        // killstreak potion bonuses and passives have been removed.
+        // Milestone benefits are independent of temporary event/forge visibility.
         boolean eventGlow = (plugin.events() != null && plugin.events().isJuggernaut(player))
                 || (plugin.forges() != null && plugin.forges().isForging(player));
-        if (eventGlow) {
-            PotionEffect prior = player.getPotionEffect(PotionEffectType.GLOWING);
-            if (prior == null || prior.getDuration() <= 60) {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 110, 0, true, false, true));
-                managedGlow.add(player.getUniqueId());
-            }
-        } else if (managedGlow.remove(player.getUniqueId())) {
-            player.removePotionEffect(PotionEffectType.GLOWING);
-        }
+        milestones.refresh(player, streak, eventGlow);
     }
     public void refreshOnline() { for (Player player : Bukkit.getOnlinePlayers()) update(player); }
     public void renderHud() {
@@ -117,7 +109,7 @@ public final class StreakManager implements Listener {
             Text.action(player, StreakIndicators.ICON_COLOR + "⚔ &7Killstreak: " + color + display(profile.streak));
         }
     }
-    public void shutdown() { /* Temporary effects expire naturally. */ }
+    public void shutdown() { for (Player player : Bukkit.getOnlinePlayers()) milestones.clear(player); }
 
     @EventHandler public void join(PlayerJoinEvent event) {
         Player player = event.getPlayer();
@@ -142,7 +134,7 @@ public final class StreakManager implements Listener {
     @EventHandler public void quit(PlayerQuitEvent event) {
         tokenWarnings.remove(event.getPlayer().getUniqueId());
         lastSpreeItemTick.remove(event.getPlayer().getUniqueId());
-        managedGlow.remove(event.getPlayer().getUniqueId());
+        milestones.clear(event.getPlayer());
         plugin.data().dirty();
     }
 

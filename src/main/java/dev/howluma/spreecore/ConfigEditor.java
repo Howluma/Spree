@@ -106,7 +106,8 @@ public final class ConfigEditor {
         double amount = number.doubleValue();
         if (!Double.isFinite(amount)) return "Enter a finite number.";
         if (path.equals("general.max-killstreak")) return between(amount, 1, 1000);
-        if (path.equals("killstreak.mace-unlock-level")) return between(amount, 1, 1000);
+        if (path.equals("killstreak.mace-unlock-level") || path.startsWith("killstreak.milestones."))
+            return between(amount, 1, 1000);
         if (path.equals("killstreak.health-per-level-hearts")) return between(amount, 0, 2);
         if (path.startsWith("resource-pack.models.")) return between(amount, 1, 16000000);
         if (path.endsWith("chance")) return between(amount, 0, 1);
@@ -154,6 +155,7 @@ public final class ConfigEditor {
             case "killstreak" -> "Killstreak & Health";
             case "killstreak.anti-farm" -> "Anti-Farming";
             case "killstreak.revenge" -> "Revenge Rewards";
+            case "killstreak.milestones" -> "Milestone Buffs";
             case "display" -> "Tab & Nametag Indicators";
             case "legendary" -> "Legendary System";
             case "legendary.forging" -> "Legendary Forging";

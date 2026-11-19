@@ -12,11 +12,15 @@ class DefaultConfigTest {
         assertNotNull(stream);
         return YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
     }
-    @Test void onlyHealthAndMaceArePassiveProgression() {
+    @Test void healthMaceAndFourMilestoneBuffsAreTheOnlyPermanentProgression() {
         var c = config();
         assertEquals(10, c.getInt("killstreak.base-health-hearts"));
         assertEquals(0.5, c.getDouble("killstreak.health-per-level-hearts"));
         assertEquals(1, c.getInt("killstreak.mace-unlock-level"));
+        assertEquals(5, c.getInt("killstreak.milestones.weaving-level"));
+        assertEquals(10, c.getInt("killstreak.milestones.speed-level"));
+        assertEquals(15, c.getInt("killstreak.milestones.strength-level"));
+        assertEquals(20, c.getInt("killstreak.milestones.glowing-level"));
         assertFalse(c.contains("killstreak.passives"));
         assertFalse(c.contains("killstreak.potion-bonuses"));
         assertFalse(c.contains("killstreak.restrictions"));
@@ -28,7 +32,7 @@ class DefaultConfigTest {
         assertTrue(c.getBoolean("display.streak-indicators.tab-enabled"));
         assertTrue(c.getBoolean("display.streak-indicators.nametag-enabled"));
         assertEquals("⚔", c.getString("display.streak-indicators.symbol"));
-        assertTrue(c.getString("general.fractured-label").contains("Fractured Killstreak"));
+        assertEquals("&c&lFractured", c.getString("general.fractured-label"));
         String[] expected = {"&7","&a","&e","&6","&c","&5","&4"};
         for (int i=0; i<expected.length; i++)
             assertEquals(expected[i], c.getString("display.streak-indicators.tier-colors."+(i*5)));

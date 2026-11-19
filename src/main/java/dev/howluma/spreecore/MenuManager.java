@@ -80,11 +80,8 @@ public final class MenuManager implements Listener {
                 "&7Streaks ended: &f" + profile.ended, "&aClick for details"));
         inv.setItem(15, icon(Material.PLAYER_HEAD, "&6&lLeaderboard",
                 "&7Compare killstreaks with other players", "&aClick to view"));
-        inv.setItem(20, icon(Material.BOOK, "&9How Killstreaks Work",
-                "&7+" + ConfigEditor.format(plugin.getConfig().getDouble("killstreak.health-per-level-hearts", 0.5))
-                        + " heart per positive killstreak",
-                "&7Mace attacks unlock at killstreak " + plugin.getConfig().getInt("killstreak.mace-unlock-level", 1),
-                "&7Fractured has normal health", "&7Other perks are being redesigned"));
+        inv.setItem(20, icon(Material.BOOK, "&9&lCurrent Streak Buffs",
+                currentBuffLore(plugin.getConfig(), profile.streak)));
         inv.setItem(22, icon(profile.hideHud ? Material.GRAY_DYE : Material.LIME_DYE,
                 "&fKillstreak HUD: " + (profile.hideHud ? "&cOFF" : "&aON"),
                 "&7Toggle the action bar display", "&eClick to toggle"));
@@ -97,6 +94,26 @@ public final class MenuManager implements Listener {
         inv.setItem(26, icon(Material.BARRIER, "&cClose"));
         p.openInventory(inv);
     }
+    /** Show only active buffs on the book, never the full list of future unlocks. */
+    static String[] currentBuffLore(org.bukkit.configuration.file.FileConfiguration config, int streak) {
+        if (streak <= 0) return new String[]{"&8No active Spree buffs"};
+        List<String> current = new ArrayList<>();
+        double healthBonus = streak * config.getDouble("killstreak.health-per-level-hearts", 0.5);
+        if (healthBonus > 0)
+            current.add("&9❤ &7Health &f+" + ConfigEditor.format(healthBonus) + " hearts");
+        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.mace-unlock-level", 1)))
+            current.add("&9⚔ &7Mace &aUnlocked");
+        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.milestones.weaving-level", 5)))
+            current.add("&7Weaving &aActive");
+        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.milestones.speed-level", 10)))
+            current.add("&7Speed I &aActive");
+        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.milestones.strength-level", 15)))
+            current.add("&7Strength II &aActive");
+        if (MilestoneEffects.unlocked(streak, config.getInt("killstreak.milestones.glowing-level", 20)))
+            current.add("&7Glowing &aActive");
+        return current.toArray(String[]::new);
+    }
+
     public void openAdmin(Player p) {
         if (!p.hasPermission("spree.admin")) return;
         Holder h = holder(Screen.ADMIN);
