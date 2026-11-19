@@ -98,15 +98,19 @@ public final class ProgressionManager {
         if (!milestoneUnlocked(player, ProgressionCatalog.Kind.TALENT, level)
                 || p.talentChoices.containsKey(level)) return List.of();
         List<String> old = p.talentOffers.get(level);
-        // If another pending milestone was chosen, remove duplicate locked-out offers.
-        Set<String> chosen = pickedExcept(p, ProgressionCatalog.Kind.TALENT, level);
-        if (old == null || old.stream().anyMatch(chosen::contains)) {
+        // Never reroll a saved offer merely because another milestone was
+        // claimed. In particular, a paid Fate Sigil reroll must not be repeatable
+        // for free by changing other Talent selections while this menu is closed.
+        if (old == null) {
             List<String> offers = buildTalentOffers(p, level, null);
             p.talentOffers.put(level, offers);
             plugin.data().dirty();
             return offers;
         }
-        return old;
+        // If another Talent was claimed in the meantime, its duplicate offer
+        // becomes unavailable instead of being replaced by a free new offer.
+        Set<String> chosen = pickedExcept(p, ProgressionCatalog.Kind.TALENT, level);
+        return old.stream().filter(id -> !chosen.contains(id)).toList();
     }
 
     public Result claim(Player player, ProgressionCatalog.Kind kind, int level, String optionId, boolean sigil) {
