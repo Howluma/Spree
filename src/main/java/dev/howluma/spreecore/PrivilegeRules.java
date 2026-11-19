@@ -40,7 +40,7 @@ public final class PrivilegeRules implements Listener {
     private boolean netherite(Material m) {
         return m==Material.NETHERITE_SWORD||m==Material.NETHERITE_AXE
                 ||m==Material.NETHERITE_PICKAXE||m==Material.NETHERITE_HOE
-                ||m==Material.NETHERITE_SHOVEL;
+                ||m==Material.NETHERITE_SHOVEL||m==Material.NETHERITE_SPEAR;
     }
     private boolean turtle(ItemStack stack) {
         return stack!=null && stack.hasItemMeta()
@@ -155,6 +155,7 @@ public final class PrivilegeRules implements Listener {
                 ?plugin.getConfig().getInt("talents.expanded-reserves.extra-items",64):0;
         cap(p,Material.WIND_CHARGE,setting("max-wind-charges",64)+extra);
         cap(p,Material.EXPERIENCE_BOTTLE,setting("max-experience-bottles",64)+extra);
+        plugin.specialistItems().sync(p);
     }
     private int itemLimit(Player p, Material type) {
         if(type==Material.TOTEM_OF_UNDYING)
