@@ -75,7 +75,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(quickHands, this);
         Bukkit.getPluginManager().registerEvents(balanceMenu, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
-                "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
+                "spreeinfo", "spreeadmin", "spreeset", "spreesetall", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
             Objects.requireNonNull(getCommand(command)).setTabCompleter(commands);
         }
