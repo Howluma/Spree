@@ -52,6 +52,36 @@ public enum PerkType {
         };
     }
 
+    /** User-facing descriptions of what the code actually changes. */
+    public String effectDescription() {
+        return switch (this) {
+            case POWER -> "Stronger melee and projectile hits";
+            case FORTITUDE -> "Reduce incoming damage from most sources";
+            case AGILITY -> "Move and sprint faster";
+            case DEXTERITY -> "Attack with weapons faster";
+            case RESTORATION -> "Restore more health when healed";
+            case STABILITY -> "Resist knockback from enemy attacks";
+            case ENDURANCE -> "Consume less hunger from exhaustion";
+            case EFFICIENCY -> "Mine and break blocks faster";
+            case PRESERVATION -> "Take less durability damage to items";
+            case INSIGHT -> "Earn additional experience points";
+            case REACH -> "Reach entities from farther away";
+            case SCALE -> "Become smaller with a smaller hitbox";
+            case CAPACITY -> "Carry more items per stackable slot";
+            case ALCHEMY -> "Extend beneficial potion effect durations";
+        };
+    }
+
+    public String effectNote() {
+        return switch (this) {
+            case POWER -> "Excludes TNT and crystal explosions";
+            case ALCHEMY -> "Excludes permanent Infusions and beacons";
+            case REACH -> "Entity reach only, not block reach";
+            case CAPACITY -> "Applies to naturally stackable items";
+            default -> "";
+        };
+    }
+
     public static PerkType fromId(String id) {
         if (id == null) return null;
         try { return valueOf(id.toUpperCase(Locale.ROOT)); }
