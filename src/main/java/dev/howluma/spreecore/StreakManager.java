@@ -160,6 +160,11 @@ public final class StreakManager implements Listener {
             if (!player.isOnline()) return;
             update(player);
             tabName(player);
+            if (!get(player).retiredTalentMilestones.isEmpty())
+                Text.send(player, plugin.prefix()
+                        + "&bIndustrious was retired. &7Your earned Talent slot(s) "
+                        + get(player).retiredTalentMilestones
+                        + " can be reselected &afor free &7in &9/spree &7> Talents.");
             plugin.legendaries().migrate(player);
             migrateTokenModels(player);
             if (streak(player) >= c().getInt("general.announce-joining-streak", 10))
