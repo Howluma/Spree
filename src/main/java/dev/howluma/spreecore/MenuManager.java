@@ -93,7 +93,7 @@ public final class MenuManager implements Listener {
                 .filter(e -> e.getKey() <= profile.streak).count();
         inv.setItem(19, icon(Material.POTION, "&9&lActive Bonuses",
                 "&7Max health: &f+" + ConfigEditor.format(
-                        Math.max(0, profile.streak)*plugin.getConfig().getDouble("killstreak.health-per-level-hearts",.5)) + " hearts",
+                        SpreeMath.benefitLevel(profile.streak)*plugin.getConfig().getDouble("killstreak.health-per-level-hearts",.5)) + " hearts",
                 "&7Permanent Infusions: &f" + infusionCount,
                 "&7Glowing: " + (profile.streak >= plugin.getConfig().getInt("hunt.glowing-level",10)?"&aYes":"&8No"),
                 "&bClick to see your build"));
@@ -120,7 +120,7 @@ public final class MenuManager implements Listener {
     static String[] currentBuffLore(org.bukkit.configuration.file.FileConfiguration config, int streak) {
         if (streak <= 0) return new String[]{"&8No active Spree buffs"};
         List<String> current = new ArrayList<>();
-        double healthBonus = streak * config.getDouble("killstreak.health-per-level-hearts", 0.5);
+        double healthBonus = SpreeMath.benefitLevel(streak) * config.getDouble("killstreak.health-per-level-hearts", 0.5);
         if (healthBonus > 0)
             current.add("&9❤ &7Health &f+" + ConfigEditor.format(healthBonus) + " hearts");
         // Actual Infusions and Privileges are player-selected, not automatic.
@@ -271,11 +271,11 @@ public final class MenuManager implements Listener {
         inv.setItem(13, icon(Material.EMERALD, "&a+1 Killstreak", "&7Increase by one"));
         inv.setItem(14, icon(Material.EMERALD_BLOCK, "&a+5 Killstreak", "&7Increase by five"));
         inv.setItem(12, icon(Material.NETHER_STAR, "&9&lCurrent: " + plugin.indicators().streakColor(profile.streak) + plugin.streaks().display(profile.streak),
-                "&7Max: &f" + plugin.streaks().cap(), "&7Click Exact Value to set a number"));
+                "&7Benefits cap at &f30 &7| Score max: &f" + plugin.streaks().cap(), "&7Click Exact Value to set a number"));
         inv.setItem(20, icon(Material.AMETHYST_SHARD, "&c&lSet Fractured Killstreak",
                 "&7Marks the player as Fractured", "&7Internally preserves the legacy penalty", "&eClick to apply"));
         inv.setItem(22, icon(Material.NAME_TAG, "&9&lSet Exact Killstreak",
-                "&7Enter 0 to " + plugin.streaks().cap(), "&7Use Fractured to apply its special state", "&eClick to enter in chat"));
+                "&7Enter 0 to " + plugin.streaks().cap(), "&7Bonuses stop at 30; use Fractured for -1", "&eClick to enter in chat"));
         ConfirmPlayerReset confirm = playerResetConfirm.get(p.getUniqueId());
         boolean awaiting = confirm != null && confirm.target().equals(id) && confirm.until() > System.currentTimeMillis();
         inv.setItem(24, icon(awaiting ? Material.ORANGE_DYE : Material.BARRIER,
@@ -577,7 +577,8 @@ public final class MenuManager implements Listener {
         }
         var profile = plugin.data().get(pending.target());
         int low = 0;
-        int high = pending.field() == PlayerField.STREAK ? plugin.streaks().cap() : 100000000;
+        int high = pending.field() == PlayerField.STREAK || pending.field() == PlayerField.BEST
+                ? plugin.streaks().cap() : 100000000;
         if (value < low || value > high) {
             Text.send(admin, "&cAllowed range: " + low + " to " + high + ". Try again.");
             return true;
