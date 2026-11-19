@@ -47,6 +47,9 @@ class ConfigEditorTest {
     @Test void recipeMaterialAndCountEditorsRejectInvalidInputs() {
         // Material.matchMaterial needs a running Paper registry; ingredient
         // validation is checked on a live staging server, not in pure JVM tests.
+        assertNull(ConfigEditor.validate("fate-sigil.recipe.slot-5", "SPREE_ITEM"));
+        assertNull(ConfigEditor.validate("fate-sigil.recipe.slot-5", "spree_item"));
+        assertNotNull(ConfigEditor.validate("fate-sigil.recipe.slot-5", "FAKE_SPREE_ITEM"));
         assertNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",16));
         assertNotNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",0));
         assertNotNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",17));
