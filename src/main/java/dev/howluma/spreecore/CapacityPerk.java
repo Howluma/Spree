@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -32,7 +32,7 @@ import java.util.*;
 public final class CapacityPerk implements Listener {
     private final SpreeCorePlugin plugin;
     private final NamespacedKey managedKey;
-    private final Set<UUID> pending = new HashSet<>();
+    private final Map<UUID, Set<Inventory>> pending = new HashMap<>();
 
     CapacityPerk(SpreeCorePlugin plugin) {
         this.plugin = plugin;
@@ -143,11 +143,20 @@ public final class CapacityPerk implements Listener {
     }
 
     private void schedule(Player player, Inventory outside) {
-        if (!pending.add(player.getUniqueId())) return;
+        UUID id = player.getUniqueId();
+        Set<Inventory> targets = pending.get(id);
+        if (targets != null) {
+            if (outside != null) targets.add(outside);
+            return;
+        }
+        targets = Collections.newSetFromMap(new IdentityHashMap<>());
+        if (outside != null) targets.add(outside);
+        pending.put(id, targets);
         Bukkit.getScheduler().runTask(plugin, () -> {
-            pending.remove(player.getUniqueId());
+            Set<Inventory> queued = pending.remove(id);
             if (!player.isOnline() || player.isDead()) return;
-            cleanContainer(outside, player);
+            if (queued != null) for (Inventory external : queued)
+                cleanContainer(external, player);
             refresh(player);
         });
     }
@@ -170,8 +179,8 @@ public final class CapacityPerk implements Listener {
 
     /** Vanilla pickup cannot combine items with and without MAX_STACK_SIZE. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void pickedUp(EntityPickupItemEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
+    public void pickedUp(PlayerAttemptPickupItemEvent event) {
+        Player player = event.getPlayer();
         Item entity = event.getItem();
         ItemStack ground = entity.getItemStack();
         int added = bonus(player);
