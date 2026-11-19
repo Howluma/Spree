@@ -16,7 +16,8 @@ public enum PerkType {
     INSIGHT("insight", "Insight", .05, 4),
     REACH("reach", "Reach", .05, 3),
     SCALE("scale", "Scale", .05, 3),
-    CAPACITY("capacity", "Capacity", 4, 4);
+    CAPACITY("capacity", "Capacity", 4, 4),
+    ALCHEMY("alchemy", "Alchemy", .05, 4);
 
     public final String id;
     public final String display;

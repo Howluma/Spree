@@ -1,6 +1,17 @@
-# SpreeCore v1.6.2 — test-server checklist
+# SpreeCore v1.6.3 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Alchemy beneficial-potion duration Perk (v1.6.3)
+
+- [ ] With Alchemy x1, a three-minute positive potion lasts ~3m09s, with x4 it lasts ~3m36s.
+- [ ] Potion drinking, beneficial splash/lingering potions, tipped arrows and golden-apple regeneration/absorption are extended just once.
+- [ ] Existing Spree milestone Infusions (Weaving/Speed/Strength/Glowing) do not grow in duration each refresh.
+- [ ] Beacon, conduit, /effect and custom plugin buffs do not extend. Negative effects (poison, weakness) stay unchanged.
+- [ ] Milk, death and potion expiration still remove the effect normally.
+- [ ] A new stronger/longer potion effect overwrites correctly without accumulating repeated +5% from the old one.
+- [ ] Disabling Alchemy in /spree settings prevents any extra time on later potion applications.
+- [ ] Existing players retain their existing saved Perks; only future/unspecified milestone rolls can select Alchemy.
 
 ## Capacity Perk and inventory safety (v1.6.2)
 

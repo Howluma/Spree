@@ -1,16 +1,16 @@
-# SpreeCore v1.6.2 — Spree SMP
+# SpreeCore v1.6.3 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.2.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.6.3.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.2.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.6.3.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -134,6 +134,34 @@ The four milestone levels are editable through `/spree settings` >
 **Milestone Buffs**. A lost streak removes only SpreeCore-owned buffs;
 independent potions and stronger legendary abilities are not intentionally removed.
 
+## Alchemy Perk and Talent design (v1.6.3)
+
+The **Alchemy** minor Perk gives **+5% duration per copy** to beneficial,
+finite potion effects obtained from drinking potions, splash potions,
+lingering area clouds, tipped arrows or food (such as golden apples).
+It stacks additively, up to 4 copies for +20% by default. For example,
+a 3-minute beneficial potion lasts 3:09, 3:18, 3:27, or 3:36 depending
+on how many copies the player has unlocked. Only one extension applies
+per acquired effect; repeated reapplications start from the new effect,
+not the already-increased duration.
+
+Harmful, neutral, instant and infinite effects are excluded. Spree's
+renewable permanent Infusions are also excluded, as are /effect commands,
+beacons, conduits and other plugin-owned effects. The duration is
+extended on acquisition; losing Alchemy does not retroactively shorten
+an already consumed potion, but new potions use the current Perk bonus.
+
+Alchemy appears in `/spree perks` and can be tuned or disabled in
+`/spree settings`. Current existing Perk assignments are preserved;
+Alchemy simply joins the possible future random rolls.
+
+**Talents are separate future work and will be entirely passive or
+automatically triggered**, with no active abilities or keybinds.
+The currently agreed concepts include Mace Mastery (60s -> 30s cooldown
+where the server enforces that cooldown) and Expanded Reserves (+1
+normal stack of specifically capped items). The detailed pool is
+still being balanced before implementation.
+
 ## Capacity Perk (v1.6.2)
 
 **Capacity** adds +4 items to the maximum size of an inventory stack per
@@ -204,6 +232,7 @@ milestones; regaining levels restores the same Perks with no rerolls.
 | Reach | **+0.05 block entity attack reach** | **3 (+0.15 blocks)** |
 | Scale | **-5% player size and hitbox** | **3 (-15%)** |
 | Capacity | **+4 items per inventory stack** | **4 (+16 items)** |
+| Alchemy | **+5% positive potion duration** | **4 (+20%)** |
 
 All percentages are **per copy, added together**, not multiplicative.
 Power does not boost TNT or end-crystal explosions. The 0.15-block maximum

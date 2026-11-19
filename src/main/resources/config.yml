@@ -1,4 +1,4 @@
-# SpreeCore 1.6.2 - Capacity Perk (+4 items per inventory stack per copy).
+# SpreeCore 1.6.3 - Alchemy Perk (+5% positive potion duration per roll).
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -118,6 +118,10 @@ perks:
     enabled: true
     per-copy: 4  # +4 items in each naturally stackable inventory slot
     max-copies: 4  # 64 -> 68 -> 72 -> 76 -> 80
+  alchemy:
+    enabled: true
+    per-copy: 0.05  # +5% duration for beneficial potions/food per roll
+    max-copies: 4  # +20% maximum; excludes permanent Infusions
 
 legendary:
   enabled: true

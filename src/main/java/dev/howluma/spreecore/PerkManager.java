@@ -16,10 +16,13 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExhaustionEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.projectiles.ProjectileSource;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectTypeCategory;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -123,6 +126,7 @@ public final class PerkManager implements Listener {
                 case REACH -> " entity reach";
                 case SCALE -> " player size";
                 case CAPACITY -> " per inventory stack";
+                case ALCHEMY -> " beneficial potion duration";
             };
             String sign = type == PerkType.SCALE ? "-" : "+";
             lines.add("&9" + type.display + " &8x" + copies + " &7(" + sign + unit + subject + ")");
@@ -213,6 +217,43 @@ public final class PerkManager implements Listener {
                 || event.getCause() == EntityDamageEvent.DamageCause.KILL) return;
         double amount = bonus(player, PerkType.FORTITUDE);
         if (amount > 0) event.setDamage(event.getDamage() * (1.0 - amount));
+    }
+
+    /**
+     * Alchemy adds a small amount of time to newly acquired beneficial potion
+     * effects. It ignores commands, plugin buffs, beacons and other continuously
+     * renewed sources (including Spree's permanent milestone Infusions).
+     * Waiting one tick allows vanilla to actually apply the new effect first.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void potionChanged(EntityPotionEffectEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (!PotionDurationMath.isPotionSource(event.getCause())) return;
+        if (event.getAction() != EntityPotionEffectEvent.Action.ADDED
+                && event.getAction() != EntityPotionEffectEvent.Action.CHANGED) return;
+        PotionEffect effect = event.getNewEffect();
+        if (effect == null || effect.isInfinite() || effect.getDuration() < 20
+                || effect.getType().isInstant()
+                || effect.getType().getCategory() != PotionEffectTypeCategory.BENEFICIAL)
+            return;
+        int extraTicks = PotionDurationMath.extraTicks(effect.getDuration(),
+                bonus(player, PerkType.ALCHEMY));
+        if (extraTicks <= 0) return;
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline() || player.isDead()) return;
+            PotionEffect current = player.getPotionEffect(effect.getType());
+            if (current == null || current.isInfinite()
+                    || current.getAmplifier() != effect.getAmplifier()) return;
+            // If another potion, command or plugin replaced this effect before
+            // the task ran, don't overwrite or extend the unrelated effect.
+            int elapsed = effect.getDuration() - current.getDuration();
+            if (elapsed < 0 || elapsed > 4) return;
+            int upgraded = Math.min(Integer.MAX_VALUE - 1,
+                    current.getDuration() + extraTicks);
+            if (upgraded > current.getDuration())
+                player.addPotionEffect(current.withDuration(upgraded), true);
+        });
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
