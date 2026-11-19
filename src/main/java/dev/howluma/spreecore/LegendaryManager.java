@@ -105,7 +105,7 @@ public final class LegendaryManager implements Listener {
         String id = meta.getPersistentDataContainer().get(itemId, PersistentDataType.STRING);
         if (id != null) {
             LegendaryType candidate = LegendaryType.byId(id);
-            return candidate != null && candidate.material == item.getType() ? candidate : null;
+            return candidate != null && plugin.specialistItems().matchesLegendary(item, candidate) ? candidate : null;
         }
         if (!plugin.getConfig().getBoolean("legendary.accept-legacy-lore-items", true)) return null;
         List<String> lore = meta.getLore();
@@ -113,7 +113,7 @@ public final class LegendaryManager implements Listener {
         for (String line : lore) {
             String plain = ChatColor.stripColor(line);
             for (LegendaryType t : LegendaryType.values()) {
-                if (t.material == item.getType() && plain != null && plain.trim().equalsIgnoreCase(t.legacyLore)) return t;
+                if (plugin.specialistItems().matchesLegendary(item, t) && plain != null && plain.trim().equalsIgnoreCase(t.legacyLore)) return t;
             }
         }
         return null;
