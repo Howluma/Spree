@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Streak perks: weaving, Speed I, Strength II, and Glowing.
+ * Selected Infusions (including Haste I), plus configured Wanted glowing.
  * Renewable, short-lived effects act as permanent buffs while a milestone is
  * held, with no permanent effects left behind if the server crashes.
  * Stronger/independent effects from other plugins and legendary items win.
@@ -30,11 +30,10 @@ final class MilestoneEffects {
         var choices=plugin.progression();
         maintain(player,PotionEffectType.WEAVING,0,choices.hasInfusion(player,"weaving"));
         maintain(player,PotionEffectType.SPEED,0,choices.hasInfusion(player,"speed"));
-        maintain(player,PotionEffectType.STRENGTH,0,choices.hasInfusion(player,"strength"));
+        maintain(player,PotionEffectType.HASTE,0,choices.hasInfusion(player,"haste"));
         maintain(player,PotionEffectType.REGENERATION,0,choices.hasInfusion(player,"regeneration"));
         maintain(player,PotionEffectType.LUCK,4,choices.hasInfusion(player,"luck"));
         maintain(player,PotionEffectType.HERO_OF_THE_VILLAGE,9,choices.hasInfusion(player,"hero"));
-        maintain(player,PotionEffectType.HASTE,0,choices.hasTalent(player,"industrious"));
         maintain(player,PotionEffectType.GLOWING,0,eventGlow
                 ||unlocked(streak,plugin.getConfig().getInt("hunt.glowing-level",10)));
     }
