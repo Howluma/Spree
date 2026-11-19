@@ -247,6 +247,13 @@ public final class StreakManager implements Listener {
         return true;
     }
     /** A distinct consumable: unlike environmental-death trap tokens, this grants exactly +1 on use. */
+    /** True only for the SpreeCore +1 killstreak consumable, never vanilla Hearts of the Sea. */
+    public boolean isSpreeItem(ItemStack item) {
+        return item != null && item.getType() == Material.HEART_OF_THE_SEA && item.hasItemMeta()
+                && item.getItemMeta().getPersistentDataContainer()
+                    .has(spreeConsumable, PersistentDataType.BYTE);
+    }
+
     public ItemStack createSpreeItem(int amount) {
         if (amount < 1 || amount > 64) throw new IllegalArgumentException("Amount must be 1-64");
         ItemStack item = new ItemStack(Material.HEART_OF_THE_SEA, amount);
@@ -319,8 +326,7 @@ public final class StreakManager implements Listener {
         ItemStack item = hand == EquipmentSlot.HAND
                 ? event.getPlayer().getInventory().getItemInMainHand()
                 : event.getPlayer().getInventory().getItemInOffHand();
-        if (item.getType() != Material.HEART_OF_THE_SEA || !item.hasItemMeta()
-                || !item.getItemMeta().getPersistentDataContainer().has(spreeConsumable, PersistentDataType.BYTE)) return;
+        if (!isSpreeItem(item)) return;
         event.setCancelled(true);
         Player player = event.getPlayer();
         int tick = player.getTicksLived();
