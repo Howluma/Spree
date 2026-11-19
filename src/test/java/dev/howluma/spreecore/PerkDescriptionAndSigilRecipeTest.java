@@ -24,12 +24,13 @@ class PerkDescriptionAndSigilRecipeTest {
     @Test void craftingPatternMatchesUploadedNineSlotImage() {
         List<String> expected=List.of(
                 "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY",
-                "NETHERITE_INGOT","HEART_OF_THE_SEA","NETHERITE_INGOT",
+                "NETHERITE_INGOT","SPREE_ITEM","NETHERITE_INGOT",
                 "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY");
         assertEquals(expected,FateSigil.DEFAULT_RECIPE);
         assertEquals(4,expected.stream().filter("OMINOUS_TRIAL_KEY"::equals).count());
         assertEquals(4,expected.stream().filter("NETHERITE_INGOT"::equals).count());
-        assertEquals(1,expected.stream().filter("HEART_OF_THE_SEA"::equals).count());
+        assertEquals(1,expected.stream().filter("SPREE_ITEM"::equals).count());
+        assertEquals(0,expected.stream().filter("HEART_OF_THE_SEA"::equals).count());
     }
 
     @Test void exactLegacyRecipeMigratesOnlyOnce() {
@@ -40,6 +41,19 @@ class PerkDescriptionAndSigilRecipeTest {
         for(int i=0;i<9;i++)
             assertEquals(FateSigil.DEFAULT_RECIPE.get(i),
                     config.getString("fate-sigil.recipe.slot-"+(i+1)));
+        assertFalse(FateSigil.migrateOldRecipe(config));
+    }
+
+    @Test void version175RecipeMigratesToSpreeItemOnlyAtCenter() {
+        YamlConfiguration config=new YamlConfiguration();
+        for(int i=0;i<9;i++)
+            config.set("fate-sigil.recipe.slot-"+(i+1), FateSigil.PREVIOUS_RECIPE.get(i));
+        assertEquals("HEART_OF_THE_SEA",config.getString("fate-sigil.recipe.slot-5"));
+        assertTrue(FateSigil.migrateOldRecipe(config));
+        for(int i=0;i<9;i++)
+            assertEquals(FateSigil.DEFAULT_RECIPE.get(i),
+                    config.getString("fate-sigil.recipe.slot-"+(i+1)));
+        assertEquals("SPREE_ITEM",config.getString("fate-sigil.recipe.slot-5"));
         assertFalse(FateSigil.migrateOldRecipe(config));
     }
 
