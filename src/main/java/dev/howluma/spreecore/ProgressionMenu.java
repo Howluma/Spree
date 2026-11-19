@@ -157,7 +157,7 @@ public final class ProgressionMenu implements Listener {
             int current = plugin.streaks().streak(player);
             String state = level > current ? "&8Inactive / locked" : "&aActive";
             int slot = slots[index++];
-            inv.setItem(slot, icon(perk == null ? Material.GRAY_DYE : Material.ENCHANTED_BOOK,
+            inv.setItem(slot, icon(perk == null ? Material.GRAY_DYE : perk.icon(),
                     "&9&lLevel " + level, perk == null ? "&8Not earned yet" : "&f" + perk.display,
                     perk == null ? "&7Gain killstreak to roll" : state,
                     "&7Perks roll automatically, duplicates stack"));
@@ -278,7 +278,7 @@ public final class ProgressionMenu implements Listener {
             for (int i=0; i<Math.min(guideCells.length,all.size()); i++) {
                 int slot=guideCells[i];
                 var perk=all.get(i);
-                inv.setItem(slot, icon(Material.ENCHANTED_BOOK,"&9&l"+perk.display,
+                inv.setItem(slot, icon(perk.icon(),"&9&l"+perk.display,
                         "&7Bonus per roll: &f"+ ConfigEditor.format(perk==PerkType.CAPACITY ||
                                         perk==PerkType.REACH ? perk.defaultPerCopy : perk.defaultPerCopy*100) +
                                 (perk==PerkType.CAPACITY?" items":perk==PerkType.REACH?" blocks":"%"),
