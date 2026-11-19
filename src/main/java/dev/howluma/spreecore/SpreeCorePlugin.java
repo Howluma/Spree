@@ -15,6 +15,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private CoreCommands commands;
     private ConfigEditor settings;
     private ModelData models;
+    private StreakIndicators indicators;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
@@ -28,11 +29,13 @@ public final class SpreeCorePlugin extends JavaPlugin {
         events = new EventManager(this);
         menus = new MenuManager(this);
         commands = new CoreCommands(this);
+        indicators = new StreakIndicators(this);
         Bukkit.getPluginManager().registerEvents(streaks, this);
         Bukkit.getPluginManager().registerEvents(legendaries, this);
         Bukkit.getPluginManager().registerEvents(forges, this);
         Bukkit.getPluginManager().registerEvents(events, this);
         Bukkit.getPluginManager().registerEvents(menus, this);
+        Bukkit.getPluginManager().registerEvents(indicators, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
                 "spreeinfo", "spreeadmin", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
@@ -51,7 +54,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         legendaries.tick();
         // Potions/health only need refreshing every 4 seconds, not scanning inventories each tick.
         if (heartbeatCount % 4 == 0) streaks.refreshOnline();
-        if (heartbeatCount % 10 == 0) legendaries.syncBloodsBane();
+        if (heartbeatCount % 10 == 0) { legendaries.syncBloodsBane(); indicators.refreshOnline(); }
         if (heartbeatCount % 30 == 0) streaks.safetyInventoryCheck();
     }
     private void scheduleConfigurableTasks() {
@@ -67,6 +70,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (saveTask != null) saveTask.cancel();
         if (forges != null) forges.shutdown();
         if (events != null) events.shutdown();
+        if (indicators != null) indicators.shutdown();
         if (streaks != null) streaks.shutdown();
         if (data != null) data.save();
     }
@@ -78,13 +82,28 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public MenuManager menus() { return menus; }
     public ConfigEditor settings() { return settings; }
     public ModelData models() { return models; }
+    public StreakIndicators indicators() { return indicators; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
+    /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
+    public void applySettingChange(String path) {
+        if (path.equals("general.actionbar-interval-ticks") || path.equals("general.save-interval-seconds"))
+            scheduleConfigurableTasks();
+        if (path.startsWith("killstreak.") || path.startsWith("events.juggernaut."))
+            streaks.refreshOnline();
+        if (path.startsWith("display.streak-indicators.")) indicators.refreshOnline();
+        if (path.startsWith("resource-pack."))
+            for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
+        if (path.equals("legendary.crafting-enabled") || path.startsWith("legendary.forging."))
+            forges.registerRecipes();
+        if (path.startsWith("legendary.weapons.bloodsbane.")) legendaries.syncBloodsBane();
+    }
     public void reloadSpreeConfiguration() {
         reloadConfig();
         scheduleConfigurableTasks();
         forges.registerRecipes();
         for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
         streaks.refreshOnline();
+        indicators.refreshOnline();
         legendaries.syncBloodsBane();
     }
 }

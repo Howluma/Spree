@@ -1,5 +1,5 @@
 name: SpreeCore
-version: 1.1.0
+version: 1.2.0
 main: dev.howluma.spreecore.SpreeCorePlugin
 api-version: '1.21.11'
 authors: [Howluma]
@@ -30,7 +30,7 @@ commands:
     description: Control hunt, juggernaut, locator, Blood's Bane, and timed events
   legendary:
     aliases: [relic]
-    description: Browse or administer legendary weapons and forges
+    description: Administer legendary weapons and forges
 permissions:
   spree.admin:
     description: Manage all Spree systems

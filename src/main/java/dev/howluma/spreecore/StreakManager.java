@@ -71,10 +71,7 @@ public final class StreakManager implements Listener {
     public void addStreak(Player player, int gain) {
         setStreak(player.getUniqueId(), SpreeMath.applyKill(streak(player), gain, cap()), false);
     }
-    public void tabName(Player player) {
-        String color = streak(player) >= 25 ? "&5" : streak(player) >= 15 ? "&6" : streak(player) >= 10 ? "&e" : streak(player) >= 5 ? "&a" : streak(player) < 0 ? "&c" : "&7";
-        player.setPlayerListName(Text.c("&f" + player.getName() + " &8| " + color + display(streak(player))));
-    }
+    public void tabName(Player player) { plugin.indicators().refreshPlayer(player); }
     public void update(Player player) {
         int streak = streak(player);
         int hearts = SpreeMath.healthHearts(streak,
@@ -273,12 +270,14 @@ public final class StreakManager implements Listener {
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
             return;
         }
+        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return;
         if (restricted(player, stack.getType())) event.setCancelled(true);
         if (stack.getType() == Material.ENDER_PEARL &&
                 countItems(player.getInventory(), Material.ENDER_PEARL) >= c().getInt("killstreak.restrictions.max-ender-pearls", 3))
             event.setCancelled(true);
     }
     public boolean restricted(Player player, Material material) {
+        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return false;
         int s = streak(player);
         return switch (material) {
             case TOTEM_OF_UNDYING -> s < c().getInt("killstreak.restrictions.totem", 1);
@@ -297,6 +296,7 @@ public final class StreakManager implements Listener {
     }
     public void safetyInventoryCheck() { for (Player p : Bukkit.getOnlinePlayers()) enforceInventory(p); }
     public void enforceInventory(Player player) {
+        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return;
         PlayerInventory inv = player.getInventory();
         int pearlsRemaining = c().getInt("killstreak.restrictions.max-ender-pearls", 3);
         ItemStack[] all = inv.getContents();
@@ -321,10 +321,12 @@ public final class StreakManager implements Listener {
         inv.setContents(all);
     }
     @EventHandler(ignoreCancelled = true) public void inventoryClick(InventoryClickEvent event) {
+        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return;
         if (!(event.getWhoClicked() instanceof Player p)) return;
         Bukkit.getScheduler().runTask(plugin, () -> { if (p.isOnline()) enforceInventory(p); });
     }
     @EventHandler(ignoreCancelled = true) public void inventoryDrag(InventoryDragEvent event) {
+        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return;
         if (!(event.getWhoClicked() instanceof Player p)) return;
         Bukkit.getScheduler().runTask(plugin, () -> { if (p.isOnline()) enforceInventory(p); });
     }

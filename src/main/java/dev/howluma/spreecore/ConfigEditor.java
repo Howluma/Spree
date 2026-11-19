@@ -78,7 +78,7 @@ public final class ConfigEditor {
         if (problem != null) return new Result(false, problem);
         plugin.getConfig().set(path, value);
         plugin.saveConfig();
-        plugin.reloadSpreeConfiguration();
+        plugin.applySettingChange(path);
         return new Result(true, setting.label() + " = " + format(value));
     }
     public Result reset(String path) {
@@ -134,7 +134,8 @@ public final class ConfigEditor {
             case "killstreak" -> "Killstreak & Health";
             case "killstreak.anti-farm" -> "Anti-Farming";
             case "killstreak.revenge" -> "Revenge Rewards";
-            case "killstreak.restrictions" -> "Item Unlocks";
+            case "killstreak.restrictions" -> "Item Rules - WIP";
+            case "display" -> "Tab & Nametag Indicators";
             case "killstreak.potion-bonuses" -> "Potion Bonuses";
             case "killstreak.passives" -> "Passive Effects";
             case "legendary" -> "Legendary System";
@@ -151,6 +152,7 @@ public final class ConfigEditor {
     }
     private static Material icon(String id) {
         if (id.equals("general")) return Material.COMPARATOR;
+        if (id.equals("display")) return Material.NAME_TAG;
         if (id.equals("resource-pack")) return Material.PAINTING;
         if (id.contains("anti-farm")) return Material.SHIELD;
         if (id.contains("restrictions")) return Material.IRON_BARS;

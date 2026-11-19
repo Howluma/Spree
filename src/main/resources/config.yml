@@ -1,4 +1,4 @@
-# SpreeCore 1.1 - admins can edit every setting in /spree > Edit All Settings.
+# SpreeCore 1.2 - admins can edit every setting in /spree > Edit All Settings.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -8,6 +8,16 @@ general:
   actionbar-interval-ticks: 40
   save-interval-seconds: 120
   announce-joining-streak: 10
+
+# Vanilla-compatible indicators: ✦12 in the tab list and overhead name tags.
+# Overhead tags use scoreboard suffixes when the player is NOT already in a team.
+# Existing faction/party team membership is preserved (no forced team removal).
+display:
+  streak-indicators:
+    tab-enabled: true
+    nametag-enabled: true
+    symbol: '✦'
+    recovery-symbol: '↺'
 
 killstreak:
   max-health-hearts: 20
@@ -20,7 +30,9 @@ killstreak:
   revenge:
     enabled: true
     bonus-streak: 2
+  # Not finalized: these rules are OFF until the server chooses an item progression design.
   restrictions:
+    enabled: false
     totem: 1
     netherite-sword: 2
     netherite-axe: 5

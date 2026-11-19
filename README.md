@@ -1,10 +1,10 @@
-# SpreeCore 1.1 — Spree SMP native Paper plugin
+# SpreeCore 1.2 — Spree SMP native Paper plugin
 
 A Java 21 / Paper **1.21.11** replacement for these ten Skript files.
 
-**Build format:** compile-tested Java source with GitHub Actions producing an installable `SpreeCore-1.1.0.jar`. A test server is still required for gameplay and visual verification.
+**Build format:** Java source with GitHub Actions producing an installable `SpreeCore-1.2.0.jar`. A test server is still required for gameplay and visual verification.
 
-**New in 1.1:** `/spree` dashboard now links to a complete admin-only graphical settings editor. Every primitive configuration entry in `config.yml` is automatically grouped and editable, so adding new values later does not require rewriting the menu. Resource-pack model selectors show custom models only when the player installs the matching pack, while non-pack clients keep vanilla item appearances.
+**Previously added in 1.1:** `/spree` dashboard now links to a complete admin-only graphical settings editor. Every primitive configuration entry in `config.yml` is automatically grouped and editable, so adding new values later does not require rewriting the menu. Resource-pack model selectors show custom models only when the player installs the matching pack, while non-pack clients keep vanilla item appearances.
 
 Original inputs:
 
@@ -34,21 +34,21 @@ Original inputs:
 | `/killstreak [player]` (`/ks`) | Show current streak |
 | `/stats [player]` (`/mystats` alias) | Current and lifetime stats |
 | `/leaderboard` (`/lb`, `/topstreak`) | Top 10 streaks |
-| `/spreeinfo` | Unlock thresholds, health scaling, active event |
+| `/spreeinfo` | Health scaling and recovery; does not reveal event status or unfinished item progression |
 | `/spreeadmin` (`/sa`) | Clickable admin GUI |
 | `/spreeadmin set\|add\|remove <player> <amount>` | Modify streak for online or known offline player |
 | `/spreeadmin reset <player>` | Reset a player's streak |
 | `/spreeadmin recovery <player>` | Place player in the internal -1 recovery state |
 | `/spreeadmin setall <amount>` | Set all known streaks |
 | `/spreeadmin resetall` twice | Confirm global reset |
-| `/spreeadmin update [player]` | Re-apply health and item gates |
+| `/spreeadmin update [player]` | Re-apply health and any enabled item rules |
 | `/spreeadmin reload` | Read updated configuration |
 | `/spreeadmin migrateitems` | Add permanent IDs to online players' old Skript relics |
 | `/spreeadmin importskript [force]` | Import `plugins/Skript/variables.csv` into profiles |
 | `/spreeevent` | Event admin GUI |
 | `/spreeevent hunt\|juggernaut\|locator\|bloodsbane on\|off` | Compass modes / locator / auto-award |
 | `/spreeevent bloodmoon\|surge\|chaos\|race on\|off` | Timed events |
-| `/legendary` | Weapon browser GUI |
+| `/legendary` | Admin-only weapon browser GUI (ordinary players may use `/legendary refresh`) |
 | `/legendary give <id> [player]` | Give weapon (Blood's Bane given as test copy) |
 | `/legendary forge end <id>` | Complete running forge |
 | `/legendary forge reset <id>` | Unlock crafting again |
@@ -60,7 +60,7 @@ Original inputs:
 - **Killstreaks:** -1 recovery minimum; 30 default cap; natural death halves positive streak and drops a pickup token; PvP death halves positive streak, gives the killer a configured reward; player profiles persist on restart. Natural deaths at 0 enter **Recovery** and only create one token. Further deaths at -1 do not drop any token.
 - **Anti-farm:** Default 5-minute same-victim cooldown and no rewards from players already at -1. Configurable in `killstreak.anti-farm`. Anti-farm does **not** stop PvP; only the reward. Repeat victims do not trigger event bonuses or win the kill race.
 - **Revenge:** A legitimate kill of your previous killer gets +2 extra streak. This activates the revenge system that was referenced but never fully wired in the old scripts.
-- **Item unlocks:** Totem 1; netherite sword 2; netherite axe 5; enchanted gapple 8; netherite helmet 12; ender pearl 14 (max three); all configurable.
+- **Item progression still undecided:** Tentative thresholds remain under `killstreak.restrictions` as editable drafts, but **`killstreak.restrictions.enabled: false`** by default means none of them restrict player items. The player dashboard does not advertise item unlocks. Admins may explicitly turn rules on only after finalizing the design.
 - **Streak passives:** Fire Resistance from 4, Hero of the Village from 7, Weaving from 10, Speed I and Glowing from 15; max health grows as the original code specified (10 hearts plus one every two streaks from 3, capped at 20 hearts). Note: the original `/spreeinfo` text said 15-heart max, **but its running health code capped at 20**; the Java rewrite follows the running code.
 - **Spree tokens:** Item PDC owner/value ID, atomic claiming, own token restores -1 to zero without farming, old Skript token lore recognized.
 - **Events:** Hunt target compasses (+2 target, +3 hunter); Juggernaut (+10 max hearts, +2 on kill, +4 for killer who slays them); locator gamerule; Blood's Bane auto-awarded to the **highest online** streak of 15+; distinct timed Blood Moon (+1 kill), Surge (Strength I + Resistance I at 10+), Chaos (30% shorter relic cooldowns at 10+), and kill race (first 3 eligible kills wins 3 streak). Timed modes were displayed in the old admin GUI but not actually functional; these are newly implemented.
@@ -86,7 +86,7 @@ Slowness BlueIce Slow Harming Vine Harming  Leaping Rod Leaping   WaterBr Breeze
 
 ## Admin settings GUI
 
-Admins can open `/spree` → **Edit All Settings**. The editor enumerates *every scalar setting in the plugin's bundled defaults*, not a hardcoded short list. Settings are split into General, Killstreak/Health, Anti-farming, Revenge, Item Restrictions, Potion Bonuses, Passives, Legendary/Forge, each legendary weapon, Events, and Resource Pack Models.
+Admins can open `/spree` → **Edit All Settings**. The editor enumerates *every scalar setting in the plugin's bundled defaults*, not a hardcoded short list. Settings are split into General, Tab/Nametag Indicators, Killstreak/Health, Anti-farming, Revenge, Item Rules (WIP), Potion Bonuses, Passives, Legendary/Forge, each legendary weapon, Events, and Resource Pack Models.
 
 - **Boolean:** left click toggles ON/OFF.
 - **Number:** left click adds 1 (0.1 for decimal settings); right click subtracts 1; shift+left requests an exact value through chat.
@@ -121,3 +121,13 @@ Seven weapons use **one PDC item registry** and one shared listener, instead of 
 - `locatorBar` is a vanilla Minecraft gamerule. The event changes the rule in each loaded world via Paper's typed API.
 - Direct-health legendary effects may not obey all region-protection plugins. Aquafier's water absorption emits a block-break check, but test your actual protection setup rather than assuming it will block every situation.
 - The optional timed events were added where the original scripts had menu entries without functioning implementations; their exact balance is a new design choice, not a one-for-one port.
+
+
+## Version 1.2: private menus, player manager and streak nameplates
+
+- **Player `/spree` dashboard:** only personal streak, statistics, leaderboard, basic mechanic info and HUD toggle. **No event status, legendary list or unlock progression** is exposed. `/spreeinfo` no longer discloses event timing or unfinished item thresholds.
+- **Admin `/spreeadmin` player manager:** show online players or all stored profiles; search by name/UUID; see online state, best, kills and deaths; manage *offline* profiles without requiring those players to rejoin. Set exact streak by chat, quick-adjust ±1/±5, set Recovery (-1), and reset to zero with confirmation. Exact editors for personal best, kills, deaths and ended streak counts. Changes persist to `players.yml`.
+- **Tab and overhead indicators:** compact `✦ 12` after each player's name, with a configurable Recovery marker `↺`. Config paths are under `display.streak-indicators`; disable tab or nametag independently, or change the symbols through the admin settings GUI.
+- **Non-invasive nametags:** native scoreboard team suffixes are only added when a player is *not already in another team's scoreboard entry*. This deliberately avoids removing factions/party teams and altering friendly-fire or collision semantics. A pre-existing shared scoreboard team may prevent overhead indicators for its members; their tab indicators remain visible. If you use another nametag/team plugin, coordinate the integrations rather than forcing a team override.
+- **Tentative item rules inactive:** old draft thresholds remain editable for future decisions, but they are disabled by default. No server-wide inventory item confiscation while they're still being decided.
+

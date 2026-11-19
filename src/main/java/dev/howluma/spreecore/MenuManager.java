@@ -16,6 +16,14 @@ public final class MenuManager implements Listener {
     private final SpreeCorePlugin plugin;
     private final Map<UUID, Long> resetConfirm = new HashMap<>();
     private final Map<UUID, PendingEdit> editing = new HashMap<>();
+    private final Map<UUID, BrowserState> playerBrowser = new HashMap<>();
+    private final Map<UUID, PendingStatEdit> statEditing = new HashMap<>();
+    private final Set<UUID> searchEditing = new HashSet<>();
+    private final Map<UUID, ConfirmPlayerReset> playerResetConfirm = new HashMap<>();
+    private record BrowserState(int page, boolean onlineOnly, String search) {}
+    private enum PlayerField { STREAK, BEST, KILLS, DEATHS, ENDED }
+    private record PendingStatEdit(UUID target, PlayerField field) {}
+    private record ConfirmPlayerReset(UUID target, long until) {}
     private enum Screen { MAIN, ADMIN, PLAYERS, PLAYER, EVENTS, LEGENDARY, SETTINGS, SETTINGS_CATEGORY }
     private record PendingEdit(String path, String category, int page) {}
     private static final class Holder implements InventoryHolder {
@@ -61,17 +69,26 @@ public final class MenuManager implements Listener {
 
     public void openMain(Player p) {
         Holder h = holder(Screen.MAIN);
-        Inventory inv = create(h, 3, "&9&lSPREE &8| &fYour Dashboard");
-        var s = plugin.data().get(p);
-        inv.setItem(10, icon(Material.NETHER_STAR, "&b&lYour Killstreak", "&7Current: &b" + plugin.streaks().display(s.streak), "&7Personal best: &f"+s.best));
-        inv.setItem(12, icon(Material.NETHERITE_SWORD, "&fItem Unlocks", "&7Click to view progression"));
-        inv.setItem(14, icon(Material.WRITABLE_BOOK, "&fYour Stats", "&7Kills: &f"+s.kills, "&7Deaths: &f"+s.deaths, "&7Streaks ended: &f"+s.ended));
-        inv.setItem(16, icon(Material.PLAYER_HEAD, "&6Leaderboard", "&7Top killstreaks"));
-        inv.setItem(20, icon(Material.COMPASS, "&eLive Events", "&7Mode: &f"+plugin.events().mode(), "&7Timed event: &f"+plugin.events().timed()));
-        inv.setItem(22, icon(Material.DIAMOND_SWORD, "&bLegendary Weapons", "&7Browse weapons and forge status"));
+        Inventory inv = create(h, 3, "&9&lSPREE &8| &fDashboard");
+        var profile = plugin.data().get(p);
+        inv.setItem(11, icon(Material.NETHER_STAR, "&b&lYour Killstreak",
+                "&7Current: &b" + plugin.streaks().display(profile.streak),
+                "&7Personal best: &f" + profile.best));
+        inv.setItem(13, icon(Material.WRITABLE_BOOK, "&f&lYour Statistics",
+                "&7Kills: &f" + profile.kills, "&7Deaths: &f" + profile.deaths,
+                "&7Streaks ended: &f" + profile.ended, "&aClick for details"));
+        inv.setItem(15, icon(Material.PLAYER_HEAD, "&6&lLeaderboard",
+                "&7Compare killstreaks with other players", "&aClick to view"));
+        inv.setItem(20, icon(Material.BOOK, "&bHow Killstreaks Work",
+                "&7Health bonuses, recovery and rules", "&7Item progression is still being designed"));
+        inv.setItem(22, icon(profile.hideHud ? Material.GRAY_DYE : Material.LIME_DYE,
+                "&fKillstreak HUD: " + (profile.hideHud ? "&cOFF" : "&aON"),
+                "&7Toggle the action bar display", "&eClick to toggle"));
         if (p.hasPermission("spree.admin")) {
-            inv.setItem(18, icon(Material.COMMAND_BLOCK, "&eAdmin Dashboard", "&7Manage players, events and weapons"));
-            inv.setItem(24, icon(Material.COMPARATOR, "&a&lEdit All Settings", "&7Click to open the configuration editor", "&7Toggles, numbers and text without YAML"));
+            inv.setItem(18, icon(Material.COMMAND_BLOCK, "&eAdmin Control Center",
+                    "&7Player manager, events and legendaries"));
+            inv.setItem(24, icon(Material.COMPARATOR, "&aEdit Plugin Settings",
+                    "&7All configuration options, organized"));
         }
         inv.setItem(26, icon(Material.BARRIER, "&cClose"));
         p.openInventory(inv);
@@ -134,45 +151,100 @@ public final class MenuManager implements Listener {
         foot(inv,selected,max,"&bBack to Categories");
         p.openInventory(inv);
     }
-    public void openPlayers(Player p,int page) {
+    public void openPlayers(Player p, int page) {
+        BrowserState state = playerBrowser.getOrDefault(p.getUniqueId(), new BrowserState(0, true, ""));
+        openPlayers(p, new BrowserState(page, state.onlineOnly(), state.search()));
+    }
+    private void openPlayers(Player p, BrowserState requested) {
         if (!p.hasPermission("spree.admin")) return;
-        List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
-        online.sort(Comparator.comparing(Player::getName,String.CASE_INSENSITIVE_ORDER));
-        int max=Math.max(0,(online.size()-1)/45);
-        int selected=Math.max(0,Math.min(page,max));
-        Holder h=new Holder(Screen.PLAYERS,null,selected,null);
-        Inventory inv=create(h,6,"&8Players &7| &bPage "+(selected+1));
-        for(int i=0;i<45 && selected*45+i<online.size();i++) {
-            Player target=online.get(selected*45+i);
-            var profile=plugin.data().get(target);
-            h.players.put(i,target.getUniqueId());
-            inv.setItem(i,icon(Material.PLAYER_HEAD,"&f"+target.getName(),
-                    "&7Killstreak: &b"+plugin.streaks().display(profile.streak),"&7Kills: &f"+profile.kills,"&aClick to manage"));
+        List<PlayerDataStore.Profile> profiles = new ArrayList<>(plugin.data().all());
+        String query = requested.search().toLowerCase(Locale.ROOT);
+        profiles.removeIf(profile -> (requested.onlineOnly() && Bukkit.getPlayer(profile.id) == null)
+                || (!query.isBlank() && !profile.name.toLowerCase(Locale.ROOT).contains(query)
+                        && !profile.id.toString().contains(query)));
+        profiles.sort(Comparator.comparing((PlayerDataStore.Profile profile) -> Bukkit.getPlayer(profile.id) == null)
+                .thenComparing(profile -> profile.name, String.CASE_INSENSITIVE_ORDER));
+        int max = Math.max(0, (profiles.size() - 1) / 45);
+        int page = Math.max(0, Math.min(requested.page(), max));
+        BrowserState state = new BrowserState(page, requested.onlineOnly(), requested.search());
+        playerBrowser.put(p.getUniqueId(), state);
+        Holder h = new Holder(Screen.PLAYERS, null, page, null);
+        Inventory inv = create(h, 6, "&9&lSPREE &8| &fPlayer Manager");
+        for (int slot = 0; slot < 45 && page * 45 + slot < profiles.size(); slot++) {
+            var profile = profiles.get(page * 45 + slot);
+            Player online = Bukkit.getPlayer(profile.id);
+            h.players.put(slot, profile.id);
+            ItemStack head = icon(Material.PLAYER_HEAD, "&f&l" + profile.name,
+                    online == null ? "&8● Offline" : "&a● Online",
+                    "&7Killstreak: &b" + plugin.streaks().display(profile.streak),
+                    "&7Best: &f" + profile.best + "   &7K/D: &f" + profile.kills + "/" + profile.deaths,
+                    "&eClick to manage");
+            if (online != null && head.getItemMeta() instanceof org.bukkit.inventory.meta.SkullMeta skull) {
+                skull.setOwningPlayer(online);
+                head.setItemMeta(skull);
+            }
+            inv.setItem(slot, head);
         }
-        foot(inv,selected,max,"&bBack to Admin");
+        inv.setItem(45, icon(Material.ARROW, "&bPrevious Page", "&7Page " + (page + 1) + "/" + (max + 1)));
+        inv.setItem(46, icon(state.onlineOnly() ? Material.LIME_DYE : Material.CYAN_DYE,
+                "&fView: " + (state.onlineOnly() ? "&aOnline" : "&bAll Saved Players"),
+                "&7Show " + (state.onlineOnly() ? "offline players too" : "online players only"),
+                "&eClick to switch"));
+        inv.setItem(47, icon(Material.OAK_SIGN, "&bSearch Players",
+                "&7Search by name or UUID", "&7Current: &f" + (state.search().isBlank() ? "No filter" : state.search()),
+                "&eClick to enter a search"));
+        inv.setItem(48, icon(Material.MILK_BUCKET, "&7Clear Search", "&7Reset the name/UUID filter"));
+        inv.setItem(49, icon(Material.ARROW, "&bBack to Admin"));
+        inv.setItem(50, icon(Material.BOOK, "&f" + profiles.size() + " Players Found",
+                "&7Page " + (page + 1) + " of " + (max + 1),
+                "&7Online: &a" + Bukkit.getOnlinePlayers().size(),
+                "&7Stored profiles: &f" + plugin.data().all().size()));
+        inv.setItem(53, icon(Material.ARROW, "&bNext Page"));
         p.openInventory(inv);
     }
-    public void openPlayer(Player p,UUID id) {
+    public void openPlayer(Player p, UUID id) {
         if (!p.hasPermission("spree.admin")) return;
-        Player target=Bukkit.getPlayer(id);
-        if(target==null) {Text.send(p,"&cPlayer went offline. Use /spreeadmin set <name> <amount>.");openPlayers(p,0);return;}
-        var profile=plugin.data().get(target);
-        Holder h=new Holder(Screen.PLAYER,id,0,null);
-        Inventory inv=create(h,3,"&9Manage &7| &f"+target.getName());
-        inv.setItem(4,icon(Material.PLAYER_HEAD,"&f"+target.getName(),"&7Streak: &b"+plugin.streaks().display(profile.streak),
-                "&7Best: &f"+profile.best,"&7Kills: &f"+profile.kills,"&7Deaths: &f"+profile.deaths));
-        inv.setItem(10,icon(Material.EMERALD,"&aAdd 1"));
-        inv.setItem(11,icon(Material.EMERALD_BLOCK,"&aAdd 5"));
-        inv.setItem(12,icon(Material.REDSTONE,"&cRemove 1"));
-        inv.setItem(13,icon(Material.REDSTONE_BLOCK,"&cRemove 5"));
-        inv.setItem(14,icon(Material.BARRIER,"&4Reset to 0"));
-        inv.setItem(15,icon(Material.IRON_INGOT,"&7Set to 0"));
-        inv.setItem(16,icon(Material.GOLD_INGOT,"&eSet to 15"));
-        inv.setItem(17,icon(Material.NETHERITE_INGOT,"&bSet to 30"));
-        inv.setItem(26,icon(Material.ARROW,"&cBack to Players"));
+        var profile = plugin.data().get(id);
+        Player target = Bukkit.getPlayer(id);
+        Holder h = new Holder(Screen.PLAYER, id, 0, null);
+        Inventory inv = create(h, 6, "&9&lSPREE &8| &fManage " + profile.name);
+        inv.setItem(4, icon(Material.PLAYER_HEAD, "&b&l" + profile.name,
+                target != null ? "&aOnline" : "&8Offline - edits are saved",
+                "&7Current: &b" + plugin.streaks().display(profile.streak),
+                "&7Personal best: &f" + profile.best,
+                "&7Kills: &f" + profile.kills + " &8| &7Deaths: &f" + profile.deaths,
+                "&7Streaks ended: &f" + profile.ended));
+        inv.setItem(10, icon(Material.REDSTONE_BLOCK, "&c-5 Killstreak", "&7Decrease by five", "&7Minimum: 0"));
+        inv.setItem(11, icon(Material.REDSTONE, "&c-1 Killstreak", "&7Decrease by one", "&7Minimum: 0"));
+        inv.setItem(13, icon(Material.EMERALD, "&a+1 Killstreak", "&7Increase by one"));
+        inv.setItem(14, icon(Material.EMERALD_BLOCK, "&a+5 Killstreak", "&7Increase by five"));
+        inv.setItem(12, icon(Material.NETHER_STAR, "&b&lCurrent: " + plugin.streaks().display(profile.streak),
+                "&7Max: &f" + plugin.streaks().cap(), "&7Click Exact Value to set a number"));
+        inv.setItem(20, icon(Material.HEART_OF_THE_SEA, "&cSet Recovery State",
+                "&7Set killstreak to -1 (Recovery)", "&eClick to apply"));
+        inv.setItem(22, icon(Material.NAME_TAG, "&b&lSet Exact Killstreak",
+                "&7Enter any value from -1 to " + plugin.streaks().cap(), "&eClick to enter in chat"));
+        ConfirmPlayerReset confirm = playerResetConfirm.get(p.getUniqueId());
+        boolean awaiting = confirm != null && confirm.target().equals(id) && confirm.until() > System.currentTimeMillis();
+        inv.setItem(24, icon(awaiting ? Material.ORANGE_DYE : Material.BARRIER,
+                awaiting ? "&eClick Again to Reset" : "&cReset Killstreak to Zero",
+                "&7Only resets the current killstreak", awaiting ? "&cClick to confirm" : "&7Requires confirmation"));
+        inv.setItem(28, icon(Material.GOLDEN_APPLE, "&eEdit Personal Best", "&7Current: &f" + profile.best,
+                "&7Must be at least the current streak", "&eClick to enter an exact number"));
+        inv.setItem(30, icon(Material.IRON_SWORD, "&fEdit Total Kills", "&7Current: &f" + profile.kills,
+                "&eClick to enter an exact number"));
+        inv.setItem(32, icon(Material.SKELETON_SKULL, "&fEdit Total Deaths", "&7Current: &f" + profile.deaths,
+                "&eClick to enter an exact number"));
+        inv.setItem(34, icon(Material.BOOK, "&fEdit Streaks Ended", "&7Current: &f" + profile.ended,
+                "&eClick to enter an exact number"));
+        inv.setItem(40, icon(Material.CLOCK, "&aRefresh This Player",
+                target == null ? "&7Changes take effect on next login" : "&7Reapply health, buffs and nameplates"));
+        inv.setItem(49, icon(Material.ARROW, "&bBack to Players"));
+        inv.setItem(53, icon(Material.BARRIER, "&cClose"));
         p.openInventory(inv);
     }
     public void openEvents(Player p,boolean admin) {
+        if (!p.hasPermission("spree.admin")) return;
         Holder h=holder(Screen.EVENTS);Inventory inv=create(h,3,"&9&lSPREE &8| &fEvents");
         inv.setItem(10,icon(Material.COMPASS,"&6The Hunt", "&7Status: &f"+(plugin.events().mode()==EventManager.Mode.HUNT?"ON":"OFF")));
         inv.setItem(11,icon(Material.NETHERITE_CHESTPLATE,"&cJuggernaut", "&7Status: &f"+(plugin.events().mode()==EventManager.Mode.JUGGERNAUT?"ON":"OFF")));
@@ -189,6 +261,7 @@ public final class MenuManager implements Listener {
         p.openInventory(inv);
     }
     public void openLegendary(Player p) {
+        if (!p.hasPermission("spree.admin")) return;
         Holder h=holder(Screen.LEGENDARY);Inventory inv=create(h,3,"&9&lSPREE &8| &fLegendaries");
         LegendaryType[] types=LegendaryType.values();
         for(int i=0;i<types.length;i++) {
@@ -219,13 +292,12 @@ public final class MenuManager implements Listener {
         switch(h.screen) {
             case MAIN -> {
                 switch(slot) {
-                    case 12 -> p.performCommand("spreeinfo");
-                    case 14 -> p.performCommand("stats");
-                    case 16 -> p.performCommand("leaderboard");
-                    case 18 -> {if(p.hasPermission("spree.admin"))openAdmin(p);}
-                    case 20 -> openEvents(p,false);
-                    case 22 -> openLegendary(p);
-                    case 24 -> {if(p.hasPermission("spree.admin"))openSettings(p);}
+                    case 13 -> p.performCommand("stats");
+                    case 15 -> p.performCommand("leaderboard");
+                    case 18 -> { if (p.hasPermission("spree.admin")) openAdmin(p); }
+                    case 20 -> p.performCommand("spreeinfo");
+                    case 22 -> { p.performCommand("spreehud"); openMain(p); }
+                    case 24 -> { if (p.hasPermission("spree.admin")) openSettings(p); }
                     case 26 -> p.closeInventory();
                     default -> {}
                 }
@@ -267,27 +339,78 @@ public final class MenuManager implements Listener {
                 else if(h.entries.containsKey(slot))editClick(p,h,h.entries.get(slot),click);
             }
             case PLAYERS -> {
-                if(!p.hasPermission("spree.admin"))return;
-                if(slot==45)openPlayers(p,h.page-1);
-                else if(slot==53)openPlayers(p,h.page+1);
-                else if(slot==49)openAdmin(p);
-                else if(h.players.containsKey(slot))openPlayer(p,h.players.get(slot));
+                if (!p.hasPermission("spree.admin")) return;
+                BrowserState state = playerBrowser.getOrDefault(p.getUniqueId(), new BrowserState(0, true, ""));
+                if (slot == 45) openPlayers(p, h.page - 1);
+                else if (slot == 53) openPlayers(p, h.page + 1);
+                else if (slot == 49) openAdmin(p);
+                else if (slot == 46) openPlayers(p, new BrowserState(0, !state.onlineOnly(), state.search()));
+                else if (slot == 48) openPlayers(p, new BrowserState(0, state.onlineOnly(), ""));
+                else if (slot == 47) {
+                    searchEditing.add(p.getUniqueId());
+                    p.closeInventory();
+                    Text.send(p, plugin.prefix() + "&bEnter a player name or UUID in chat.");
+                    Text.send(p, "&7Use &fall &7to clear search or &ccancel &7to return.");
+                }
+                else if (h.players.containsKey(slot)) openPlayer(p, h.players.get(slot));
             }
             case PLAYER -> {
-                if(!p.hasPermission("spree.admin") || h.target==null)return;
-                if(slot==26){openPlayers(p,0);return;}
-                int current=plugin.data().get(h.target).streak;
-                Integer value=switch(slot) {
-                    case 10 -> current+1; case 11 -> current+5;
-                    case 12 -> current-1; case 13 -> current-5;
-                    case 14,15 -> 0; case 16 -> 15; case 17 -> 30;
+                if (!p.hasPermission("spree.admin") || h.target == null) return;
+                if (slot == 49) { openPlayers(p, playerBrowser.getOrDefault(p.getUniqueId(), new BrowserState(0, true, ""))); return; }
+                if (slot == 53) { p.closeInventory(); return; }
+                var profile = plugin.data().get(h.target);
+                Integer changed = switch(slot) {
+                    case 10 -> profile.streak < 0 ? -1 : Math.max(0, profile.streak - 5);
+                    case 11 -> profile.streak < 0 ? -1 : Math.max(0, profile.streak - 1);
+                    case 13 -> profile.streak + 1;
+                    case 14 -> profile.streak + 5;
                     default -> null;
                 };
-                if(value!=null){plugin.streaks().setStreak(h.target,value,true);openPlayer(p,h.target);}
+                if (changed != null) {
+                    plugin.streaks().setStreak(h.target, changed, true);
+                    playerResetConfirm.remove(p.getUniqueId());
+                    openPlayer(p, h.target);
+                    return;
+                }
+                switch(slot) {
+                    case 20 -> {
+                        plugin.streaks().setStreak(h.target, -1, false);
+                        playerResetConfirm.remove(p.getUniqueId());
+                        openPlayer(p, h.target);
+                    }
+                    case 22 -> promptStat(p, h.target, PlayerField.STREAK);
+                    case 24 -> {
+                        ConfirmPlayerReset confirm = playerResetConfirm.get(p.getUniqueId());
+                        if (confirm != null && confirm.target().equals(h.target)
+                                && confirm.until() > System.currentTimeMillis()) {
+                            plugin.streaks().setStreak(h.target, 0, true);
+                            playerResetConfirm.remove(p.getUniqueId());
+                            Text.send(p, plugin.prefix() + "&aReset " + profile.name + "'s killstreak to zero.");
+                        } else {
+                            playerResetConfirm.put(p.getUniqueId(),
+                                    new ConfirmPlayerReset(h.target, System.currentTimeMillis() + 6000L));
+                        }
+                        openPlayer(p, h.target);
+                    }
+                    case 28 -> promptStat(p, h.target, PlayerField.BEST);
+                    case 30 -> promptStat(p, h.target, PlayerField.KILLS);
+                    case 32 -> promptStat(p, h.target, PlayerField.DEATHS);
+                    case 34 -> promptStat(p, h.target, PlayerField.ENDED);
+                    case 40 -> {
+                        Player online = Bukkit.getPlayer(h.target);
+                        if (online != null) {
+                            plugin.streaks().update(online);
+                            plugin.indicators().refreshPlayer(online);
+                            Text.send(p, plugin.prefix() + "&aUpdated " + profile.name + "'s live effects.");
+                        } else Text.send(p, plugin.prefix() + "&7Offline: effects will update when the player logs in.");
+                        openPlayer(p, h.target);
+                    }
+                    default -> {}
+                }
             }
             case EVENTS -> {
-                if(slot==26){if(p.hasPermission("spree.admin"))openAdmin(p);else openMain(p);return;}
-                if(!p.hasPermission("spree.admin")){Text.send(p,"&cOnly admins may change events.");return;}
+                if (!p.hasPermission("spree.admin")) return;
+                if(slot==26){openAdmin(p);return;}
                 switch(slot) {
                     case 10 -> plugin.events().setMode(plugin.events().mode()==EventManager.Mode.HUNT?EventManager.Mode.NONE:EventManager.Mode.HUNT);
                     case 11 -> plugin.events().setMode(plugin.events().mode()==EventManager.Mode.JUGGERNAUT?EventManager.Mode.NONE:EventManager.Mode.JUGGERNAUT);
@@ -304,7 +427,8 @@ public final class MenuManager implements Listener {
                 openEvents(p,true);
             }
             case LEGENDARY -> {
-                if(slot==26){if(p.hasPermission("spree.admin"))openAdmin(p);else openMain(p);return;}
+                if (!p.hasPermission("spree.admin")) return;
+                if(slot==26){openAdmin(p);return;}
                 int index=slot-10;
                 if(index<0 || index>=LegendaryType.values().length)return;
                 LegendaryType type=LegendaryType.values()[index];
@@ -349,21 +473,87 @@ public final class MenuManager implements Listener {
         openConfigCategory(p,h.category,h.page);
     }
     private void report(Player p,ConfigEditor.Result r) {Text.send(p,plugin.prefix()+(r.success()?"&a":"&c")+r.message());}
-    public boolean submitInput(Player p,String input) {
-        PendingEdit pending=editing.get(p.getUniqueId());
-        if(pending==null)return false;
-        editing.remove(p.getUniqueId());
-        if(!p.hasPermission("spree.admin")){Text.send(p,"&cNo permission to edit settings.");return true;}
-        if(input.equalsIgnoreCase("cancel")){Text.send(p,"&7Edit cancelled.");openConfigCategory(p,pending.category,pending.page);return true;}
-        report(p,plugin.settings().set(pending.path,input));
-        openConfigCategory(p,pending.category,pending.page);
+    private void promptStat(Player admin, UUID target, PlayerField field) {
+        statEditing.put(admin.getUniqueId(), new PendingStatEdit(target, field));
+        admin.closeInventory();
+        Text.send(admin, plugin.prefix() + "&bEditing " + field.name().toLowerCase(Locale.ROOT)
+                + " &7for &f" + plugin.data().get(target).name + "&7.");
+        Text.send(admin, "&eEnter an exact number in chat (or /spree value <number>).");
+        Text.send(admin, "&7Type &ccancel &7to return without changes.");
+    }
+    private boolean submitStat(Player admin, PendingStatEdit pending, String input) {
+        int value;
+        try { value = Integer.parseInt(input.trim()); }
+        catch (NumberFormatException ex) {
+            Text.send(admin, "&cEnter a whole number (or cancel). Try again.");
+            return true;
+        }
+        var profile = plugin.data().get(pending.target());
+        int low = pending.field() == PlayerField.STREAK ? -1 : 0;
+        int high = pending.field() == PlayerField.STREAK ? plugin.streaks().cap() : 100000000;
+        if (value < low || value > high) {
+            Text.send(admin, "&cAllowed range: " + low + " to " + high + ". Try again.");
+            return true;
+        }
+        if (pending.field() == PlayerField.BEST && value < Math.max(0, profile.streak)) {
+            Text.send(admin, "&cPersonal best cannot be lower than the current streak. Try again.");
+            return true;
+        }
+        statEditing.remove(admin.getUniqueId());
+        switch (pending.field()) {
+            case STREAK -> plugin.streaks().setStreak(pending.target(), value, value >= 0);
+            case BEST -> profile.best = value;
+            case KILLS -> profile.kills = value;
+            case DEATHS -> profile.deaths = value;
+            case ENDED -> profile.ended = value;
+        }
+        plugin.data().dirty();
+        Text.send(admin, plugin.prefix() + "&aUpdated " + profile.name + "'s "
+                + pending.field().name().toLowerCase(Locale.ROOT) + " to " + value + ".");
+        openPlayer(admin, pending.target());
+        return true;
+    }
+    public boolean submitInput(Player p, String input) {
+        UUID id = p.getUniqueId();
+        if (!editing.containsKey(id) && !statEditing.containsKey(id) && !searchEditing.contains(id)) return false;
+        if (!p.hasPermission("spree.admin")) {
+            editing.remove(id); statEditing.remove(id); searchEditing.remove(id);
+            Text.send(p, "&cPermission required.");
+            return true;
+        }
+        if (searchEditing.remove(id)) {
+            BrowserState state = playerBrowser.getOrDefault(id, new BrowserState(0, true, ""));
+            if (!input.equalsIgnoreCase("cancel")) {
+                String query = input.trim().equalsIgnoreCase("all") ? "" : input.trim();
+                if (query.length() > 48) { Text.send(p, "&cSearch limited to 48 characters."); query = ""; }
+                openPlayers(p, new BrowserState(0, state.onlineOnly(), query));
+            } else openPlayers(p, state);
+            return true;
+        }
+        PendingStatEdit stat = statEditing.get(id);
+        if (stat != null) {
+            if (input.equalsIgnoreCase("cancel")) {
+                statEditing.remove(id);openPlayer(p, stat.target());return true;
+            }
+            return submitStat(p, stat, input);
+        }
+        PendingEdit pending = editing.remove(id);
+        if (pending == null) return false;
+        if (input.equalsIgnoreCase("cancel")) {
+            Text.send(p, "&7Edit cancelled.");
+            openConfigCategory(p, pending.category, pending.page);
+            return true;
+        }
+        report(p, plugin.settings().set(pending.path, input));
+        openConfigCategory(p, pending.category, pending.page);
         return true;
     }
     @SuppressWarnings("deprecation")
     @EventHandler(priority=EventPriority.LOWEST,ignoreCancelled=true)
     public void chat(AsyncPlayerChatEvent event) {
         UUID playerId=event.getPlayer().getUniqueId();
-        if(!editing.containsKey(playerId))return;
+        if(!editing.containsKey(playerId) && !statEditing.containsKey(playerId)
+                && !searchEditing.contains(playerId))return;
         event.setCancelled(true);
         String message=event.getMessage();
         Bukkit.getScheduler().runTask(plugin,()->{
@@ -375,6 +565,8 @@ public final class MenuManager implements Listener {
     @EventHandler public void quit(PlayerQuitEvent event) {
         UUID id=event.getPlayer().getUniqueId();
         editing.remove(id);resetConfirm.remove(id);
+        statEditing.remove(id); searchEditing.remove(id); playerBrowser.remove(id);
+        playerResetConfirm.remove(id);
     }
     @EventHandler public void drag(InventoryDragEvent event) {
         if(event.getView().getTopInventory().getHolder() instanceof Holder)event.setCancelled(true);

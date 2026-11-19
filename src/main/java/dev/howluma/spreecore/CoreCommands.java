@@ -85,10 +85,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         Text.send(sender,"&7Cap: &f"+plugin.streaks().cap()+" &7| Recovery state after natural death at zero");
         Text.send(sender,"&7Extra health: +1 heart at streaks 3, 5, 7, ... up to &f"+
                 plugin.getConfig().getInt("killstreak.max-health-hearts",20)+" hearts");
-        String root="killstreak.restrictions.";
-        for (String key:List.of("totem","netherite-sword","netherite-axe","enchanted-golden-apple","netherite-helmet","ender-pearl"))
-            Text.send(sender,"&b"+key.replace('-', ' ')+" &7unlocks at &f"+plugin.getConfig().getInt(root+key));
-        Text.send(sender,"&7Hunt: &f"+plugin.events().mode()+" &7| Timed: &f"+plugin.events().timed());
+        Text.send(sender,"&7Item progression rules are still being designed; no item unlocks are advertised.");
     }
     private Integer number(CommandSender sender,String s) {
         try {return Integer.parseInt(s);}catch(NumberFormatException e){message(sender,"&cInvalid number: "+s);return null;}
@@ -199,7 +196,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     }
     private void legendaryHelp(CommandSender sender) {
         Text.send(sender,"&9&lLEGENDARY &7- 7 weapons, 4 craftable forges");
-        Text.send(sender,"&f/legendary list &7| &f/legendary status");
+        Text.send(sender,"&f/legendary list &7| &f/legendary status &7(admin)");
         Text.send(sender,"&f/legendary give <weapon> [player] &7(admin)");
         Text.send(sender,"&f/legendary forge end <weapon> &7(admin)");
         Text.send(sender,"&f/legendary forge reset <weapon> &7(admin)");
@@ -207,6 +204,13 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         Text.send(sender,"&7Weapons: &f"+String.join(", ",LegendaryType.ids()));
     }
     private void legendaryCommand(CommandSender sender,String[] args) {
+        // Players can safely refresh their held weapon without seeing unreleased content.
+        if(args.length>0 && args[0].equalsIgnoreCase("refresh")) {
+            Player p=requirePlayer(sender);
+            if(p!=null)plugin.legendaries().refreshHeld(p);
+            return;
+        }
+        if(!admin(sender))return;
         if(args.length==0){
             if(sender instanceof Player p)plugin.menus().openLegendary(p);else legendaryHelp(sender);
             return;
@@ -260,11 +264,12 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             if(args.length==1)options=List.of("locator","hunt","juggernaut","bloodsbane","bloodmoon","surge","chaos","race");
             else if(args.length==2)options=List.of("on","off");
         }else if(root.equals("legendary")) {
-            if(args.length==1)options=List.of("list","status","refresh","give","forge");
-            else if(args.length==2 && args[0].equalsIgnoreCase("give"))options=LegendaryType.ids();
-            else if(args.length==2 && args[0].equalsIgnoreCase("forge"))options=List.of("end","reset");
-            else if(args.length==3 && args[0].equalsIgnoreCase("forge"))options=LegendaryType.ids();
-            else if(args.length==3 && args[0].equalsIgnoreCase("give"))options=Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+            if(args.length==1)options=sender.hasPermission("spree.admin")
+                    ? List.of("list","status","refresh","give","forge") : List.of("refresh");
+            else if(sender.hasPermission("spree.admin") && args.length==2 && args[0].equalsIgnoreCase("give"))options=LegendaryType.ids();
+            else if(sender.hasPermission("spree.admin") && args.length==2 && args[0].equalsIgnoreCase("forge"))options=List.of("end","reset");
+            else if(sender.hasPermission("spree.admin") && args.length==3 && args[0].equalsIgnoreCase("forge"))options=LegendaryType.ids();
+            else if(sender.hasPermission("spree.admin") && args.length==3 && args[0].equalsIgnoreCase("give"))options=Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
         }else if(List.of("stats","killstreak").contains(root) && args.length==1)
             options=plugin.data().all().stream().map(p->p.name).toList();
         String current=args.length>0?args[args.length-1].toLowerCase(Locale.ROOT):"";

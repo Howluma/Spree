@@ -19,8 +19,17 @@ Test on a **copy** of the server with the original ten Skript scripts disabled. 
 ## First launch / data
 
 - [ ] Plugin starts without `Skript`, and creates `plugins/SpreeCore/config.yml`.
-- [ ] `/spree`, `/spreeadmin`, `/spreeevent`, `/legendary` menus open and their buttons work.
-- [ ] `/spreeadmin set <player> 10` changes the actionbar, tab display, max health, permissions and unlocks.
+- [ ] Regular `/spree` shows personal stats, leaderboard, info and HUD only; no live events, legendary list or draft unlocks.
+- [ ] Ordinary players cannot browse `/legendary list`, `/legendary status`, or `/legendary` GUI; `/legendary refresh` still refreshes their held item.
+- [ ] Admin `/spreeadmin` → Players switches online/all profiles, searches by partial name/UUID, and navigates multiple pages.
+- [ ] Admin may open offline profiles and edit streak, best, kills, deaths and streaks ended without waiting for login.
+- [ ] Exact value chat prompts accept valid numbers, reject invalid ones, and `cancel` returns safely to the menu.
+- [ ] Reset current streak needs two clicks on the *same player* within six seconds; no accidental mass resets.
+- [ ] Tab renders `✦` plus the real streak number; nametag renders the compact suffix, and Recovery uses `↺`.
+- [ ] With a separate teams/scoreboard plugin, existing teams and friendly-fire remain intact; tab indicator still shows even if team collision prevents a nametag suffix.
+- [ ] `killstreak.restrictions.enabled` defaults off; no draft item restrictions or pearl cap are enforced before server approval.
+- [ ] `/spree`, `/spreeadmin`, `/spreeevent`, `/legendary` menus open for authorized players and their buttons work.
+- [ ] `/spreeadmin set <player> 10` changes the actionbar, tab display, overhead tag where compatible, and max health.
 - [ ] `/spreeadmin recovery <player>` displays `RECOVERY`; a legitimate kill restores positive streak.
 - [ ] A player at **0** dying to a mob goes to **-1** and drops one token; dying again at **-1** does not create more tokens.
 - [ ] Own token restores **-1** to **0** without granting killstreak; another player's token adds its value only once.
