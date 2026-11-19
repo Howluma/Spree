@@ -74,6 +74,7 @@ public final class StreakManager implements Listener {
             if (!gainedPerks.isEmpty())
                 Text.send(online, plugin.prefix() + "&9Perk gained: &f" + String.join("&7, ", gainedPerks));
             plugin.hunt().announceReached(online, old, newStreak);
+            plugin.progression().notifyMilestones(online, old, newStreak);
         }
         if (online != null) {
             // Do not change a dead player's inventory/health during PlayerDeathEvent:

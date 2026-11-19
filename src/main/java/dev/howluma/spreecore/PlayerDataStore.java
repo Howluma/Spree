@@ -23,6 +23,10 @@ public final class PlayerDataStore {
         public final Map<UUID, Long> recentVictims = new HashMap<>();
         /** Historical milestones are never rerolled, even after withdrawal or death. */
         public final Map<Integer, String> perkRolls = new TreeMap<>();
+        public final Map<Integer, String> privilegeChoices = new TreeMap<>();
+        public final Map<Integer, String> talentChoices = new TreeMap<>();
+        public final Map<Integer, String> infusionChoices = new TreeMap<>();
+        public final Map<Integer, List<String>> talentOffers = new TreeMap<>();
         /** Fractional credits make small XP/durability bonuses reliable over time. */
         public double durabilityCredit, experienceCredit;
         Profile(UUID id) { this.id = id; }
@@ -78,6 +82,20 @@ public final class PlayerDataStore {
                         p.perkRolls.put(level, perk);
                 } catch (NumberFormatException ignored) {}
             }
+            readChoices(section, "privilege-choices", p.privilegeChoices, ProgressionCatalog.Kind.PRIVILEGE);
+            readChoices(section, "talent-choices", p.talentChoices, ProgressionCatalog.Kind.TALENT);
+            readChoices(section, "infusion-choices", p.infusionChoices, ProgressionCatalog.Kind.INFUSION);
+            ConfigurationSection offers = section.getConfigurationSection("talent-offers");
+            if (offers != null) for (String key : offers.getKeys(false)) {
+                try {
+                    int milestone = Integer.parseInt(key);
+                    if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.TALENT, milestone)) continue;
+                    List<String> available = offers.getStringList(key).stream()
+                            .filter(s -> ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT, s) != null)
+                            .distinct().limit(3).toList();
+                    if (!available.isEmpty()) p.talentOffers.put(milestone, available);
+                } catch (NumberFormatException ignored) {}
+            }
             String revenge = section.getString("revenge-against");
             if (revenge != null) {
                 try { p.revengeAgainst = UUID.fromString(revenge); } catch (IllegalArgumentException ignored) {}
@@ -91,6 +109,21 @@ public final class PlayerDataStore {
         }
         dirty = false;
         plugin.getLogger().info("Loaded " + players.size() + " player profiles.");
+    }
+
+    private static void readChoices(ConfigurationSection section, String key, Map<Integer,String> target,
+                                    ProgressionCatalog.Kind kind) {
+        ConfigurationSection saved = section.getConfigurationSection(key);
+        if (saved == null) return;
+        for (String raw : saved.getKeys(false)) {
+            try {
+                int level = Integer.parseInt(raw);
+                String chosen = saved.getString(raw);
+                if (ProgressionCatalog.milestone(kind, level)
+                        && ProgressionCatalog.find(kind, chosen) != null)
+                    target.put(level, chosen);
+            } catch (NumberFormatException ignored) {}
+        }
     }
 
     /** No write each kill. Use a temporary file + atomic rename to resist partial writes. */
@@ -110,6 +143,14 @@ public final class PlayerDataStore {
             yml.set(path + "perk-experience-credit", p.experienceCredit);
             for (var roll : p.perkRolls.entrySet())
                 yml.set(path + "perk-rolls." + roll.getKey(), roll.getValue());
+            for (var entry : p.privilegeChoices.entrySet())
+                yml.set(path + "privilege-choices." + entry.getKey(), entry.getValue());
+            for (var entry : p.talentChoices.entrySet())
+                yml.set(path + "talent-choices." + entry.getKey(), entry.getValue());
+            for (var entry : p.infusionChoices.entrySet())
+                yml.set(path + "infusion-choices." + entry.getKey(), entry.getValue());
+            for (var entry : p.talentOffers.entrySet())
+                yml.set(path + "talent-offers." + entry.getKey(), entry.getValue());
             if (p.revengeAgainst != null) yml.set(path + "revenge-against", p.revengeAgainst.toString());
             for (var recent : p.recentVictims.entrySet())
                 yml.set(path + "recent-victims." + recent.getKey(), recent.getValue());

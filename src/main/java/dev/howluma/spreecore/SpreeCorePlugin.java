@@ -20,6 +20,10 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private PerkManager perks;
     private CapacityPerk capacity;
     private HuntManager hunt;
+    private ProgressionManager progression;
+    private FateSigil fate;
+    private ProgressionMenu progressMenus;
+    private PrivilegeRules privilegeRules;
     private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
@@ -30,6 +34,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
         data = new PlayerDataStore(this);
         perks = new PerkManager(this);
         capacity = new CapacityPerk(this);
+        fate = new FateSigil(this);
+        progression = new ProgressionManager(this);
         perks.initializeExisting();
         legendaries = new LegendaryManager(this);
         streaks = new StreakManager(this);
@@ -40,6 +46,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
         indicators = new StreakIndicators(this);
         combat = new CombatManager(this);
         hunt = new HuntManager(this);
+        privilegeRules = new PrivilegeRules(this);
+        progressMenus = new ProgressionMenu(this);
         Bukkit.getPluginManager().registerEvents(streaks, this);
         Bukkit.getPluginManager().registerEvents(legendaries, this);
         Bukkit.getPluginManager().registerEvents(forges, this);
@@ -51,12 +59,16 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(perks, this);
         Bukkit.getPluginManager().registerEvents(capacity, this);
         Bukkit.getPluginManager().registerEvents(hunt, this);
+        Bukkit.getPluginManager().registerEvents(fate, this);
+        Bukkit.getPluginManager().registerEvents(progressMenus, this);
+        Bukkit.getPluginManager().registerEvents(privilegeRules, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
                 "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
             Objects.requireNonNull(getCommand(command)).setTabCompleter(commands);
         }
         forges.registerRecipes();
+        fate.registerRecipe();
         Bukkit.getScheduler().runTaskTimer(this, this::heartbeat, 20L, 20L);
         scheduleConfigurableTasks();
         getLogger().info("SpreeCore enabled. No Skript dependency required.");
@@ -66,6 +78,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         heartbeatCount++;
         events.tick();
         hunt.tick();
+        privilegeRules.tick();
         forges.tick();
         legendaries.tick();
         // Potions/health only need refreshing every 4 seconds, not scanning inventories each tick.
@@ -105,6 +118,10 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public PerkManager perks() { return perks; }
     public CapacityPerk capacity() { return capacity; }
     public HuntManager hunt() { return hunt; }
+    public ProgressionManager progression() { return progression; }
+    public FateSigil fate() { return fate; }
+    public ProgressionMenu progressMenus() { return progressMenus; }
+    public PrivilegeRules privilegeRules() { return privilegeRules; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
@@ -178,6 +195,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         migrateLegacySettings();
         scheduleConfigurableTasks();
         forges.registerRecipes();
+        fate.registerRecipe();
         for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
         perks.initializeExisting();
         streaks.refreshOnline();
