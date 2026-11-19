@@ -2,6 +2,7 @@ package dev.howluma.spreecore;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 import java.util.Objects;
 
 public final class SpreeCorePlugin extends JavaPlugin {
@@ -12,9 +13,14 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private EventManager events;
     private MenuManager menus;
     private CoreCommands commands;
+    private ConfigEditor settings;
+    private ModelData models;
+    private BukkitTask hudTask, saveTask;
 
     @Override public void onEnable() {
         saveDefaultConfig();
+        settings = new ConfigEditor(this);
+        models = new ModelData(this);
         data = new PlayerDataStore(this);
         legendaries = new LegendaryManager(this);
         streaks = new StreakManager(this);
@@ -33,12 +39,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
             Objects.requireNonNull(getCommand(command)).setTabCompleter(commands);
         }
         forges.registerRecipes();
-        long hudInterval = Math.max(10, getConfig().getLong("general.actionbar-interval-ticks", 40));
         Bukkit.getScheduler().runTaskTimer(this, this::heartbeat, 20L, 20L);
-        Bukkit.getScheduler().runTaskTimer(this, streaks::renderHud, hudInterval, hudInterval);
-        Bukkit.getScheduler().runTaskTimer(this, () -> data.save(),
-                20L * Math.max(30, getConfig().getLong("general.save-interval-seconds", 120)),
-                20L * Math.max(30, getConfig().getLong("general.save-interval-seconds", 120)));
+        scheduleConfigurableTasks();
         getLogger().info("SpreeCore enabled. No Skript dependency required.");
     }
     private int heartbeatCount;
@@ -52,7 +54,17 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (heartbeatCount % 10 == 0) legendaries.syncBloodsBane();
         if (heartbeatCount % 30 == 0) streaks.safetyInventoryCheck();
     }
+    private void scheduleConfigurableTasks() {
+        if (hudTask != null) hudTask.cancel();
+        if (saveTask != null) saveTask.cancel();
+        long hudInterval = Math.max(10, getConfig().getLong("general.actionbar-interval-ticks", 40));
+        long saveInterval = 20L * Math.max(30, getConfig().getLong("general.save-interval-seconds", 120));
+        hudTask = Bukkit.getScheduler().runTaskTimer(this, streaks::renderHud, hudInterval, hudInterval);
+        saveTask = Bukkit.getScheduler().runTaskTimer(this, data::save, saveInterval, saveInterval);
+    }
     @Override public void onDisable() {
+        if (hudTask != null) hudTask.cancel();
+        if (saveTask != null) saveTask.cancel();
         if (forges != null) forges.shutdown();
         if (events != null) events.shutdown();
         if (streaks != null) streaks.shutdown();
@@ -64,10 +76,14 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public ForgeManager forges() { return forges; }
     public EventManager events() { return events; }
     public MenuManager menus() { return menus; }
+    public ConfigEditor settings() { return settings; }
+    public ModelData models() { return models; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     public void reloadSpreeConfiguration() {
         reloadConfig();
+        scheduleConfigurableTasks();
         forges.registerRecipes();
+        for (var player : Bukkit.getOnlinePlayers()) legendaries.migrate(player);
         streaks.refreshOnline();
         legendaries.syncBloodsBane();
     }

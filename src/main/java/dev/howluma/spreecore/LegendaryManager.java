@@ -67,6 +67,7 @@ public final class LegendaryManager implements Listener {
         meta.setDisplayName(Text.c(type.coloredName));
         meta.setLore(buildLore(type, test));
         meta.getPersistentDataContainer().set(itemId, PersistentDataType.STRING, type.id);
+        plugin.models().legendary(meta, type);
         if (test) meta.getPersistentDataContainer().set(testId, PersistentDataType.BYTE, (byte) 1);
         stack.setItemMeta(meta);
         return stack;
@@ -123,21 +124,30 @@ public final class LegendaryManager implements Listener {
         List<String> lore = item.getItemMeta().getLore();
         return lore != null && lore.stream().anyMatch(s -> ChatColor.stripColor(s).contains("Test Copy"));
     }
+    /** Upgrade old inventory relics in place, including existing PDC-tagged relics without models. */
     public int migrate(Player player) {
         int migrated = 0;
         ItemStack[] contents = player.getInventory().getContents();
+        boolean inventoryChanged = false;
         for (int slot = 0; slot < contents.length; slot++) {
             ItemStack item = contents[slot];
-            LegendaryType t = type(item);
-            if (t == null || item.getItemMeta().getPersistentDataContainer().has(itemId)) continue;
+            LegendaryType type = type(item);
+            if (type == null) continue;
             ItemMeta meta = item.getItemMeta();
-            meta.getPersistentDataContainer().set(itemId, PersistentDataType.STRING, t.id);
-            if (testCopy(item)) meta.getPersistentDataContainer().set(testId, PersistentDataType.BYTE, (byte)1);
-            item.setItemMeta(meta);
-            contents[slot] = item;
-            migrated++;
+            boolean wasTagged = meta.getPersistentDataContainer().has(itemId);
+            if (!wasTagged) {
+                meta.getPersistentDataContainer().set(itemId, PersistentDataType.STRING, type.id);
+                if (testCopy(item)) meta.getPersistentDataContainer().set(testId, PersistentDataType.BYTE, (byte)1);
+                migrated++;
+            }
+            boolean visualChanged = plugin.models().legendary(meta, type);
+            if (!wasTagged || visualChanged) {
+                item.setItemMeta(meta);
+                contents[slot] = item;
+                inventoryChanged = true;
+            }
         }
-        player.getInventory().setContents(contents);
+        if (inventoryChanged) player.getInventory().setContents(contents);
         return migrated;
     }
     public void refreshHeld(Player player) {
@@ -147,6 +157,7 @@ public final class LegendaryManager implements Listener {
         ItemMeta meta = held.getItemMeta();
         meta.setDisplayName(Text.c(t.coloredName));
         meta.setLore(buildLore(t, testCopy(held)));
+        plugin.models().legendary(meta, t);
         held.setItemMeta(meta);
         Text.action(player, "&aUpdated lore for " + t.display);
     }

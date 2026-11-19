@@ -2,6 +2,20 @@
 
 Test on a **copy** of the server with the original ten Skript scripts disabled. Use Paper 1.21.11 and Java 21. Check the server console for exceptions after **every** test.
 
+## Admin GUI and resource pack (1.1)
+
+- [ ] `/spree` shows the extra Admin Dashboard and Edit All Settings buttons only to `spree.admin` holders.
+- [ ] `/spree settings` lists every bundled config category and no ordinary players can open it.
+- [ ] Browse each category, toggle a boolean, increase/decrease numeric settings and shift-left to enter an exact value through chat.
+- [ ] `/spree value 0.12` works for pending chat edits, `cancel` cancels edits and shift-right resets defaults.
+- [ ] Invalid input (negative streak cap, chance >1, nonnumeric number) is rejected and never saved.
+- [ ] Changes persist after restart; config values take effect with no restart, including actionbar and autosave periods.
+- [ ] Try rapid shift-clicks, number keys, dragged items, offhand swaps and bottom-inventory interactions; nothing can be removed from a GUI.
+- [ ] Custom legendary models render correctly with the actual installed resource pack; without it every weapon remains the correct vanilla weapon.
+- [ ] Spree Token is a custom texture with the pack but a normal Heart of the Sea without it.
+- [ ] Old legendary items in online player inventories migrate to new custom_model_data; original enchantments and PDC IDs remain.
+- [ ] The model adapter does not overwrite existing weapon/crossbow pack overrides or break crossbow loading animations.
+
 ## First launch / data
 
 - [ ] Plugin starts without `Skript`, and creates `plugins/SpreeCore/config.yml`.
@@ -39,4 +53,4 @@ Test on a **copy** of the server with the original ten Skript scripts disabled. 
 - [ ] `/spreeadmin reload` applies config changes. Adjust 5-minute events and forge timers downward temporarily for the tests.
 - [ ] If migrating, back up original Skript variables and examine `/spreeadmin importskript` output before enabling `force`.
 
-**Testing note:** This source distribution was syntax-checked and its standalone streak arithmetic tested, but the complete Paper dependency-backed build and live in-game integration tests were unavailable in the generation environment. The included GitHub Actions workflow runs `gradle clean test build` to validate compilation and JUnit tests before creating a JAR.
+**Testing note:** GitHub Actions builds and runs JUnit tests against the Paper 1.21.11 API. Passing CI establishes compilation and arithmetic/config validation only. Run the above manual integration tests in-game before deploying on the live SMP.

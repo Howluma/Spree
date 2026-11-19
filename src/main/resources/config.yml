@@ -1,4 +1,5 @@
-# SpreeCore 1.0 - change numbers and use /spreeadmin reload.
+# SpreeCore 1.1 - admins can edit every setting in /spree > Edit All Settings.
+# Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
   prefix: '&9&lSPREE &8| &f'
@@ -139,3 +140,18 @@ events:
     race:
       kills-to-win: 3
       winner-bonus: 3
+
+# Client-only textures: vanilla item_model remains unchanged. No resource pack = vanilla models.
+# Merge the optional SpreeCore resource-pack bridge JSON files into your own pack.
+# If you modify a numeric selector here, you must match it in the pack JSON.
+resource-pack:
+  enabled: true
+  models:
+    tundra: 721001
+    butcherer: 721002
+    stormbreaker: 721003
+    aquafier: 721004
+    darkheart: 721005
+    hailstorm: 721006
+    bloodsbane: 721007
+    token: 721050
