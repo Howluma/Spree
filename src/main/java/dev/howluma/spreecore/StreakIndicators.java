@@ -5,11 +5,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.*;
 
@@ -71,6 +74,14 @@ public final class StreakIndicators implements Listener {
     private String recoverySymbol() { return safeSymbol("display.streak-indicators.fractured-symbol", "✕"); }
     private boolean tabEnabled() { return plugin.getConfig().getBoolean("display.streak-indicators.tab-enabled", true); }
     private boolean tagEnabled() { return plugin.getConfig().getBoolean("display.streak-indicators.nametag-enabled", true); }
+    private boolean freezeTabWhileInvisible() {
+        return plugin.getConfig().getBoolean("display.streak-indicators.freeze-tab-while-invisible", true);
+    }
+
+    /** An invisible player's last published tab label stays unchanged, without freezing actual streak logic. */
+    static boolean mayPublishTab(boolean hasInvisibilityEffect, boolean freezeWhileInvisible) {
+        return !freezeWhileInvisible || !hasInvisibilityEffect;
+    }
 
     private boolean glowMilestone(int streak) {
         return MilestoneEffects.unlocked(streak,
@@ -122,9 +133,14 @@ public final class StreakIndicators implements Listener {
         if (!player.isOnline()) return;
         if (tabEnabled()) {
             previousTabNames.putIfAbsent(player.getUniqueId(), player.getPlayerListName());
-            int streak = plugin.streaks().streak(player);
-            String display = Text.c(tabLabel(player.getName(), streak, symbol(), recoverySymbol(), streakColor(streak)));
-            if (!display.equals(player.getPlayerListName())) player.setPlayerListName(display);
+            // Freeze ONLY the tab display, not nametags, glowing, health, rewards,
+            // milestone buffs, HUD, or internal /killstreak values. A player
+            // who joins already invisible keeps their existing tab label.
+            if (mayPublishTab(player.hasPotionEffect(PotionEffectType.INVISIBILITY), freezeTabWhileInvisible())) {
+                int streak = plugin.streaks().streak(player);
+                String display = Text.c(tabLabel(player.getName(), streak, symbol(), recoverySymbol(), streakColor(streak)));
+                if (!display.equals(player.getPlayerListName())) player.setPlayerListName(display);
+            }
         } else restoreTab(player);
         // Glow colors require a team even with the nametag indicator disabled.
         // Never steal a team owned by another plugin (friendly-fire/collision).
@@ -195,6 +211,20 @@ public final class StreakIndicators implements Listener {
         removeAllTags();
         for (Player player : Bukkit.getOnlinePlayers()) restoreTab(player);
         previousTabNames.clear();
+    }
+    /**
+     * Refresh one tick after potion changes so we see the final effect state.
+     * Expiration, milk, commands and other removal causes all unfreeze the tab
+     * automatically. Refreshing on application is safe: the invisible guard
+     * retains the previously published streak number.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void invisibilityChanged(EntityPotionEffectEvent event) {
+        if (!(event.getEntity() instanceof Player player)
+                || event.getModifiedType() != PotionEffectType.INVISIBILITY) return;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (player.isOnline()) refreshPlayer(player);
+        });
     }
     @EventHandler public void join(PlayerJoinEvent event) {
         // Newly joined players may be assigned a third-party scoreboard just after join.

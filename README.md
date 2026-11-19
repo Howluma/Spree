@@ -1,16 +1,16 @@
-# SpreeCore v1.5.3 — Spree SMP
+# SpreeCore v1.5.4 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
 
 ## Upgrade and installation
 
 1. Back up the world and `plugins/SpreeCore/` (especially `players.yml` and `config.yml`). Test on a **separate server** first.
-2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.5.3.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
+2. Stop Paper, replace the existing SpreeCore JAR with `SpreeCore-1.5.4.jar`, and keep the ten original `.sk` scripts disabled to avoid double-handling events.
 3. Start the server with Java 21. SpreeCore upgrades the existing configuration on startup without resetting player profiles. Old passive/potion/item-lock settings are intentionally deleted from the active YAML and editor.
 4. Use `/spree settings` or `/spreesettings` as an operator, or with `spree.admin`, to inspect/edit all active settings. `/spreecore:spree settings` works when a separate plugin owns `/spree`.
 5. Test the new hearts and mace gate in-game before deploying to a live SMP. Compilation and automated tests do not substitute for real-server testing.
 
-Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.5.3.jar`. GitHub Actions publishes the build artifact after each push.
+Build yourself: `gradle clean test build` with Java 21 and Gradle 8.14+. The JAR appears at `build/libs/SpreeCore-1.5.4.jar`. GitHub Actions publishes the build artifact after each push.
 
 ## Interim killstreak progression (v1.4)
 
@@ -133,6 +133,25 @@ automatically; custom server labels are preserved.
 The four milestone levels are editable through `/spree settings` >
 **Milestone Buffs**. A lost streak removes only SpreeCore-owned buffs;
 independent potions and stronger legendary abilities are not intentionally removed.
+
+## Invisibility and tab-list privacy (v1.5.4)
+
+While a player has the **Invisibility potion effect**, SpreeCore keeps their
+previously displayed killstreak number and color unchanged **in the tab list
+only**. Their actual streak still changes immediately through kills, Spree
+withdrawals/consumables, deaths, anti-farming, etc. Hearts, milestone buffs,
+glowing, action bar, /killstreak, and nametag systems remain functional.
+This means an invisible player who gains 5 -> 10 streak may still appear as
+5 in tab, then switch to 10 when invisibility ends.
+
+SpreeCore listens to invisibility effect changes (including natural expiration,
+milk, and commands) and refreshes the player's tab entry on the next tick,
+without waiting for the periodic indicator refresh. If a player joins while
+already invisible, their initial tab display remains unchanged until visible.
+
+Admins can turn this off in `/spree settings` > **Tab & Nametag Indicators**
+using `display.streak-indicators.freeze-tab-while-invisible`, default true.
+Existing server configs receive the new default without resetting other values.
 
 ## Dark-blue theme and tiered killstreak colors
 

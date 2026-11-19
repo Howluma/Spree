@@ -1,4 +1,4 @@
-# SpreeCore 1.5.2 - secure Spree withdrawal with inventory validation.
+# SpreeCore 1.5.4 - invisibility-safe tab list killstreak updates.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -15,6 +15,9 @@ general:
 display:
   streak-indicators:
     tab-enabled: true
+    # While the Invisibility potion effect is active, the tab list keeps the
+    # last shown killstreak until the effect ends. Actual streak mechanics continue.
+    freeze-tab-while-invisible: true
     nametag-enabled: true
     symbol: '⚔'
     fractured-symbol: '✕'

@@ -1,6 +1,17 @@
-# SpreeCore v1.5.3 — test-server checklist
+# SpreeCore v1.5.4 — test-server checklist
 
 Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
+
+## Invisibility tab-list freeze (v1.5.4)
+
+- [ ] At streak 4, take an Invisibility potion, earn a kill: tab still says 4 (gray) while /killstreak and actual perks update to 5.
+- [ ] While invisible, level up across 5, 10, 15 and 20; tab number/color remain exactly as displayed before invis, while health, buffs, action bar, and other gameplay are correct.
+- [ ] Natural potion expiration updates tab promptly to the *current* level and correct five-kill color, without requiring relog.
+- [ ] Milk bucket / effect removal via commands also immediately refreshes the tab after the effect is gone.
+- [ ] An invisible player who dies or withdraws Spree retains old tab but loses health/perks and streak correctly; Fractured state updates in tab after invis ends.
+- [ ] A player who logs in already invisible keeps their existing tab label and updates on effect expiration.
+- [ ] If the admin disables freeze-tab-while-invisible, streak changes immediately appear in tab even when invisible.
+- [ ] No `|` divider is introduced in nametags or action bar; these remain functional and unchanged.
 
 ## Official pack and vanilla-client compatibility (v1.5.3)
 

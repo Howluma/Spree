@@ -42,6 +42,15 @@ class StreakIndicatorsTest {
         assertEquals(org.bukkit.ChatColor.RED, StreakIndicators.glowColor("<#FF5555>&l"));
         assertEquals(org.bukkit.ChatColor.WHITE, StreakIndicators.glowColor("not-a-color"));
     }
+    @Test void invisibilityFreezesOnlyPublishedTabAndResumesAfterExpiry() {
+        assertTrue(StreakIndicators.mayPublishTab(false, true), "Normal: update instantly");
+        assertFalse(StreakIndicators.mayPublishTab(true, true), "Invisible: preserve old tab value");
+        assertTrue(StreakIndicators.mayPublishTab(false, true), "Milk or expiry: reveal actual streak");
+        assertTrue(StreakIndicators.mayPublishTab(true, false), "Admin toggle off: update as normal");
+        // Never change the shared tab-format rules: separator and tiered number colors.
+        assertEquals("&fHowluma &8| &9\u2694 &e&l12",
+                StreakIndicators.tabLabel("Howluma", 12, "\u2694", "\u2715"));
+    }
     @Test void fracturedIsAStatusNotAMinusOne() {
         String tab = StreakIndicators.tabLabel("Howluma", -1, "\u2694", "\u2715");
         assertEquals("&fHowluma &8| &9\u2694 &c&l\u2715", tab);
