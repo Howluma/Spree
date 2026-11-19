@@ -23,7 +23,7 @@ final class MilestoneEffects {
 
     /** Zero or Fractured can never gain a positive-streak perk. */
     static boolean unlocked(int streak, int level) {
-        return streak >= Math.max(1, level);
+        return level <= SpreeMath.BENEFIT_CAP && streak >= Math.max(1, level);
     }
 
     void refresh(Player player, int streak, boolean eventGlow) {
