@@ -101,7 +101,7 @@ public final class ProgressionManager {
                 .filter(o -> replacing && (kind == ProgressionCatalog.Kind.PRIVILEGE
                         || kind == ProgressionCatalog.Kind.INFUSION)
                         ? !o.id().equals(own)
-                        : !taken.contains(o.id()) && (!replacing || !o.id().equals(own)))
+                        : !taken.contains(o.id()) && !o.id().equals(own))
                 .toList();
     }
 
