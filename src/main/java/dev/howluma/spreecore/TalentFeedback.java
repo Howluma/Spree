@@ -114,7 +114,7 @@ public final class TalentFeedback implements Listener {
             case "second_wind","field_medic","bloodlust" -> Particle.HEART;
             case "iron_will","golden_aegis" -> Particle.ENCHANT;
             case "escape_artist","windrunner","acrobat" -> Particle.CLOUD;
-            case "scavenger","blacksmith","industrious" -> Particle.HAPPY_VILLAGER;
+            case "scavenger","blacksmith" -> Particle.HAPPY_VILLAGER;
             case "streak_insurance" -> Particle.TOTEM_OF_UNDYING;
             case "executioner" -> Particle.DAMAGE_INDICATOR;
             default -> Particle.END_ROD;
