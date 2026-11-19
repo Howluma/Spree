@@ -348,6 +348,8 @@ public final class TalentEffects implements Listener {
                     free+=Math.max(0,item.getMaxStackSize()-item.getAmount());
                 }
             }
+            ItemStack offhand=attacker.getInventory().getItemInOffHand();
+            if(offhand.getType()==Material.WIND_CHARGE)held+=offhand.getAmount();
             // This chance does not spend its cooldown if the inventory is full,
             // or if the configured carrying limit has already been reached.
             int amount=Math.min(ti("scavenger.wind-charges",4),Math.min(
