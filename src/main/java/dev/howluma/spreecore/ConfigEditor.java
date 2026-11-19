@@ -101,10 +101,10 @@ public final class ConfigEditor {
     public static String validate(String path, Object value) {
         if (path.startsWith("fate-sigil.recipe.slot-")) {
             if (!(value instanceof String input)) return "Enter a material name.";
-            if (input.equalsIgnoreCase("AIR")) return null;
+            if (input.equalsIgnoreCase("AIR") || input.equalsIgnoreCase("SPREE_ITEM")) return null;
             Material m=Material.matchMaterial(input.trim());
             return m!=null && m.isItem() && !m.isAir()
-                    ? null : "Use a valid item name such as DIAMOND, or AIR for an empty slot.";
+                    ? null : "Use a valid material, SPREE_ITEM for a tagged Spree consumable, or AIR for an empty slot.";
         }
         if (path.equals("fate-sigil.recipe.result-amount") && value instanceof Number amount)
             return between(amount.doubleValue(),1,16);
