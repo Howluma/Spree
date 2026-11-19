@@ -59,7 +59,6 @@ public final class SpreeCorePlugin extends JavaPlugin {
         // Potions/health only need refreshing every 4 seconds, not scanning inventories each tick.
         if (heartbeatCount % 4 == 0) streaks.refreshOnline();
         if (heartbeatCount % 10 == 0) { legendaries.syncBloodsBane(); indicators.refreshOnline(); }
-        if (heartbeatCount % 30 == 0) streaks.safetyInventoryCheck();
     }
     private void scheduleConfigurableTasks() {
         if (hudTask != null) hudTask.cancel();
@@ -112,9 +111,9 @@ public final class SpreeCorePlugin extends JavaPlugin {
             getConfig().set("general.recovery-label", null);
             changed = true;
         }
-        String symbol = getConfig().getString("display.streak-indicators.symbol", "◆");
-        if ("✦".equals(symbol)) {
-            getConfig().set("display.streak-indicators.symbol", "◆");
+        String symbol = getConfig().getString("display.streak-indicators.symbol", "⚔");
+        if ("✦".equals(symbol) || "◆".equals(symbol)) {
+            getConfig().set("display.streak-indicators.symbol", "⚔");
             changed = true;
         }
         String fractured = getConfig().getString("display.streak-indicators.recovery-symbol");
@@ -130,6 +129,15 @@ public final class SpreeCorePlugin extends JavaPlugin {
                     getConfig().getBoolean(oldFarmRule, true));
             getConfig().set(oldFarmRule, null);
             changed = true;
+        }
+        // The old progression is retired. Remove saved legacy settings too,
+        // otherwise it would appear that the old perks are still configurable.
+        for (String removed : new String[]{"killstreak.max-health-hearts", "killstreak.potion-bonuses",
+                "killstreak.passives", "killstreak.restrictions", "events.timed.surge"}) {
+            if (getConfig().isSet(removed)) {
+                getConfig().set(removed, null);
+                changed = true;
+            }
         }
         if (changed) saveConfig();
     }

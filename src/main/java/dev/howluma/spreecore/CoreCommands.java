@@ -92,9 +92,11 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     private void showInfo(CommandSender sender) {
         Text.send(sender,"&9&lSPREE &7- Killstreak Mechanics");
         Text.send(sender,"&7Cap: &f"+plugin.streaks().cap()+" &7| Fractured Killstreak after an environmental death at zero");
-        Text.send(sender,"&7Extra health: +1 heart at streaks 3, 5, 7, ... up to &f"+
-                plugin.getConfig().getInt("killstreak.max-health-hearts",20)+" hearts");
-        Text.send(sender,"&7Item progression rules are still being designed; no item unlocks are advertised.");
+        Text.send(sender,"&7Health: +" + ConfigEditor.format(plugin.getConfig().getDouble("killstreak.health-per-level-hearts", 0.5))
+                + " heart per positive level; Fractured has the normal base health.");
+        Text.send(sender,"&7Mace attacks unlock at killstreak &9&l" +
+                plugin.getConfig().getInt("killstreak.mace-unlock-level",1) + "&7.");
+        Text.send(sender,"&7Other killstreak perks and item unlocks are paused for redesign.");
     }
     private Integer number(CommandSender sender,String s) {
         try {return Integer.parseInt(s);}catch(NumberFormatException e){message(sender,"&cInvalid number: "+s);return null;}
@@ -130,7 +132,6 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 SkriptImporter.Result result=SkriptImporter.importDefault(plugin,force);
                 message(sender,result.summary());
                 plugin.streaks().refreshOnline();
-                plugin.streaks().safetyInventoryCheck();
                 plugin.legendaries().syncBloodsBane();
             }
             case "resetall" -> {
@@ -155,8 +156,8 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 if(args.length>=2){
                     Player p=Bukkit.getPlayerExact(args[1]);
                     if(p==null){message(sender,"&cTarget must be online.");return;}
-                    plugin.streaks().update(p);plugin.streaks().enforceInventory(p);
-                }else{plugin.streaks().refreshOnline();plugin.streaks().safetyInventoryCheck();}
+                    plugin.streaks().update(p);
+                }else{plugin.streaks().refreshOnline();}
                 message(sender,"&aRecalculated players.");
             }
             case "giveitem" -> {
@@ -193,7 +194,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
     private void eventHelp(CommandSender sender) {
         Text.send(sender,"&9&lSPREE EVENTS &7- /spreeevent <type> <on|off>");
         Text.send(sender,"&7Types: &flocator, hunt, juggernaut, bloodsbane, bloodmoon, surge, chaos, race");
-        Text.send(sender,"&7Hunt/Juggernaut = compass modes; other four = timed 5-min events.");
+        Text.send(sender,"&7Hunt/Juggernaut = compass modes; Spree Surge is temporarily paused.");
     }
     private void eventCommand(CommandSender sender,String[] args) {
         if(args.length==0){
@@ -210,6 +211,10 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             case "hunt" -> plugin.events().setMode(on?EventManager.Mode.HUNT:EventManager.Mode.NONE);
             case "juggernaut", "jug" -> plugin.events().setMode(on?EventManager.Mode.JUGGERNAUT:EventManager.Mode.NONE);
             case "bloodmoon", "surge", "chaos", "race" -> {
+                if (on && type.equals("surge")) {
+                    message(sender, "&7Spree Surge is paused until the new killstreak progression is designed.");
+                    return;
+                }
                 if(on)plugin.events().setTimed(EventManager.Timed.valueOf(type.toUpperCase(Locale.ROOT)));
                 else plugin.events().setTimed(EventManager.Timed.NONE);
             }

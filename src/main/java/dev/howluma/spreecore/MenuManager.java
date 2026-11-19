@@ -60,28 +60,31 @@ public final class MenuManager implements Listener {
         return item;
     }
     private void foot(Inventory inv, int page, int maximum, String back) {
-        inv.setItem(45, icon(Material.ARROW, "&bPrevious Page", "&7Page " + (page+1) + " of " + (maximum+1)));
+        inv.setItem(45, icon(Material.ARROW, "&9Previous Page", "&7Page " + (page+1) + " of " + (maximum+1)));
         inv.setItem(48, icon(Material.BOOK, "&fHelp", "&7Left click: increase number / toggle", "&7Right click: decrease number",
                 "&7Shift + Left: enter exact value in chat", "&7Shift + Right: restore default", "&7Text settings: click to edit in chat"));
         inv.setItem(49, icon(Material.ARROW, back));
         inv.setItem(50, icon(Material.CLOCK, "&9Page " + (page+1) + " / " + (maximum+1)));
-        inv.setItem(53, icon(Material.ARROW, "&bNext Page"));
+        inv.setItem(53, icon(Material.ARROW, "&9Next Page"));
     }
 
     public void openMain(Player p) {
         Holder h = holder(Screen.MAIN);
         Inventory inv = create(h, 3, "&9&lSPREE &8| &fDashboard");
         var profile = plugin.data().get(p);
-        inv.setItem(11, icon(Material.NETHER_STAR, "&b&lYour Killstreak",
-                "&7Current: &b" + plugin.streaks().display(profile.streak),
+        inv.setItem(11, icon(Material.NETHER_STAR, "&9&lYour Killstreak",
+                "&7Current: &9" + plugin.streaks().display(profile.streak),
                 "&7Personal best: &f" + profile.best));
         inv.setItem(13, icon(Material.WRITABLE_BOOK, "&f&lYour Statistics",
                 "&7Kills: &f" + profile.kills, "&7Deaths: &f" + profile.deaths,
                 "&7Streaks ended: &f" + profile.ended, "&aClick for details"));
         inv.setItem(15, icon(Material.PLAYER_HEAD, "&6&lLeaderboard",
                 "&7Compare killstreaks with other players", "&aClick to view"));
-        inv.setItem(20, icon(Material.BOOK, "&bHow Killstreaks Work",
-                "&7Health bonuses, Fractured state and rules", "&7Item progression is still being designed"));
+        inv.setItem(20, icon(Material.BOOK, "&9How Killstreaks Work",
+                "&7+" + ConfigEditor.format(plugin.getConfig().getDouble("killstreak.health-per-level-hearts", 0.5))
+                        + " heart per positive killstreak",
+                "&7Mace attacks unlock at killstreak " + plugin.getConfig().getInt("killstreak.mace-unlock-level", 1),
+                "&7Fractured has normal health", "&7Other perks are being redesigned"));
         inv.setItem(22, icon(profile.hideHud ? Material.GRAY_DYE : Material.LIME_DYE,
                 "&fKillstreak HUD: " + (profile.hideHud ? "&cOFF" : "&aON"),
                 "&7Toggle the action bar display", "&eClick to toggle"));
@@ -98,17 +101,17 @@ public final class MenuManager implements Listener {
         if (!p.hasPermission("spree.admin")) return;
         Holder h = holder(Screen.ADMIN);
         Inventory inv = create(h, 3, "&9&lSPREE &8| &fAdmin Control");
-        inv.setItem(10, icon(Material.PLAYER_HEAD, "&bPlayers", "&7Manage killstreaks individually"));
+        inv.setItem(10, icon(Material.PLAYER_HEAD, "&9Players", "&7Manage killstreaks individually"));
         inv.setItem(12, icon(Material.LIGHTNING_ROD, "&eEvents", "&7Start and stop server events"));
-        inv.setItem(14, icon(Material.DIAMOND_SWORD, "&bLegendary Weapons", "&7Preview items and reset forges"));
-        inv.setItem(16, icon(Material.EMERALD_BLOCK, "&aRecalculate Effects", "&7Apply live changes to all online players"));
-        inv.setItem(18, icon(Material.TNT, "&b&lCombat Balancing",
-                "&7Mace PvP damage: &b" + Math.round(plugin.getConfig().getDouble("combat.mace.player-damage-multiplier", 0.75) * 100) + "%",
-                "&7TNT igniter self-damage: &b" + Math.round(plugin.getConfig().getDouble("combat.tnt.igniter-self-damage-multiplier", 0.50) * 100) + "%",
+        inv.setItem(14, icon(Material.DIAMOND_SWORD, "&9Legendary Weapons", "&7Preview items and reset forges"));
+        inv.setItem(16, icon(Material.EMERALD_BLOCK, "&aRefresh Player Health", "&7Recalculate health for all online players"));
+        inv.setItem(18, icon(Material.TNT, "&9&lCombat Balancing",
+                "&7Mace PvP damage: &9" + Math.round(plugin.getConfig().getDouble("combat.mace.player-damage-multiplier", 0.75) * 100) + "%",
+                "&7TNT igniter self-damage: &9" + Math.round(plugin.getConfig().getDouble("combat.tnt.igniter-self-damage-multiplier", 0.50) * 100) + "%",
                 "&eClick to edit both and kill-credit timing"));
         inv.setItem(20, icon(Material.COMPARATOR, "&a&lSettings Editor", "&7Every value in config.yml, organized", "&7Click to configure the plugin"));
         inv.setItem(22, icon(Material.TNT, "&cReset Every Killstreak", "&4Requires a second click within 5 seconds"));
-        inv.setItem(24, icon(Material.ARROW, "&bBack to Dashboard"));
+        inv.setItem(24, icon(Material.ARROW, "&9Back to Dashboard"));
         inv.setItem(26, icon(Material.BARRIER, "&cClose"));
         p.openInventory(inv);
     }
@@ -123,10 +126,10 @@ public final class MenuManager implements Listener {
         for (int i=0; i<45 && selected*45+i<categories.size(); i++) {
             ConfigEditor.Category c = categories.get(selected*45+i);
             h.entries.put(i,c.id());
-            inv.setItem(i,icon(c.icon(),"&b&l"+c.title(),"&7"+c.settings().size()+" editable settings",
+            inv.setItem(i,icon(c.icon(),"&9&l"+c.title(),"&7"+c.settings().size()+" editable settings",
                     "&8"+c.id(),"&aClick to open"));
         }
-        foot(inv,selected,max,"&bBack to Admin");
+        foot(inv,selected,max,"&9Back to Admin");
         p.openInventory(inv);
     }
     private void openConfigCategory(Player p,String category,int page) {
@@ -144,7 +147,7 @@ public final class MenuManager implements Listener {
             boolean enabled=Boolean.TRUE.equals(current);
             Material material=setting.toggle()?(enabled?Material.LIME_DYE:Material.GRAY_DYE)
                     :setting.number()?Material.REPEATER:Material.NAME_TAG;
-            String tone=setting.toggle()?(enabled?"&a":"&c"):"&b";
+            String tone=setting.toggle()?(enabled?"&a":"&c"):"&9";
             inv.setItem(i,icon(material,tone+"&l"+setting.label(),
                     "&7Current: &f"+setting.current(plugin.getConfig()),
                     "&7Default: &8"+setting.defaultText(),
@@ -153,7 +156,7 @@ public final class MenuManager implements Listener {
                     setting.number()?"&eShift + Left: Exact number":"&7Shift + Left: Edit in chat",
                     "&cShift + Right: Reset to default"));
         }
-        foot(inv,selected,max,"&bBack to Categories");
+        foot(inv,selected,max,"&9Back to Categories");
         p.openInventory(inv);
     }
     public void openPlayers(Player p, int page) {
@@ -181,7 +184,7 @@ public final class MenuManager implements Listener {
             h.players.put(slot, profile.id);
             ItemStack head = icon(Material.PLAYER_HEAD, "&f&l" + profile.name,
                     online == null ? "&8● Offline" : "&a● Online",
-                    "&7Killstreak: &b" + plugin.streaks().display(profile.streak),
+                    "&7Killstreak: &9" + plugin.streaks().display(profile.streak),
                     "&7Best: &f" + profile.best + "   &7K/D: &f" + profile.kills + "/" + profile.deaths,
                     "&eClick to manage");
             if (online != null && head.getItemMeta() instanceof org.bukkit.inventory.meta.SkullMeta skull) {
@@ -190,21 +193,21 @@ public final class MenuManager implements Listener {
             }
             inv.setItem(slot, head);
         }
-        inv.setItem(45, icon(Material.ARROW, "&bPrevious Page", "&7Page " + (page + 1) + "/" + (max + 1)));
+        inv.setItem(45, icon(Material.ARROW, "&9Previous Page", "&7Page " + (page + 1) + "/" + (max + 1)));
         inv.setItem(46, icon(state.onlineOnly() ? Material.LIME_DYE : Material.CYAN_DYE,
-                "&fView: " + (state.onlineOnly() ? "&aOnline" : "&bAll Saved Players"),
+                "&fView: " + (state.onlineOnly() ? "&aOnline" : "&9All Saved Players"),
                 "&7Show " + (state.onlineOnly() ? "offline players too" : "online players only"),
                 "&eClick to switch"));
-        inv.setItem(47, icon(Material.OAK_SIGN, "&bSearch Players",
+        inv.setItem(47, icon(Material.OAK_SIGN, "&9Search Players",
                 "&7Search by name or UUID", "&7Current: &f" + (state.search().isBlank() ? "No filter" : state.search()),
                 "&eClick to enter a search"));
         inv.setItem(48, icon(Material.MILK_BUCKET, "&7Clear Search", "&7Reset the name/UUID filter"));
-        inv.setItem(49, icon(Material.ARROW, "&bBack to Admin"));
+        inv.setItem(49, icon(Material.ARROW, "&9Back to Admin"));
         inv.setItem(50, icon(Material.BOOK, "&f" + profiles.size() + " Players Found",
                 "&7Page " + (page + 1) + " of " + (max + 1),
                 "&7Online: &a" + Bukkit.getOnlinePlayers().size(),
                 "&7Stored profiles: &f" + plugin.data().all().size()));
-        inv.setItem(53, icon(Material.ARROW, "&bNext Page"));
+        inv.setItem(53, icon(Material.ARROW, "&9Next Page"));
         p.openInventory(inv);
     }
     public void openPlayer(Player p, UUID id) {
@@ -213,9 +216,9 @@ public final class MenuManager implements Listener {
         Player target = Bukkit.getPlayer(id);
         Holder h = new Holder(Screen.PLAYER, id, 0, null);
         Inventory inv = create(h, 6, "&9&lSPREE &8| &fManage " + profile.name);
-        inv.setItem(4, icon(Material.PLAYER_HEAD, "&b&l" + profile.name,
+        inv.setItem(4, icon(Material.PLAYER_HEAD, "&9&l" + profile.name,
                 target != null ? "&aOnline" : "&8Offline - edits are saved",
-                "&7Current: &b" + plugin.streaks().display(profile.streak),
+                "&7Current: &9" + plugin.streaks().display(profile.streak),
                 "&7Personal best: &f" + profile.best,
                 "&7Kills: &f" + profile.kills + " &8| &7Deaths: &f" + profile.deaths,
                 "&7Streaks ended: &f" + profile.ended));
@@ -223,11 +226,11 @@ public final class MenuManager implements Listener {
         inv.setItem(11, icon(Material.REDSTONE, "&c-1 Killstreak", "&7Decrease by one", "&7Minimum: 0"));
         inv.setItem(13, icon(Material.EMERALD, "&a+1 Killstreak", "&7Increase by one"));
         inv.setItem(14, icon(Material.EMERALD_BLOCK, "&a+5 Killstreak", "&7Increase by five"));
-        inv.setItem(12, icon(Material.NETHER_STAR, "&b&lCurrent: " + plugin.streaks().display(profile.streak),
+        inv.setItem(12, icon(Material.NETHER_STAR, "&9&lCurrent: " + plugin.streaks().display(profile.streak),
                 "&7Max: &f" + plugin.streaks().cap(), "&7Click Exact Value to set a number"));
         inv.setItem(20, icon(Material.AMETHYST_SHARD, "&c&lSet Fractured Killstreak",
                 "&7Marks the player as Fractured", "&7Internally preserves the legacy penalty", "&eClick to apply"));
-        inv.setItem(22, icon(Material.NAME_TAG, "&b&lSet Exact Killstreak",
+        inv.setItem(22, icon(Material.NAME_TAG, "&9&lSet Exact Killstreak",
                 "&7Enter 0 to " + plugin.streaks().cap(), "&7Use Fractured to apply its special state", "&eClick to enter in chat"));
         ConfirmPlayerReset confirm = playerResetConfirm.get(p.getUniqueId());
         boolean awaiting = confirm != null && confirm.target().equals(id) && confirm.until() > System.currentTimeMillis();
@@ -243,11 +246,11 @@ public final class MenuManager implements Listener {
         inv.setItem(34, icon(Material.BOOK, "&fEdit Streaks Ended", "&7Current: &f" + profile.ended,
                 "&eClick to enter an exact number"));
         inv.setItem(40, icon(Material.CLOCK, "&aRefresh This Player",
-                target == null ? "&7Changes take effect on next login" : "&7Reapply health, buffs and nameplates"));
-        inv.setItem(42, icon(Material.HEART_OF_THE_SEA, "&b&lGive Spree Item",
+                target == null ? "&7Changes take effect on next login" : "&7Reapply health and nameplates"));
+        inv.setItem(42, icon(Material.HEART_OF_THE_SEA, "&9&lGive Spree Item",
                 target == null ? "&8Player must be online" : "&7Right-click item for +1 killstreak",
                 "&eClick: give 1 &8| &eShift-click: give 5"));
-        inv.setItem(49, icon(Material.ARROW, "&bBack to Players"));
+        inv.setItem(49, icon(Material.ARROW, "&9Back to Players"));
         inv.setItem(53, icon(Material.BARRIER, "&cClose"));
         p.openInventory(inv);
     }
@@ -256,10 +259,10 @@ public final class MenuManager implements Listener {
         Holder h=holder(Screen.EVENTS);Inventory inv=create(h,3,"&9&lSPREE &8| &fEvents");
         inv.setItem(10,icon(Material.COMPASS,"&6The Hunt", "&7Status: &f"+(plugin.events().mode()==EventManager.Mode.HUNT?"ON":"OFF")));
         inv.setItem(11,icon(Material.NETHERITE_CHESTPLATE,"&cJuggernaut", "&7Status: &f"+(plugin.events().mode()==EventManager.Mode.JUGGERNAUT?"ON":"OFF")));
-        inv.setItem(12,icon(Material.ENDER_EYE,"&bLocator Bar", "&7Status: &f"+(plugin.events().locatorEnabled()?"ON":"OFF")));
+        inv.setItem(12,icon(Material.ENDER_EYE,"&9Locator Bar", "&7Status: &f"+(plugin.events().locatorEnabled()?"ON":"OFF")));
         inv.setItem(13,icon(Material.DIAMOND_SWORD,"&cBlood's Bane", "&7Status: &f"+(plugin.events().bloodsBaneEnabled()?"ON":"OFF")));
         inv.setItem(14,icon(Material.RED_STAINED_GLASS_PANE,"&cBlood Moon", "&7Bonus killstreak rewards"));
-        inv.setItem(15,icon(Material.BLUE_STAINED_GLASS_PANE,"&bSpree Surge", "&7High-streak buffs"));
+        inv.setItem(15,icon(Material.GRAY_STAINED_GLASS_PANE,"&8Spree Surge (Paused)", "&7Waiting for progression redesign"));
         inv.setItem(16,icon(Material.PURPLE_STAINED_GLASS_PANE,"&5Chaos", "&7Faster legendary cooldowns"));
         inv.setItem(17,icon(Material.ORANGE_STAINED_GLASS_PANE,"&6Kill Race", "&7First to the target wins"));
         inv.setItem(20,icon(Material.CLOCK,"&eTimed Event: &f"+plugin.events().timed(),"&7Remaining: "+plugin.events().timedSecondsRemaining()+"s"));
@@ -274,7 +277,7 @@ public final class MenuManager implements Listener {
         LegendaryType[] types=LegendaryType.values();
         for(int i=0;i<types.length;i++) {
             LegendaryType t=types[i];
-            inv.setItem(10+i,icon(t.material,"&b&l"+t.display,"&7Forge: &f"+plugin.forges().status(t),
+            inv.setItem(10+i,icon(t.material,"&9&l"+t.display,"&7Forge: &f"+plugin.forges().status(t),
                     p.hasPermission("spree.legendary.give")?"&eLeft click: give test item":"&7Browse available weapons",
                     p.hasPermission("spree.admin") && t.forgeable()?"&cShift click: reset forge":" "));
         }
@@ -316,7 +319,7 @@ public final class MenuManager implements Listener {
                     case 10 -> openPlayers(p,0);
                     case 12 -> openEvents(p,true);
                     case 14 -> openLegendary(p);
-                    case 16 -> {plugin.streaks().refreshOnline();plugin.streaks().safetyInventoryCheck();Text.send(p,"&aRecalculated all online players.");}
+                    case 16 -> {plugin.streaks().refreshOnline();Text.send(p,"&aRecalculated health for all online players.");}
                     case 18 -> openConfigCategory(p,"combat",0);
                     case 20 -> openSettings(p);
                     case 22 -> {
@@ -358,7 +361,7 @@ public final class MenuManager implements Listener {
                 else if (slot == 47) {
                     searchEditing.add(p.getUniqueId());
                     p.closeInventory();
-                    Text.send(p, plugin.prefix() + "&bEnter a player name or UUID in chat.");
+                    Text.send(p, plugin.prefix() + "&9Enter a player name or UUID in chat.");
                     Text.send(p, "&7Use &fall &7to clear search or &ccancel &7to return.");
                 }
                 else if (h.players.containsKey(slot)) openPlayer(p, h.players.get(slot));
@@ -436,7 +439,7 @@ public final class MenuManager implements Listener {
                     case 12 -> plugin.events().setLocator(!plugin.events().locatorEnabled());
                     case 13 -> plugin.events().setBloodsBane(!plugin.events().bloodsBaneEnabled());
                     case 14 -> plugin.events().setTimed(EventManager.Timed.BLOODMOON);
-                    case 15 -> plugin.events().setTimed(EventManager.Timed.SURGE);
+                    case 15 -> Text.send(p, "&7Spree Surge is paused until the new progression system is ready.");
                     case 16 -> plugin.events().setTimed(EventManager.Timed.CHAOS);
                     case 17 -> plugin.events().setTimed(EventManager.Timed.RACE);
                     case 22 -> plugin.events().setTimed(EventManager.Timed.NONE);
@@ -476,11 +479,11 @@ public final class MenuManager implements Listener {
         if(!setting.number() || click==ClickType.SHIFT_LEFT || click==ClickType.MIDDLE) {
             editing.put(p.getUniqueId(),new PendingEdit(path,h.category,h.page));
             p.closeInventory();
-            Text.send(p,plugin.prefix()+"&bEditing &f"+setting.label()+"&b.");
+            Text.send(p,plugin.prefix()+"&9Editing &f"+setting.label()+"&9.");
             Text.send(p,"&7Current: &f"+setting.current(plugin.getConfig())+" &8| &7Default: &f"+setting.defaultText());
             Text.send(p,"&eEnter the new value in chat, or use &f/spree value <value>&e.");
             if (path.startsWith("combat.") && path.endsWith("multiplier"))
-                Text.send(p,"&7Examples: &b75% &7or &b0.75 &8(maximum 100%)");
+                Text.send(p,"&7Examples: &975% &7or &90.75 &8(maximum 100%)");
             Text.send(p,"&7Type &ccancel &7to return without changes.");
             return;
         }
@@ -498,7 +501,7 @@ public final class MenuManager implements Listener {
     private void promptStat(Player admin, UUID target, PlayerField field) {
         statEditing.put(admin.getUniqueId(), new PendingStatEdit(target, field));
         admin.closeInventory();
-        Text.send(admin, plugin.prefix() + "&bEditing " + field.name().toLowerCase(Locale.ROOT)
+        Text.send(admin, plugin.prefix() + "&9Editing " + field.name().toLowerCase(Locale.ROOT)
                 + " &7for &f" + plugin.data().get(target).name + "&7.");
         Text.send(admin, "&eEnter an exact number in chat (or /spree value <number>).");
         Text.send(admin, "&7Type &ccancel &7to return without changes.");

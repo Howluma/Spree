@@ -1,4 +1,4 @@
-# SpreeCore 1.3 - editable from /spree settings or /spreesettings (admin-only).
+# SpreeCore 1.4 - temporary health + mace progression; editable via /spree settings.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -9,20 +9,23 @@ general:
   save-interval-seconds: 120
   announce-joining-streak: 10
 
-# Vanilla-compatible indicators: ◆ §b§l12 in the tab list and overhead name tags.
+# Navy-blue indicators: ⚔ §9§l12 in tab and overhead name tags.
 # Overhead tags use scoreboard suffixes when the player is NOT already in a team.
 # Existing faction/party team membership is preserved (no forced team removal).
 display:
   streak-indicators:
     tab-enabled: true
     nametag-enabled: true
-    symbol: '◆'
+    symbol: '⚔'
     fractured-symbol: '✕'
 
 killstreak:
-  max-health-hearts: 20
+  # Vanilla is 10 hearts. Each POSITIVE level grants precisely +0.5 heart.
+  # Fractured (-1) is treated as 0 here: no health penalty.
   base-health-hearts: 10
-  # Original formula: +1 heart at 3, 5, 7, 9 ... up to the cap.
+  health-per-level-hearts: 0.5
+  # Direct mace attacks are unavailable at 0 or Fractured.
+  mace-unlock-level: 1
   anti-farm:
     enabled: true
     same-victim-cooldown-seconds: 300
@@ -30,31 +33,8 @@ killstreak:
   revenge:
     enabled: true
     bonus-streak: 2
-  # Not finalized: these rules are OFF until the server chooses an item progression design.
-  restrictions:
-    enabled: false
-    totem: 1
-    netherite-sword: 2
-    netherite-axe: 5
-    enchanted-golden-apple: 8
-    netherite-helmet: 12
-    ender-pearl: 14
-    max-ender-pearls: 3
-  potion-bonuses:
-    enabled: true
-    tier-one-min-streak: 2
-    tier-one-seconds: 112
-    tier-two-min-streak: 6
-    tier-two-seconds: 135
-    speed-tier-three-min-streak: 12
-    strength-tier-three-min-streak: 17
-    tier-three-seconds: 480
-  passives:
-    fire-resistance-streak: 4
-    hero-streak: 7
-    weaving-streak: 10
-    speed-streak: 15
-    glowing-streak: 15
+  # Item unlocks, potion bonuses and passive streak perks are intentionally absent.
+  # Separate legendary abilities, anti-farming and temporary event rules remain.
 
 legendary:
   enabled: true
@@ -155,10 +135,7 @@ events:
     default-seconds: 300
     bloodmoon:
       extra-streak-per-kill: 1
-    surge:
-      minimum-streak: 10
-      strength-level: 1
-      resistance-level: 1
+    # Spree Surge is paused pending the killstreak progression redesign.
     chaos:
       minimum-streak: 10
       cooldown-multiplier: 0.70

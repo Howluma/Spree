@@ -14,8 +14,17 @@ public final class SpreeMath {
     public static int naturalDeathStreak(int oldStreak) {
         return oldStreak <= 0 ? -1 : oldStreak / 2;
     }
-    public static int healthHearts(int streak, int baseHearts, int maxHearts) {
-        return Math.min(maxHearts, baseHearts + (streak >= 3 ? (streak - 1) / 2 : 0));
+    /** One killstreak level grants perLevelHearts, including fractional hearts.
+     * Fractured (-1) is exactly the same health as zero, never a penalty.
+     * The upper bound keeps the Minecraft max-health attribute in a valid range.
+     */
+    public static double maxHealthPoints(int streak, double baseHearts, double perLevelHearts) {
+        double hearts = baseHearts + Math.max(0, streak) * perLevelHearts;
+        return Math.min(1024.0, Math.max(2.0, hearts * 2.0));
+    }
+    /** The vanilla mace works only after the first positive killstreak level. */
+    public static boolean canUseMace(int streak, int requiredLevel) {
+        return streak >= Math.max(1, requiredLevel);
     }
     public static int applyKill(int current, int gain, int cap) {
         return Math.min(cap, Math.max(0, current) + Math.max(0, gain));

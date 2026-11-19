@@ -1,5 +1,7 @@
 package dev.howluma.spreecore;
 
+import io.papermc.paper.event.entity.EntityAttemptSmashAttackEvent;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -50,6 +52,7 @@ public final class CombatManager implements Listener {
     private final SpreeCorePlugin plugin;
     private final NamespacedKey detonatorKey;
     private final Map<UUID, Hit> lastHit = new HashMap<>();
+    private final Map<UUID, Long> maceWarnings = new HashMap<>();
     private final Deque<Blast> recentBlasts = new ArrayDeque<>();
     private static final long BLAST_BRIDGE_MS = 500;
 
@@ -190,16 +193,51 @@ public final class CombatManager implements Listener {
         return directPlayer(causing);
     }
 
+    /** Prevent the special smash attack, not only its damage event.
+     * Paper exposes the result before vanilla applies the mace's smash effects.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onAttemptMaceSmash(EntityAttemptSmashAttackEvent event) {
+        if (event.getEntity() instanceof Player attacker
+                && event.getWeapon().getType() == Material.MACE
+                && !SpreeMath.canUseMace(plugin.streaks().streak(attacker),
+                        config().getInt("killstreak.mace-unlock-level", 1))) {
+            event.setResult(org.bukkit.event.Event.Result.DENY);
+            warnMace(attacker);
+        }
+    }
+
+    private void warnMace(Player attacker) {
+        long now = System.currentTimeMillis();
+        if (now - maceWarnings.getOrDefault(attacker.getUniqueId(), 0L) >= 1200L) {
+            int unlock = Math.max(1, config().getInt("killstreak.mace-unlock-level", 1));
+            Text.action(attacker, "&1⚔ &7Mace unlocked at &9&l" + unlock + " &7killstreak.");
+            maceWarnings.put(attacker.getUniqueId(), now);
+        }
+    }
+
+    /** Block all direct mace hits, including against mobs, until the player reaches level 1.
+     * This gate is independent of the optional mace damage multiplier toggle.
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBalanceDamage(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player target)) return;
-        if (config().getBoolean("combat.mace.enabled", true)
-                && event.getDamager() instanceof Player attacker
+        if (event.getDamager() instanceof Player attacker
                 && attacker.getInventory().getItemInMainHand().getType() == Material.MACE
-                && event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
-            event.setDamage(CombatMath.scaleDamage(event.getDamage(),
-                    config().getDouble("combat.mace.player-damage-multiplier", 0.75)));
+                && (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                    || event.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)) {
+            int unlock = config().getInt("killstreak.mace-unlock-level", 1);
+            if (!SpreeMath.canUseMace(plugin.streaks().streak(attacker), unlock)) {
+                event.setCancelled(true);
+                warnMace(attacker);
+                return;
+            }
+            // Keep the existing editable 75% PvP mace damage. Mobs take normal damage.
+            if (event.getEntity() instanceof Player && config().getBoolean("combat.mace.enabled", true)) {
+                event.setDamage(CombatMath.scaleDamage(event.getDamage(),
+                        config().getDouble("combat.mace.player-damage-multiplier", 0.75)));
+            }
         }
+        if (!(event.getEntity() instanceof Player target)) return;
         if (config().getBoolean("combat.tnt.enabled", true)
                 && event.getDamager() instanceof TNTPrimed tnt) {
             UUID owner = tntOwner(tnt);
@@ -229,5 +267,8 @@ public final class CombatManager implements Listener {
             lastHit.put(victim.getUniqueId(), new Hit(owner, System.currentTimeMillis(), true));
     }
 
-    @EventHandler public void onQuit(PlayerQuitEvent event) { clearVictim(event.getPlayer().getUniqueId()); }
+    @EventHandler public void onQuit(PlayerQuitEvent event) {
+        clearVictim(event.getPlayer().getUniqueId());
+        maceWarnings.remove(event.getPlayer().getUniqueId());
+    }
 }

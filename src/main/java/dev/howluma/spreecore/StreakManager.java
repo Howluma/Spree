@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Killstreaks, recovery, tokens, item gates, passives, and efficient HUD updates. */
+/** Killstreak health, Fractured state, Spree items, tokens, deaths and HUD. */
 public final class StreakManager implements Listener {
     private final SpreeCorePlugin plugin;
     private final NamespacedKey tokenOwner, tokenValue, tokenSerial, spreeConsumable;
@@ -66,7 +66,6 @@ public final class StreakManager implements Listener {
             // Bukkit already computed its drops and inventory changes can duplicate items.
             if (!online.isDead()) {
                 update(online);
-                enforceInventory(online);
             }
             tabName(online);
         }
@@ -78,42 +77,35 @@ public final class StreakManager implements Listener {
     public void tabName(Player player) { plugin.indicators().refreshPlayer(player); }
     public void update(Player player) {
         int streak = streak(player);
-        int hearts = SpreeMath.healthHearts(streak,
-                c().getInt("killstreak.base-health-hearts", 10),
-                c().getInt("killstreak.max-health-hearts", 20));
+        double desired = SpreeMath.maxHealthPoints(streak,
+                c().getDouble("killstreak.base-health-hearts", 10),
+                c().getDouble("killstreak.health-per-level-hearts", 0.5));
+        // Juggernaut's temporary event health is independent of killstreak rewards.
         if (plugin.events() != null && plugin.events().isJuggernaut(player))
-            hearts += c().getInt("events.juggernaut.bonus-hearts", 10);
+            desired = Math.min(1024.0, desired + 2.0 * c().getDouble("events.juggernaut.bonus-hearts", 10));
         AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
-        if (attribute != null) {
-            double desired = hearts * 2.0;
+        if (attribute != null && Math.abs(attribute.getBaseValue() - desired) > 0.01) {
             double oldMax = attribute.getValue();
-            if (Math.abs(attribute.getBaseValue() - desired) > 0.01) {
-                attribute.setBaseValue(desired);
-                double newMax = attribute.getValue();
-                if (newMax > oldMax) player.setHealth(Math.min(newMax, player.getHealth() + newMax - oldMax));
-                else if (player.getHealth() > newMax) player.setHealth(Math.max(1.0, newMax));
+            attribute.setBaseValue(desired);
+            double newMax = attribute.getValue();
+            if (newMax > oldMax) {
+                player.setHealth(Math.min(newMax, player.getHealth() + (newMax - oldMax)));
+            } else if (player.getHealth() > newMax) {
+                player.setHealth(Math.max(1.0, newMax));
             }
         }
-        // Only apply effects for their threshold; never scan all inventories to do this.
-        passive(player, PotionEffectType.FIRE_RESISTANCE, streak >= c().getInt("killstreak.passives.fire-resistance-streak", 4), 0);
-        passive(player, PotionEffectType.HERO_OF_THE_VILLAGE, streak >= c().getInt("killstreak.passives.hero-streak", 7), 0);
-        passive(player, PotionEffectType.WEAVING, streak >= c().getInt("killstreak.passives.weaving-streak", 10), 0);
-        boolean fast = streak >= c().getInt("killstreak.passives.speed-streak", 15);
-        if (fast && !plugin.legendaries().hasAquafierSpeed(player)) passive(player, PotionEffectType.SPEED, true, 0);
-        boolean glow = streak >= c().getInt("killstreak.passives.glowing-streak", 15)
-                || (plugin.events() != null && plugin.events().isJuggernaut(player))
+        // Only temporary event/forge visibility remains. All automatic
+        // killstreak potion bonuses and passives have been removed.
+        boolean eventGlow = (plugin.events() != null && plugin.events().isJuggernaut(player))
                 || (plugin.forges() != null && plugin.forges().isForging(player));
-        if (glow) {
-            passive(player, PotionEffectType.GLOWING, true, 0);
-            managedGlow.add(player.getUniqueId());
-        } else if (managedGlow.remove(player.getUniqueId())) player.removePotionEffect(PotionEffectType.GLOWING);
-        if (plugin.events() != null) plugin.events().applyTimedBuffs(player, streak);
-    }
-    private void passive(Player player, PotionEffectType type, boolean enabled, int amplifier) {
-        if (!enabled) return;
-        PotionEffect prior = player.getPotionEffect(type);
-        if (prior == null || (prior.getAmplifier() <= amplifier && prior.getDuration() <= 60)) {
-            player.addPotionEffect(new PotionEffect(type, 110, amplifier, true, false, true));
+        if (eventGlow) {
+            PotionEffect prior = player.getPotionEffect(PotionEffectType.GLOWING);
+            if (prior == null || prior.getDuration() <= 60) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 110, 0, true, false, true));
+                managedGlow.add(player.getUniqueId());
+            }
+        } else if (managedGlow.remove(player.getUniqueId())) {
+            player.removePotionEffect(PotionEffectType.GLOWING);
         }
     }
     public void refreshOnline() { for (Player player : Bukkit.getOnlinePlayers()) update(player); }
@@ -121,8 +113,8 @@ public final class StreakManager implements Listener {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerDataStore.Profile profile = get(player);
             if (profile.hideHud) continue;
-            String color = profile.streak < 0 ? "&c" : profile.streak >= 10 ? "&9&l" : "&9";
-            Text.action(player, "&9⚔ &fKillstreak: " + color + display(profile.streak));
+            String color = profile.streak < 0 ? "&c&l" : profile.streak == 0 ? "&7&l" : "&9&l";
+            Text.action(player, "&1⚔ &7Killstreak: " + color + display(profile.streak));
         }
     }
     public void shutdown() { /* Temporary effects expire naturally. */ }
@@ -133,7 +125,6 @@ public final class StreakManager implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) return;
             update(player);
-            enforceInventory(player);
             tabName(player);
             plugin.legendaries().migrate(player);
             if (streak(player) >= c().getInt("general.announce-joining-streak", 10))
@@ -145,7 +136,6 @@ public final class StreakManager implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && !player.isDead()) {
                 update(player);
-                enforceInventory(player); // Also handles keepInventory servers safely.
             }
         }, 2L);
     }
@@ -217,8 +207,8 @@ public final class StreakManager implements Listener {
         if (amount < 1 || amount > 64) throw new IllegalArgumentException("Amount must be 1-64");
         ItemStack item = new ItemStack(Material.HEART_OF_THE_SEA, amount);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(Text.c("&3◆ &b&lSpree"));
-        meta.setLore(List.of(Text.c("&7Right-click to gain &b&l+1 Killstreak"),
+        meta.setDisplayName(Text.c("&1⚔ &9&lSpree"));
+        meta.setLore(List.of(Text.c("&7Right-click to gain &9&l+1 Killstreak"),
                 Text.c("&8Consumed on use")));
         meta.getPersistentDataContainer().set(spreeConsumable, PersistentDataType.BYTE, (byte) 1);
         plugin.models().token(meta);
@@ -257,14 +247,14 @@ public final class StreakManager implements Listener {
         if (hand == EquipmentSlot.HAND) player.getInventory().setItemInMainHand(remaining);
         else player.getInventory().setItemInOffHand(remaining);
         addStreak(player, 1);
-        Text.send(player, plugin.prefix() + "&b&l+1 Killstreak &7from Spree!");
+        Text.send(player, plugin.prefix() + "&9&l+1 Killstreak &7from Spree!");
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.25f);
     }
 
     private void dropToken(Player player, int value) {
         ItemStack item = new ItemStack(Material.HEART_OF_THE_SEA);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(Text.c("&a&lSpree Token"));
+        meta.setDisplayName(Text.c("&9&lSpree Token"));
         meta.setLore(List.of(Text.c("&8&oSpree Token"), Text.c("&aWorth: +" + value + " Spree"),
                 Text.c("&7Dropped by &f" + player.getName()), Text.c("&7Pick up to claim the Spree")));
         meta.getPersistentDataContainer().set(tokenOwner, PersistentDataType.STRING, player.getUniqueId().toString());
@@ -324,109 +314,6 @@ public final class StreakManager implements Listener {
             }
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
             return;
-        }
-        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return;
-        if (restricted(player, stack.getType())) event.setCancelled(true);
-        if (stack.getType() == Material.ENDER_PEARL &&
-                countItems(player.getInventory(), Material.ENDER_PEARL) >= c().getInt("killstreak.restrictions.max-ender-pearls", 3))
-            event.setCancelled(true);
-    }
-    public boolean restricted(Player player, Material material) {
-        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return false;
-        int s = streak(player);
-        return switch (material) {
-            case TOTEM_OF_UNDYING -> s < c().getInt("killstreak.restrictions.totem", 1);
-            case NETHERITE_SWORD -> s < c().getInt("killstreak.restrictions.netherite-sword", 2);
-            case NETHERITE_AXE -> s < c().getInt("killstreak.restrictions.netherite-axe", 5);
-            case ENCHANTED_GOLDEN_APPLE -> s < c().getInt("killstreak.restrictions.enchanted-golden-apple", 8);
-            case NETHERITE_HELMET -> s < c().getInt("killstreak.restrictions.netherite-helmet", 12);
-            case ENDER_PEARL -> s < c().getInt("killstreak.restrictions.ender-pearl", 14);
-            default -> false;
-        };
-    }
-    private int countItems(PlayerInventory inventory, Material type) {
-        int total = 0;
-        for (ItemStack item : inventory.getContents()) if (item != null && item.getType() == type) total += item.getAmount();
-        return total;
-    }
-    public void safetyInventoryCheck() { for (Player p : Bukkit.getOnlinePlayers()) enforceInventory(p); }
-    public void enforceInventory(Player player) {
-        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return;
-        PlayerInventory inv = player.getInventory();
-        int pearlsRemaining = c().getInt("killstreak.restrictions.max-ender-pearls", 3);
-        ItemStack[] all = inv.getContents();
-        for (int i = 0; i < all.length; i++) {
-            ItemStack item = all[i];
-            if (item == null || item.getType() == Material.AIR) continue;
-            boolean block = restricted(player, item.getType());
-            if (item.getType() == Material.ENDER_PEARL && !block) {
-                if (item.getAmount() > pearlsRemaining) {
-                    int extra = item.getAmount() - Math.max(0, pearlsRemaining);
-                    ItemStack dropped = item.clone(); dropped.setAmount(extra);
-                    player.getWorld().dropItemNaturally(player.getLocation(), dropped);
-                    if (pearlsRemaining == 0) all[i] = null;
-                    else { ItemStack kept = item.clone(); kept.setAmount(pearlsRemaining); all[i] = kept; }
-                    pearlsRemaining = 0;
-                } else pearlsRemaining -= item.getAmount();
-            } else if (block) {
-                all[i] = null;
-                player.getWorld().dropItemNaturally(player.getLocation(), item);
-            }
-        }
-        inv.setContents(all);
-    }
-    @EventHandler(ignoreCancelled = true) public void inventoryClick(InventoryClickEvent event) {
-        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return;
-        if (!(event.getWhoClicked() instanceof Player p)) return;
-        Bukkit.getScheduler().runTask(plugin, () -> { if (p.isOnline()) enforceInventory(p); });
-    }
-    @EventHandler(ignoreCancelled = true) public void inventoryDrag(InventoryDragEvent event) {
-        if (!c().getBoolean("killstreak.restrictions.enabled", false)) return;
-        if (!(event.getWhoClicked() instanceof Player p)) return;
-        Bukkit.getScheduler().runTask(plugin, () -> { if (p.isOnline()) enforceInventory(p); });
-    }
-    @EventHandler(ignoreCancelled = true) public void interact(PlayerInteractEvent event) {
-        if (event.getItem() != null && event.getItem().getType() == Material.ENDER_PEARL && restricted(event.getPlayer(), Material.ENDER_PEARL)) {
-            event.setCancelled(true);
-            Text.action(event.getPlayer(), "&cYou need " + c().getInt("killstreak.restrictions.ender-pearl", 14) + " Killstreak for pearls.");
-        }
-    }
-    @EventHandler(ignoreCancelled = true) public void resurrect(EntityResurrectEvent event) {
-        if (event.getEntity() instanceof Player p && restricted(p, Material.TOTEM_OF_UNDYING)) event.setCancelled(true);
-    }
-    @EventHandler(ignoreCancelled = true) public void consume(PlayerItemConsumeEvent event) {
-        ItemStack stack = event.getItem();
-        if (restricted(event.getPlayer(), stack.getType())) { event.setCancelled(true); return; }
-        if (!c().getBoolean("killstreak.potion-bonuses.enabled", true) || stack.getType() != Material.POTION) return;
-        Player player = event.getPlayer();
-        int streak = streak(player);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline()) potionBoost(player, streak);
-        }, 2L);
-    }
-    @EventHandler(ignoreCancelled = true) public void splash(PotionSplashEvent event) {
-        if (!(event.getPotion().getShooter() instanceof Player thrower)) return;
-        if (!c().getBoolean("killstreak.potion-bonuses.enabled", true)) return;
-        int s = streak(thrower);
-        List<Player> affected = event.getAffectedEntities().stream()
-                .filter(Player.class::isInstance).map(Player.class::cast).toList();
-        Bukkit.getScheduler().runTaskLater(plugin, () -> affected.forEach(p -> { if (p.isOnline()) potionBoost(p, s); }), 2L);
-    }
-    private void potionBoost(Player p, int sourceStreak) {
-        int base = c().getInt("killstreak.potion-bonuses.tier-one-min-streak", 2);
-        if (sourceStreak < base) return;
-        for (PotionEffectType type : List.of(PotionEffectType.SPEED, PotionEffectType.STRENGTH)) {
-            PotionEffect effect = p.getPotionEffect(type);
-            if (effect == null || effect.getAmplifier() != 1) continue; // Only extend Speed II / Strength II.
-            int seconds;
-            if (sourceStreak >= c().getInt(type == PotionEffectType.SPEED
-                    ? "killstreak.potion-bonuses.speed-tier-three-min-streak"
-                    : "killstreak.potion-bonuses.strength-tier-three-min-streak", 12))
-                seconds = c().getInt("killstreak.potion-bonuses.tier-three-seconds", 480);
-            else if (sourceStreak >= c().getInt("killstreak.potion-bonuses.tier-two-min-streak", 6))
-                seconds = c().getInt("killstreak.potion-bonuses.tier-two-seconds", 135);
-            else seconds = c().getInt("killstreak.potion-bonuses.tier-one-seconds", 112);
-            p.addPotionEffect(new PotionEffect(type, seconds * 20, 1, effect.isAmbient(), effect.hasParticles(), effect.hasIcon()));
         }
     }
 }

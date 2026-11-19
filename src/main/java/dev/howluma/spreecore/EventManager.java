@@ -9,8 +9,6 @@ import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -40,6 +38,7 @@ public final class EventManager implements Listener {
         try {mode=Mode.valueOf(y.getString("compass-mode","NONE"));} catch(IllegalArgumentException ignored) {}
         try {timed=Timed.valueOf(y.getString("timed-event","NONE"));} catch(IllegalArgumentException ignored) {}
         timedEnds=y.getLong("timed-ends");
+        if (timed == Timed.SURGE) { timed = Timed.NONE; timedEnds = 0; } // Old buff-only event retired.
         locator=y.getBoolean("locator");
         bloodsBane=y.getBoolean("bloodsbane");
         try {juggernaut=UUID.fromString(y.getString("juggernaut",""));} catch(IllegalArgumentException ignored) {}
@@ -173,6 +172,10 @@ public final class EventManager implements Listener {
         plugin.legendaries().syncBloodsBane();
     }
     public void setTimed(Timed next) {
+        if (next == Timed.SURGE) { // Retired until killstreak effects are redesigned.
+            plugin.getLogger().warning("Spree Surge is paused; no timed event was started.");
+            return;
+        }
         timed=next;
         raceKills.clear();
         timedEnds=next==Timed.NONE?0:System.currentTimeMillis()+Math.max(10,
@@ -188,16 +191,6 @@ public final class EventManager implements Listener {
         if(timed==Timed.CHAOS && plugin.streaks().streak(player)>=plugin.getConfig().getInt("events.timed.chaos.minimum-streak",10))
             return Math.max(.1,Math.min(1,plugin.getConfig().getDouble("events.timed.chaos.cooldown-multiplier",.7)));
         return 1.0;
-    }
-    public void applyTimedBuffs(Player player,int streak) {
-        if(timed!=Timed.SURGE || streak<plugin.getConfig().getInt("events.timed.surge.minimum-streak",10))return;
-        apply(player,PotionEffectType.STRENGTH,plugin.getConfig().getInt("events.timed.surge.strength-level",1));
-        apply(player,PotionEffectType.RESISTANCE,plugin.getConfig().getInt("events.timed.surge.resistance-level",1));
-    }
-    private void apply(Player p,PotionEffectType type,int level) {
-        PotionEffect current=p.getPotionEffect(type);
-        if(current==null || current.getAmplifier()<level-1 || current.getDuration()<60)
-            p.addPotionEffect(new PotionEffect(type,110,Math.max(0,level-1),true,false,true));
     }
     public void handleKill(Player killer,Player victim,boolean eligible) {
         if(!eligible)return;

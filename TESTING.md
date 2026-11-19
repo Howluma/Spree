@@ -1,96 +1,30 @@
-# SpreeCore: test-server checklist
+# SpreeCore v1.4 — test-server checklist
 
-Test on a **copy** of the server with the original ten Skript scripts disabled. Use Paper 1.21.11 and Java 21. Check the server console for exceptions after **every** test.
+Use a **backup/test copy** of the SMP with Java 21 and Paper 1.21.11. Disable the old Skripts. After every stage, check the server console. A successful CI build proves the code compiles, not that every game interaction has been observed.
 
-## Admin GUI and resource pack (1.1)
+## New temporary progression
 
-- [ ] `/spree` shows the extra Admin Dashboard and Edit All Settings buttons only to `spree.admin` holders.
-- [ ] `/spree settings` lists every bundled config category and no ordinary players can open it.
-- [ ] Browse each category, toggle a boolean, increase/decrease numeric settings and shift-left to enter an exact value through chat.
-- [ ] `/spree value 0.12` works for pending chat edits, `cancel` cancels edits and shift-right resets defaults.
-- [ ] Invalid input (negative streak cap, chance >1, nonnumeric number) is rejected and never saved.
-- [ ] Changes persist after restart; config values take effect with no restart, including actionbar and autosave periods.
-- [ ] Try rapid shift-clicks, number keys, dragged items, offhand swaps and bottom-inventory interactions; nothing can be removed from a GUI.
-- [ ] Custom legendary models render correctly with the actual installed resource pack; without it every weapon remains the correct vanilla weapon.
-- [ ] Spree Token is a custom texture with the pack but a normal Heart of the Sea without it.
-- [ ] Old legendary items in online player inventories migrate to new custom_model_data; original enchantments and PDC IDs remain.
-- [ ] The model adapter does not overwrite existing weapon/crossbow pack overrides or break crossbow loading animations.
+- [ ] Fractured (`-1` internally) has **20 health points / 10 hearts**, exactly equal to streak 0. Its name never shows `-1` in the tab list or overhead.
+- [ ] Streak 1 = **21 health points / 10.5 hearts**, streak 2 = 22 points / 11 hearts, streak 3 = 23 points / 11.5 hearts, streak 30 = 50 points / 25 hearts.
+- [ ] Reaching level 1 grants precisely +0.5 heart; every higher level adds another half, including levels above 20. No old 20-heart cap remains.
+- [ ] Test a player at full and partial health when gaining/losing a streak and during a respawn/rejoin. Health must never exceed its actual maximum or drop to zero due to recalculation.
+- [ ] Disable all unrelated potion sources. Streak increases must no longer grant Fire Resistance, Hero of the Village, Weaving, Speed, Glowing or potion upgrades. Temporarily applied old effects should expire normally.
+- [ ] Old `killstreak.restrictions.enabled: true` and other legacy progression keys should be pruned on upgrade; item pickup, use and inventory movement are never blocked by those retired rules.
+- [ ] Mace at Fractured and 0: try grounded attack, fall/smash hit, Wind Burst mace against players **and mobs**. Direct damage must be blocked; vanilla special smash must not trigger as a successful attack. The attacker should see a brief unlock message, not spam.
+- [ ] At 1 and above: repeat those mace attacks. Damage works, while the 75% PvP multiplier remains applied. Mobs retain normal mace damage. Other weapons work regardless of streak.
+- [ ] Set `killstreak.mace-unlock-level` to 2 in `/spree settings`; level 1 must lose access, level 2 must regain it. Restore to 1. Change `killstreak.health-per-level-hearts`, verify live update, then reset to 0.5.
+- [ ] Confirm `Spree Surge` is marked **Paused** in the admin GUI and cannot start through `/spreeevent surge on`.
 
-## First launch / data
+## Existing mechanics regression
 
-- [ ] Plugin starts without `Skript`, and creates `plugins/SpreeCore/config.yml`.
-- [ ] Regular `/spree` shows personal stats, leaderboard, info and HUD only; no live events, legendary list or draft unlocks.
-- [ ] Ordinary players cannot browse `/legendary list`, `/legendary status`, or `/legendary` GUI; `/legendary refresh` still refreshes their held item.
-- [ ] Admin `/spreeadmin` → Players switches online/all profiles, searches by partial name/UUID, and navigates multiple pages.
-- [ ] Admin may open offline profiles and edit streak, best, kills, deaths and streaks ended without waiting for login.
-- [ ] Exact value chat prompts accept valid numbers, reject invalid ones, and `cancel` returns safely to the menu.
-- [ ] Reset current streak needs two clicks on the *same player* within six seconds; no accidental mass resets.
-- [ ] Tab renders `✦` plus the real streak number; nametag renders the compact suffix, and Recovery uses `↺`.
-- [ ] With a separate teams/scoreboard plugin, existing teams and friendly-fire remain intact; tab indicator still shows even if team collision prevents a nametag suffix.
-- [ ] `killstreak.restrictions.enabled` defaults off; no draft item restrictions or pearl cap are enforced before server approval.
-- [ ] `/spree`, `/spreeadmin`, `/spreeevent`, `/legendary` menus open for authorized players and their buttons work.
-- [ ] `/spreeadmin set <player> 10` changes the actionbar, tab display, overhead tag where compatible, and max health.
-- [ ] `/spreeadmin recovery <player>` displays `RECOVERY`; a legitimate kill restores positive streak.
-- [ ] A player at **0** dying to a mob goes to **-1** and drops one token; dying again at **-1** does not create more tokens.
-- [ ] Own token restores **-1** to **0** without granting killstreak; another player's token adds its value only once.
-- [ ] Repeated PvP kills of the same victim within 300 seconds do not grant streak rewards (default rule).
-- [ ] Death reduces positive streak to half, and **keepInventory** doesn't duplicate drops or permit locked equipment.
-- [ ] `plugins/SpreeCore/players.yml` survives restart and retains streaks, stats, and anti-farm data.
+- [ ] Dying from PvP or environment at streak 7 leaves 3; at 5 leaves 2; at 1 leaves 0. Natural death at zero enters Fractured.
+- [ ] Spree consumables grant exactly +1 per right click, consume only one item per click, work in main/offhand, and aren't consumed if already at maximum.
+- [ ] Environmental-death Spree Tokens retain their separate pickup/reclaim behavior; anti-farm limits still work.
+- [ ] TNT igniter receives 50% self-damage while others take normal damage. Explosive kills give player credit whenever the ownership evidence is reliable.
+- [ ] Legendary weapons, forging, Blood's Bane, event-only Juggernaut hearts and health recalculations still work.
+- [ ] Tab and overhead (where no other plugin owns the team) display `⚔ 12` with navy symbol and bold blue number; Fractured shows the red marker. Custom symbol changes apply immediately and persist.
+- [ ] `/spree settings` and `/spreesettings` work for operators/admins, not other players. Browse all config categories; retired passives, potion bonuses, item unlocks and old health cap must be absent.
+- [ ] `/spree` for ordinary players does not show live events or the admin-only legendary list. Main menu uses deeper blue than prior cyan.
+- [ ] Restart with a backup copy of existing 1.3 `players.yml` and `config.yml`. User stats and Fractured statuses survive, and the old gem icon migrates without overwriting a manually customized symbol.
 
-## Relics
-
-- [ ] `/legendary give tundra`, `butcherer`, `stormbreaker`, `aquafier`, `darkheart`, `hailstorm` create distinct tagged items.
-- [ ] Sneak + right-click activates each relic's intended ability, with cooldown feedback.
-- [ ] Tundra freezes head rotation and movement for two seconds.
-- [ ] Blood Butcherer costs hearts before Strength III and occasionally applies Wither III.
-- [ ] Storm Breaker lightning does not kill targets from its direct active damage and respects distance.
-- [ ] Aquafier absorbs connected water and is denied by the **actual** server's region-protection setup; test carefully.
-- [ ] Darkheart dashes, hits each target only once per dash, and heals every four weapon hits.
-- [ ] Hailstorm's every-third-shot frost and armed next-hit volley work with loaded crossbows, different targets, and an empty arrow stack.
-- [ ] Blood's Bane goes only to the top **online** streak 15+, cannot be dropped/stored by the bound owner, and changes hands as ranks change.
-- [ ] Old Skript relics can be migrated with `/spreeadmin migrateitems` before `accept-legacy-lore-items` is set to false.
-
-## Forges, events, admins
-
-- [ ] All four shaped recipes require their **exact base potion types**.
-- [ ] One recipe starts a forge and consumes one set of ingredients; shift-click does not duplicate crafts.
-- [ ] Boss bar, coordinates, 3-minute announcement, death failure and restart recovery behave as expected.
-- [ ] A forge completed while its owner is offline grants exactly one item on later login.
-- [ ] `/spreeevent hunt on` gives per-player target compasses; `/spreeevent juggernaut on` grants 10 hearts and rotates on death.
-- [ ] Juggernaut killer receives the slay bonus **before** the new juggernaut is selected.
-- [ ] `locator`, `bloodsbane`, `bloodmoon`, `surge`, `chaos`, and `race` modes can be enabled and disabled.
-- [ ] `/spreeadmin reload` applies config changes. Adjust 5-minute events and forge timers downward temporarily for the tests.
-- [ ] If migrating, back up original Skript variables and examine `/spreeadmin importskript` output before enabling `force`.
-
-**Testing note:** GitHub Actions builds and runs JUnit tests against the Paper 1.21.11 API. Passing CI establishes compilation and arithmetic/config validation only. Run the above manual integration tests in-game before deploying on the live SMP.
-
-
-### v1.3 regression checks
-
-1. As an op, run `/spree settings`, `/spreesettings`, and `/spree admin`.
-   Confirm all navigate correctly. As a non-op, verify editor permission is denied.
-   When another plugin also defines `/spree`, use `/spreecore:spree settings`.
-2. Inspect tab and overhead names: `◆ 12` should be dark cyan + **bold cyan**;
-   `◆ ✕` should be red when Fractured. Confirm scoreboard team plugins still work.
-3. Kill players with ordinary swords and then TNT ignited by a different player.
-   Confirm the latter credits the igniter, halves the victim's streak, and drops **no**
-   environmental death token. Test TNT chains and TNT unloaded/reloaded in chunks.
-4. Test igniter taking TNT blast damage: compare with TNT damage to another player;
-   only the igniter should take 50% of baseline when enabled. Set the GUI to 100%
-   and verify damage becomes vanilla. Verify redstone TNT with unknown owner is not
-   assigned to an unrelated player.
-5. Test mace damage with the same target armor: with Mace 75%, the base damage
-   should be scaled by 0.75; ordinary weapons should be unaffected. Adjust via
-   `/spree settings` > Combat Balancing and confirm updates without a restart.
-6. Give `/spreeadmin giveitem <player> 3`. Right-click three times, confirm a
-   single +1 per item, exactly three items consumed. Try both hands, zero/Fractured,
-   the cap (item retained), relogging, and ordinary renamed Hearts of the Sea
-   (must NOT grant points). Admin menu 'Give Spree Item' should do the same.
-7. Confirm old dropped Spree Tokens still auto-claim on pickup. Reclaiming your own
-   at Fractured removes the penalty but does not award a bonus. Other players
-   claiming tokens retain the previous trap reward. Check no item duplication.
-8. Die on streaks 0, 1, 3, 5, 7, 30 in both PvP and natural deaths.
-   Positive streaks must be floored half. Natural death at 0 => Fractured;
-   PvP death at 0 => zero. Natural death while Fractured => Fractured.
-9. Reload/restart an existing 1.2 server with `players.yml` and `config.yml`;
-   verify profiles intact and old Recovery label automatically renamed.
+**Note:** Paper can vary in how smash/knockback effects are emitted. Test Wind Burst and other damage/knockback-producing mace interactions on your exact Paper build. If another plugin overrides event cancellation at a later priority, adjust that plugin's integration rather than assuming a unit test proves the attack cannot happen.

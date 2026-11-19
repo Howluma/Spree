@@ -7,27 +7,32 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DefaultConfigTest {
-    @Test void unfinishedItemRulesAreNotEnforcedByDefault() {
+    private YamlConfiguration config() {
         var stream = getClass().getResourceAsStream("/config.yml");
         assertNotNull(stream);
-        var defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
-        assertFalse(defaults.getBoolean("killstreak.restrictions.enabled", true));
+        return YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
     }
-    @Test void tabAndNameTagsAreOptOutSettings() {
-        var stream = getClass().getResourceAsStream("/config.yml");
-        assertNotNull(stream);
-        var defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
-        assertTrue(defaults.getBoolean("display.streak-indicators.tab-enabled"));
-        assertTrue(defaults.getBoolean("display.streak-indicators.nametag-enabled"));
-        assertEquals("◆", defaults.getString("display.streak-indicators.symbol"));
-        assertEquals("✕", defaults.getString("display.streak-indicators.fractured-symbol"));
-        assertTrue(defaults.getString("general.fractured-label").contains("Fractured Killstreak"));
+    @Test void onlyHealthAndMaceArePassiveProgression() {
+        var c = config();
+        assertEquals(10, c.getInt("killstreak.base-health-hearts"));
+        assertEquals(0.5, c.getDouble("killstreak.health-per-level-hearts"));
+        assertEquals(1, c.getInt("killstreak.mace-unlock-level"));
+        assertFalse(c.contains("killstreak.passives"));
+        assertFalse(c.contains("killstreak.potion-bonuses"));
+        assertFalse(c.contains("killstreak.restrictions"));
+        assertFalse(c.contains("killstreak.max-health-hearts"));
+        assertFalse(c.contains("events.timed.surge"));
     }
-    @Test void combatDefaultsMatchRequestedBalance() {
-        var stream = getClass().getResourceAsStream("/config.yml");
-        assertNotNull(stream);
-        var defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
-        assertEquals(0.75, defaults.getDouble("combat.mace.player-damage-multiplier"));
-        assertEquals(0.5, defaults.getDouble("combat.tnt.igniter-self-damage-multiplier"));
+    @Test void darkBlueIndicatorDefaults() {
+        var c = config();
+        assertTrue(c.getBoolean("display.streak-indicators.tab-enabled"));
+        assertTrue(c.getBoolean("display.streak-indicators.nametag-enabled"));
+        assertEquals("⚔", c.getString("display.streak-indicators.symbol"));
+        assertTrue(c.getString("general.fractured-label").contains("Fractured Killstreak"));
+    }
+    @Test void combatDefaultsPreserved() {
+        var c = config();
+        assertEquals(0.75, c.getDouble("combat.mace.player-damage-multiplier"));
+        assertEquals(0.5, c.getDouble("combat.tnt.igniter-self-damage-multiplier"));
     }
 }

@@ -25,9 +25,21 @@ class SpreeMathTest {
         assertEquals(2, SpreeMath.killGain(30));
         assertEquals(1, SpreeMath.applyKill(-1, 1, 30));
     }
-    @Test void health() {
-        assertEquals(10, SpreeMath.healthHearts(0, 10, 20));
-        assertEquals(11, SpreeMath.healthHearts(3, 10, 20));
-        assertEquals(20, SpreeMath.healthHearts(30, 10, 20));
+    @Test void halfHeartForEveryPositiveLevel() {
+        assertEquals(20.0, SpreeMath.maxHealthPoints(-1, 10, 0.5));
+        assertEquals(20.0, SpreeMath.maxHealthPoints(0, 10, 0.5));
+        assertEquals(21.0, SpreeMath.maxHealthPoints(1, 10, 0.5));
+        assertEquals(22.0, SpreeMath.maxHealthPoints(2, 10, 0.5));
+        assertEquals(23.0, SpreeMath.maxHealthPoints(3, 10, 0.5));
+        assertEquals(50.0, SpreeMath.maxHealthPoints(30, 10, 0.5));
+    }
+    @Test void maceRequiresLevelOneAndFracturedIsLocked() {
+        assertFalse(SpreeMath.canUseMace(-1, 1));
+        assertFalse(SpreeMath.canUseMace(0, 1));
+        assertTrue(SpreeMath.canUseMace(1, 1));
+        assertTrue(SpreeMath.canUseMace(30, 1));
+        assertFalse(SpreeMath.canUseMace(1, 2));
+        assertTrue(SpreeMath.canUseMace(2, 2));
+        assertFalse(SpreeMath.canUseMace(0, 0)); // Misconfiguration cannot unlock at zero.
     }
 }
