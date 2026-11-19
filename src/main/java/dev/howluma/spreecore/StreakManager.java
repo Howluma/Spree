@@ -64,8 +64,9 @@ public final class StreakManager implements Listener {
         plugin.data().dirty();
         Player online = Bukkit.getPlayer(id);
         if (online != null && !newPerks.isEmpty()) {
-            List<String> unlocked = newPerks.stream().filter(a -> a.milestone() <= newStreak)
-                    .map(a -> a.type().display).toList();
+            List<String> unlocked = new ArrayList<>();
+            for (PerkManager.Award award : newPerks)
+                if (award.milestone() <= newStreak) unlocked.add(award.type().display);
             if (!unlocked.isEmpty())
                 Text.send(online, plugin.prefix() + "&aPerks unlocked: &f" + String.join(", ", unlocked));
         }
