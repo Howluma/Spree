@@ -101,8 +101,8 @@ class DefaultConfigTest {
     @Test void rodHitboxAssistIsBuiltIntoSpreeCoreWithSmallDefaults() {
         var c=config();
         assertTrue(c.getBoolean("rod-assist.enabled"));
-        assertEquals(.20,c.getDouble("rod-assist.player-extra-margin"),1e-9);
-        assertEquals(.25,c.getDouble("rod-assist.item-extra-margin"),1e-9);
+        assertEquals(.30,c.getDouble("rod-assist.player-extra-margin"),1e-9);
+        assertEquals(.35,c.getDouble("rod-assist.item-extra-margin"),1e-9);
         assertEquals(4.0,c.getDouble("rod-assist.max-sweep-blocks-per-tick"),1e-9);
         assertTrue(c.getBoolean("rod-assist.respect-pvp-settings"));
         assertTrue(c.getBoolean("rod-assist.respect-friendly-fire"));
@@ -128,7 +128,7 @@ class DefaultConfigTest {
         assertTrue(config.getBoolean("talents.flame-rod.enabled"));
         assertTrue(config.getBoolean("talents.flame-rod.bobber-particles"));
         assertTrue(config.getBoolean("talents.flame-rod.cast-sound"));
-        assertEquals(.35,config.getDouble("talents.flame-rod.contact-tolerance"),1e-9);
+        assertEquals(.50,config.getDouble("talents.flame-rod.contact-tolerance"),1e-9);
         assertEquals(1,config.getInt("talents.flame-rod.max-ignitions-per-cast"));
         assertEquals(80,config.getInt("talents.flame-rod.tnt-fuse-ticks"));
         assertFalse(config.contains("talents.barbed-hook"));
