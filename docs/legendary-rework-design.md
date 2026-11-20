@@ -89,16 +89,16 @@ Each legendary is held in the **main hand**, with abilities tied to the **wielde
 
 ## Storm Breaker - proposed ability kit (NOT YET APPROVED)
 
-**Identity:** Lightning vanguard / mobility, knockback and controlled area pressure. Avoid replicating Tundra Tantō's immobilization and Blood Butcher's bleed. All electric hits are custom: particle/sound lightning, **no vanilla lightning fire or block damage**.
+**Identity:** Lightning vanguard / mobility, knockback and controlled area pressure. **Damage values revised by user; remaining kit is still pending approval.** Avoid replicating Tundra Tantō's immobilization and Blood Butcher's bleed. All electric hits are custom: particle/sound lightning, **no vanilla lightning fire or block damage**.
 
 ### Level 0: Passive I - Static Momentum (proposal)
 - While Storm Breaker is held in the main hand, traveling **8 blocks** charges its next fully charged axe hit, including grounded and airborne travel.
-- That hit consumes the charge and deals **1 additional heart of normal damage before armor**, with electric visuals.
+- That hit consumes the charge and deals **+3 raw damage points before armor (1.5 hearts before mitigation)**, with electric visuals.
 - It marks the struck enemy **Conductive for 5 seconds**. Charges cannot stack; switching away from the axe clears any stored charge.
 
 ### Level 3: Active I - Thunderclap (F) (proposal)
 - Unleash a forward **5-block cone** of electricity.
-- Enemies caught take **2 hearts of normal pre-armor damage** and significant outward knockback.
+- Enemies caught take **2 full hearts (4 health points) of TRUE damage**, bypassing armor and Protection enchantments, plus significant outward knockback.
 - Hitting a Conductive target adds **0.5 hearts** (before armor) and consumes that mark.
 - Proposed cooldown **35 seconds**.
 
@@ -109,7 +109,7 @@ Each legendary is held in the **main hand**, with abilities tied to the **wielde
 
 ### Level 7: Active II - Tempest (Shift+F) (proposal)
 - Surround the wielder with a **6-block mobile storm** for **5 seconds**.
-- Periodic, visibly telegraphed lightning strikes selected opponents in the storm, dealing **1.5 hearts normal pre-armor damage** and a small upward knock.
+- Periodic, visibly telegraphed lightning strikes selected opponents in the storm, dealing **1 full heart (2 health points) of TRUE damage per strike**, bypassing armor and Protection enchantments, plus a small upward knock.
 - Each enemy can be struck at most twice per cast and can evade strikes by moving out of the marked impact area.
 - Proposed cooldown **85 seconds**.
 - Does not grief blocks, start fires or bypass normal PvP/team protections.
