@@ -98,6 +98,16 @@ class DefaultConfigTest {
             assertEquals(expected[i],c.getString("fate-sigil.recipe.slot-"+(i+1)));
         assertEquals(721051,c.getInt("resource-pack.models.fate-sigil"));
     }
+    @Test void rodHitboxAssistIsBuiltIntoSpreeCoreWithSmallDefaults() {
+        var c=config();
+        assertTrue(c.getBoolean("rod-assist.enabled"));
+        assertEquals(.20,c.getDouble("rod-assist.player-extra-margin"),1e-9);
+        assertEquals(.25,c.getDouble("rod-assist.item-extra-margin"),1e-9);
+        assertEquals(4.0,c.getDouble("rod-assist.max-sweep-blocks-per-tick"),1e-9);
+        assertTrue(c.getBoolean("rod-assist.respect-pvp-settings"));
+        assertTrue(c.getBoolean("rod-assist.respect-friendly-fire"));
+    }
+
     @Test void personalKillAndDeathEffectsAreEnabledAndConfigurable() {
         var c=config();
         assertTrue(c.getBoolean("combat-feedback.enabled"));
