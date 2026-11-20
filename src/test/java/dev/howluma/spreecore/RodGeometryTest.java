@@ -36,6 +36,17 @@ class RodGeometryTest {
                 -1,0,.45,1,0,.45,-.125,-.125,-.125,.125,.125,.125,.35)));
     }
 
+    @Test void primedTntCanBeHookedWhenBobberBarelyMisses() {
+        // Vanilla primed TNT is nearly one block wide.
+        // No global hitbox changes: only this local fishing catch is widened.
+        assertTrue(Double.isInfinite(RodGeometry.firstContact(
+                -2,.5,.85,2,.5,.85,-.49,0,-.49,.49,.98,.49,0)));
+        assertTrue(Double.isFinite(RodGeometry.firstContact(
+                -2,.5,.85,2,.5,.85,-.49,0,-.49,.49,.98,.49,.40)));
+        assertTrue(Double.isInfinite(RodGeometry.firstContact(
+                -2,.5,1.1,2,.5,1.1,-.49,0,-.49,.49,.98,.49,.40)));
+    }
+
     @Test void noLongDistanceMagneticRods() {
         assertTrue(Double.isInfinite(RodGeometry.firstContact(
                 0,1,0,5,1,0,2.4,0,1.5,3,2,2,.2)));
