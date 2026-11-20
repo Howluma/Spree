@@ -479,7 +479,7 @@ public final class MenuManager implements Listener {
                     default -> null;
                 };
                 if (changed != null) {
-                    if (changed != profile.streak) plugin.streaks().setStreak(h.target, changed, changed >= 0);
+                    if (changed != profile.streak) plugin.streaks().adminOverrideStreak(h.target, changed);
                     playerResetConfirm.remove(p.getUniqueId());
                     openPlayer(p, h.target);
                     return;
