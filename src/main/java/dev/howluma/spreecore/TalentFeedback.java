@@ -76,6 +76,13 @@ public final class TalentFeedback implements Listener {
         };
     }
 
+    /** The base mace slam belongs to Mace Wielder, not Mace Mastery. */
+    private boolean canReceiveReady(Player player,String timerKey) {
+        return timerKey.equals("mace_smash")
+                ?plugin.progression().hasPrivilege(player,"mace_wielder")
+                :plugin.progression().hasTalent(player,talentIdForKey(timerKey));
+    }
+
     public String[] statusLines(Player player) {
         PlayerDataStore.Profile profile=plugin.data().get(player);
         List<String> out=new ArrayList<>();
@@ -87,6 +94,13 @@ public final class TalentFeedback implements Listener {
                     if(option!=null)
                         out.add("&9Level "+e.getKey()+" &f"+option.name()+" &8- "+cooldownLore(player,option.id()));
                 });
+        if(plugin.progression().hasPrivilege(player,"mace_wielder")
+                && !plugin.progression().hasTalent(player,"mace_mastery")){
+            long until=profile.talentCooldowns.getOrDefault("mace_smash",0L);
+            long seconds=secondsLeft(until,System.currentTimeMillis());
+            out.add("&9Mace Slam &8- "+(seconds==0?"&aREADY":"&e"+format(seconds)+" remaining")
+                    +" &8| normal mace hits still work");
+        }
         return out.isEmpty()?new String[]{"&8No currently active Talents."}:out.toArray(String[]::new);
     }
 
@@ -190,11 +204,13 @@ public final class TalentFeedback implements Listener {
                 if(actual!=timer.getValue()) {timers.remove();continue;}
                 if(now<actual)continue;
                 timers.remove();
-                if(!plugin.progression().hasTalent(player,talentIdForKey(timer.getKey())))continue;
+                if(!canReceiveReady(player,timer.getKey()))continue;
                 if(!enabled("ready-notifications"))continue;
                 String label=name(timer.getKey());
                 visual(player,talentIdForKey(timer.getKey()),true,false);
-                alert(player,"&a&lTALENT READY &8| &f"+label);
+                alert(player,timer.getKey().equals("mace_smash")
+                        ? "&a&lMACE SLAM READY &8| &fSmash attack recharged"
+                        : "&a&lTALENT READY &8| &f"+label);
                 if(enabled("ready-chat"))
                     Text.send(player,plugin.prefix()+"&a"+label+" is off cooldown and ready!");
             }
@@ -206,7 +222,7 @@ public final class TalentFeedback implements Listener {
     public void reattach(Player player) {
         long now=System.currentTimeMillis();
         for(var e:plugin.data().get(player).talentCooldowns.entrySet())
-            if(e.getValue()>now && plugin.progression().hasTalent(player,talentIdForKey(e.getKey()))
+            if(e.getValue()>now && canReceiveReady(player,e.getKey())
                     && cooldownKey(talentIdForKey(e.getKey()))!=null)
                 pendingReady.computeIfAbsent(player.getUniqueId(),id->new HashMap<>())
                         .put(e.getKey(),e.getValue());
