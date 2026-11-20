@@ -64,14 +64,14 @@ public final class QuickHands implements Listener {
         float originalTime=stored==null?component.consumeSeconds():stored;
         if(active&&ours &&
             Math.abs(component.consumeSeconds()-Math.max(.05f,originalTime*
-                (float)plugin.getConfig().getDouble("talents.quick-hands.consume-time-multiplier",.8)))<.001f)return null;
+                (float)plugin.getConfig().getDouble("talents.quick-hands.consume-time-multiplier",.9)))<.001f)return null;
         ItemStack changed=original.clone();
         ItemMeta update=changed.getItemMeta();
         if(active) update.getPersistentDataContainer().set(originalSeconds,PersistentDataType.FLOAT,originalTime);
         else update.getPersistentDataContainer().remove(originalSeconds);
         changed.setItemMeta(update);
         changed.setData(DataComponentTypes.CONSUMABLE,component.toBuilder()
-                .consumeSeconds(active?Math.max(.05f,originalTime*(float)plugin.getConfig().getDouble("talents.quick-hands.consume-time-multiplier",.8)):originalTime).build());
+                .consumeSeconds(active?Math.max(.05f,originalTime*(float)plugin.getConfig().getDouble("talents.quick-hands.consume-time-multiplier",.9)):originalTime).build());
         return changed;
     }
     private void restoreContainer(Inventory inv) {
