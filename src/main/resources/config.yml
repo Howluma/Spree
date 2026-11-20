@@ -22,6 +22,9 @@ rod-assist:
   # Player width remains physically 0.6 blocks; only bobber catches are helped.
   player-extra-margin: 0.30
   item-extra-margin: 0.35
+  # Primed TNT entities can be pulled with fishing rods in vanilla.
+  # Give the burning TNT entity a modest extra catch margin too.
+  primed-tnt-extra-margin: 0.40
   # Maximum distance sampled between bobber positions each tick.
   max-sweep-blocks-per-tick: 4.0
   respect-pvp-settings: true
