@@ -243,7 +243,7 @@ public final class FlameRodTalent implements Listener {
         if(player==null||!empowered(player))return false;
 
         double tolerance=Math.max(.05,Math.min(.7,plugin.getConfig()
-                .getDouble("talents.flame-rod.contact-tolerance",.35)));
+                .getDouble("talents.flame-rod.contact-tolerance",.50)));
         World world=sample.getWorld();
         for(int x=bx-1;x<=bx+1;x++)
             for(int y=by-1;y<=by+1;y++)
