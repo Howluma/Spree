@@ -112,16 +112,33 @@ public final class PrivilegeRules implements Listener {
         plugin.data().get(p).talentCooldowns.put("enchanted_apple",
                 System.currentTimeMillis()+seconds*1000L);
         plugin.data().dirty();
-        int maxDuration=Math.max(1,setting("enchanted-apple-max-effect-seconds",60))*20;
-        Bukkit.getScheduler().runTaskLater(plugin,()->{
-            if(!p.isOnline()||p.isDead())return;
-            for(PotionEffectType type:List.of(PotionEffectType.REGENERATION,
-                    PotionEffectType.RESISTANCE,PotionEffectType.FIRE_RESISTANCE,PotionEffectType.ABSORPTION)) {
-                PotionEffect current=p.getPotionEffect(type);
-                if(current!=null&&!current.isInfinite()&&current.getDuration()>maxDuration)
-                    p.addPotionEffect(current.withDuration(maxDuration),true);
-            }
-        },2L);
+        // Vanilla adds food effects after PlayerItemConsumeEvent. A single delayed
+        // correction can lose the race against vanilla, Paper or another listener.
+        // Keep the deadline tied to the consumption time, so later checks never
+        // restart a fresh 60-second timer.
+        final long consumedAt=System.currentTimeMillis();
+        final long deadline=consumedAt+Math.max(1,
+                setting("enchanted-apple-max-effect-seconds",60))*1000L;
+        final UUID playerId=p.getUniqueId();
+        for(long delay:new long[]{1L,2L,5L,10L,20L}) {
+            Bukkit.getScheduler().runTaskLater(plugin,()->{
+                Player player=Bukkit.getPlayer(playerId);
+                if(player==null||!player.isOnline()||player.isDead())return;
+                int remainingTicks=(int)Math.max(0L,(deadline-System.currentTimeMillis())/50L);
+                for(PotionEffectType type:List.of(PotionEffectType.REGENERATION,
+                        PotionEffectType.RESISTANCE,PotionEffectType.FIRE_RESISTANCE,
+                        PotionEffectType.ABSORPTION)) {
+                    PotionEffect current=player.getPotionEffect(type);
+                    if(current==null||current.isInfinite()
+                            ||current.getDuration()<=remainingTicks)continue;
+                    // Replacing rather than merely re-adding guarantees the shorter
+                    // duration wins even when the amplifier is unchanged.
+                    player.removePotionEffect(type);
+                    if(remainingTicks>0)
+                        player.addPotionEffect(current.withDuration(remainingTicks),true);
+                }
+            },delay);
+        }
     }
     private void cap(Player p,Material material,int max) {
         int left=Math.max(0,max);
