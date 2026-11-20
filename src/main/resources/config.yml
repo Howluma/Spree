@@ -1,4 +1,4 @@
-# SpreeCore 1.8.2 - Haste I Infusion replaces Strength I; Industrious Talent retired.
+# SpreeCore 1.8.3 - visible mace smash impacts/cooldowns and reliable Escape Artist web blinks.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -327,6 +327,11 @@ combat:
     # Normal mace swings, misses, and blocked attacks do not start it.
     slam-cooldown-seconds: 60
     mastery-slam-cooldown-seconds: 30
+    # Vanilla shaded hotbar overlay after a real mace smash. Normal hits remain usable.
+    cooldown-overlay: true
+    # Extra blue shockwave at impact visible to nearby players.
+    impact-particles: true
+    impact-sound: true
   tnt:
     enabled: true
     igniter-self-damage-multiplier: 0.50
