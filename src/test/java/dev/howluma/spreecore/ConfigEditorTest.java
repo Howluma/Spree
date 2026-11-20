@@ -60,6 +60,8 @@ class ConfigEditorTest {
     @Test void rodCollisionMarginsCanBeEditedSafelyInSpreeCoreSettings() {
         assertNull(ConfigEditor.validate("rod-assist.player-extra-margin",.30));
         assertNull(ConfigEditor.validate("rod-assist.item-extra-margin",.35));
+        assertNull(ConfigEditor.validate("rod-assist.primed-tnt-extra-margin",.40));
+        assertNotNull(ConfigEditor.validate("rod-assist.primed-tnt-extra-margin",.51));
         assertNull(ConfigEditor.validate("rod-assist.player-extra-margin",0));
         assertNull(ConfigEditor.validate("rod-assist.item-extra-margin",.50));
         assertNotNull(ConfigEditor.validate("rod-assist.player-extra-margin",.51));
