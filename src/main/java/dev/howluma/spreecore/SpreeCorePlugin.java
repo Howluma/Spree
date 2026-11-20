@@ -27,6 +27,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private SpecialistItems specialistItems;
     private TalentEffects talents;
     private QuickHands quickHands;
+    private BarbedHookTalent barbedHook;
     private AdminBalanceMenu balanceMenu;
     private AdminUpgradeMenu adminUpgrades;
     private TalentFeedback talentFeedback;
@@ -57,6 +58,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         talents = new TalentEffects(this);
         talentFeedback = new TalentFeedback(this);
         quickHands = new QuickHands(this);
+        barbedHook = new BarbedHookTalent(this);
         progressMenus = new ProgressionMenu(this);
         balanceMenu = new AdminBalanceMenu(this);
         adminUpgrades = new AdminUpgradeMenu(this);
@@ -78,6 +80,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(talents, this);
         Bukkit.getPluginManager().registerEvents(talentFeedback, this);
         Bukkit.getPluginManager().registerEvents(quickHands, this);
+        Bukkit.getPluginManager().registerEvents(barbedHook, this);
         Bukkit.getPluginManager().registerEvents(balanceMenu, this);
         Bukkit.getPluginManager().registerEvents(adminUpgrades, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
@@ -127,6 +130,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (talents != null) talents.shutdown();
         if (talentFeedback != null) talentFeedback.shutdown();
         if (quickHands != null) quickHands.shutdown();
+        if (barbedHook != null) barbedHook.shutdown();
         if (specialistItems != null) specialistItems.shutdown();
         if (data != null) data.save();
     }
