@@ -27,7 +27,7 @@ class TalentFeedbackAndAuditTest {
                 "concussive_blow","sunder","riposte","second_wind","iron_will","bloodlust",
                 "field_medic","golden_aegis","windrunner","escape_artist","acrobat",
                 "trailblazer","expanded_reserves","battle_sense","scavenger",
-                "quick_hands","barbed_hook","streak_insurance","blacksmith")));
+                "quick_hands","flame_rod","streak_insurance","blacksmith")));
         assertFalse(unique.contains("industrious"));
         assertNull(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,"industrious"));
     }
