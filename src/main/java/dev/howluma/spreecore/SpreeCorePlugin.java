@@ -28,11 +28,12 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private TalentEffects talents;
     private QuickHands quickHands;
     private FlameRodTalent flameRod;
+    private RodAssistManager rodAssist;
     private AdminBalanceMenu balanceMenu;
     private AdminUpgradeMenu adminUpgrades;
     private TalentFeedback talentFeedback;
     private KillDeathFeedback killDeathFeedback;
-    private BukkitTask hudTask, saveTask, flameRodTask;
+    private BukkitTask hudTask, saveTask, flameRodTask, rodAssistTask;
 
     @Override public void onEnable() {
         saveDefaultConfig();
@@ -61,6 +62,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         killDeathFeedback = new KillDeathFeedback(this);
         quickHands = new QuickHands(this);
         flameRod = new FlameRodTalent(this);
+        rodAssist = new RodAssistManager(this);
         progressMenus = new ProgressionMenu(this);
         balanceMenu = new AdminBalanceMenu(this);
         adminUpgrades = new AdminUpgradeMenu(this);
@@ -83,6 +85,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(talentFeedback, this);
         Bukkit.getPluginManager().registerEvents(quickHands, this);
         Bukkit.getPluginManager().registerEvents(flameRod, this);
+        Bukkit.getPluginManager().registerEvents(rodAssist, this);
         Bukkit.getPluginManager().registerEvents(balanceMenu, this);
         Bukkit.getPluginManager().registerEvents(adminUpgrades, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
@@ -95,6 +98,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
         talents.registerRecipes();
         Bukkit.getScheduler().runTaskTimer(this, this::heartbeat, 20L, 20L);
         flameRodTask = Bukkit.getScheduler().runTaskTimer(this, flameRod::tick, 1L, 2L);
+        // Track the bobber's travel every tick for accurate nearby catches.
+        rodAssistTask = Bukkit.getScheduler().runTaskTimer(this, rodAssist::tick, 1L, 1L);
         scheduleConfigurableTasks();
         getLogger().info("SpreeCore enabled. No Skript dependency required.");
     }
@@ -134,6 +139,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (talentFeedback != null) talentFeedback.shutdown();
         if (quickHands != null) quickHands.shutdown();
         if (flameRodTask != null) flameRodTask.cancel();
+        if (rodAssistTask != null) rodAssistTask.cancel();
+        if (rodAssist != null) rodAssist.shutdown();
         if (flameRod != null) flameRod.shutdown();
         if (specialistItems != null) specialistItems.shutdown();
         if (data != null) data.save();
@@ -160,6 +167,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public TalentFeedback talentFeedback() { return talentFeedback; }
     public QuickHands quickHands() { return quickHands; }
     public FlameRodTalent flameRod() { return flameRod; }
+    public RodAssistManager rodAssist() { return rodAssist; }
     public AdminBalanceMenu balanceMenu() { return balanceMenu; }
     public AdminUpgradeMenu adminUpgrades() { return adminUpgrades; }
     public KillDeathFeedback killDeathFeedback() { return killDeathFeedback; }
