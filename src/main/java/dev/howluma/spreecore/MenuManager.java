@@ -486,7 +486,7 @@ public final class MenuManager implements Listener {
                 }
                 switch(slot) {
                     case 20 -> {
-                        plugin.streaks().setStreak(h.target, -1, false);
+                        plugin.streaks().adminOverrideStreak(h.target, -1);
                         playerResetConfirm.remove(p.getUniqueId());
                         openPlayer(p, h.target);
                     }
