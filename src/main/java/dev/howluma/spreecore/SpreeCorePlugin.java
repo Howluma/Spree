@@ -27,11 +27,11 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private SpecialistItems specialistItems;
     private TalentEffects talents;
     private QuickHands quickHands;
-    private BarbedHookTalent barbedHook;
+    private FlameRodTalent flameRod;
     private AdminBalanceMenu balanceMenu;
     private AdminUpgradeMenu adminUpgrades;
     private TalentFeedback talentFeedback;
-    private BukkitTask hudTask, saveTask;
+    private BukkitTask hudTask, saveTask, flameRodTask;
 
     @Override public void onEnable() {
         saveDefaultConfig();
@@ -58,7 +58,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         talents = new TalentEffects(this);
         talentFeedback = new TalentFeedback(this);
         quickHands = new QuickHands(this);
-        barbedHook = new BarbedHookTalent(this);
+        flameRod = new FlameRodTalent(this);
         progressMenus = new ProgressionMenu(this);
         balanceMenu = new AdminBalanceMenu(this);
         adminUpgrades = new AdminUpgradeMenu(this);
@@ -80,7 +80,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(talents, this);
         Bukkit.getPluginManager().registerEvents(talentFeedback, this);
         Bukkit.getPluginManager().registerEvents(quickHands, this);
-        Bukkit.getPluginManager().registerEvents(barbedHook, this);
+        Bukkit.getPluginManager().registerEvents(flameRod, this);
         Bukkit.getPluginManager().registerEvents(balanceMenu, this);
         Bukkit.getPluginManager().registerEvents(adminUpgrades, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
@@ -92,6 +92,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         fate.registerRecipe();
         talents.registerRecipes();
         Bukkit.getScheduler().runTaskTimer(this, this::heartbeat, 20L, 20L);
+        flameRodTask = Bukkit.getScheduler().runTaskTimer(this, flameRod::tick, 1L, 2L);
         scheduleConfigurableTasks();
         getLogger().info("SpreeCore enabled. No Skript dependency required.");
     }
@@ -130,7 +131,8 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (talents != null) talents.shutdown();
         if (talentFeedback != null) talentFeedback.shutdown();
         if (quickHands != null) quickHands.shutdown();
-        if (barbedHook != null) barbedHook.shutdown();
+        if (flameRodTask != null) flameRodTask.cancel();
+        if (flameRod != null) flameRod.shutdown();
         if (specialistItems != null) specialistItems.shutdown();
         if (data != null) data.save();
     }
@@ -155,6 +157,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public TalentEffects talents() { return talents; }
     public TalentFeedback talentFeedback() { return talentFeedback; }
     public QuickHands quickHands() { return quickHands; }
+    public FlameRodTalent flameRod() { return flameRod; }
     public AdminBalanceMenu balanceMenu() { return balanceMenu; }
     public AdminUpgradeMenu adminUpgrades() { return adminUpgrades; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
@@ -240,6 +243,10 @@ public final class SpreeCorePlugin extends JavaPlugin {
         // Preserve intentional custom multipliers other than the old default.
         if (Math.abs(getConfig().getDouble("talents.quick-hands.consume-time-multiplier",0.9)-0.8)<1e-8) {
             getConfig().set("talents.quick-hands.consume-time-multiplier",0.9);
+            changed = true;
+        }
+        if (getConfig().isSet("talents.barbed-hook")) {
+            getConfig().set("talents.barbed-hook", null); // Retired; no damage-on-hook logic remains.
             changed = true;
         }
         if (FateSigil.migrateOldRecipe(getConfig())) {
