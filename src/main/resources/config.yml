@@ -1,4 +1,4 @@
-# SpreeCore 1.8.9 - timed Spree Freeze and Flame Rod player ignition on successful hooks.
+# SpreeCore 1.8.10 - at-most-once death penalties with TNT minecart diagnostics.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -74,6 +74,13 @@ display:
       '30': '&4' # 30+ dark red
 
 killstreak:
+  # Every player life can apply exactly one loss, one death count, and one
+  # reward/drop. Useful for weird rapid TNT minecart/explosion death callbacks.
+  death-processing:
+    warn-duplicate-events: true
+    # Optional diagnostics for every death: cause, source entity and score.
+    # Useful when investigating another plugin/Skript changing killstreaks.
+    log-transitions: false
   # Vanilla is 10 hearts. Only the first 30 positive levels grant +0.5 heart each.
   # Fractured (-1) is treated as 0 here: no health penalty.
   base-health-hearts: 10
