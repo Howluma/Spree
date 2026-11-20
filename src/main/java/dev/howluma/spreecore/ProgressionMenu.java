@@ -199,6 +199,8 @@ public final class ProgressionMenu implements Listener {
             PerkType perk = PerkType.fromId(id);
             if (perk == null) continue;
             List<String> lore = new ArrayList<>();
+            if(level>plugin.streaks().streak(player))
+                lore.add("&7Saved Perk: &8"+perk.display);
             lore.add("&7Unlocked at killstreak &b" + level);
             lore.addAll(Arrays.asList(plugin.perks().detailLore(perk, plugin.data().get(player))));
             boolean active=level<=plugin.streaks().streak(player);
@@ -344,8 +346,11 @@ public final class ProgressionMenu implements Listener {
                 var perk=all.get(i);
                 List<String> lore = new ArrayList<>(
                         Arrays.asList(plugin.perks().detailLore(perk, plugin.data().get(player))));
+                boolean active=plugin.perks().stacks(plugin.data().get(player),perk)>0;
+                lore.add(active ? "&a&lACTIVE" : "&8&lINACTIVE &7- &8No active copies");
                 lore.add("&7Automatically rolled at Perk milestones");
-                inv.setItem(slot, icon(perk.icon(), "&9&l" + perk.display,
+                inv.setItem(slot, icon(active ? perk.icon() : Material.GRAY_DYE,
+                        active ? "&9&l" + perk.display : "&8&l" + perk.display + " &8[LOCKED]",
                         lore.toArray(String[]::new)));
             }
         } else {
@@ -361,12 +366,15 @@ public final class ProgressionMenu implements Listener {
             for (int i=0; i<Math.min(guideCells.length,all.size()); i++) {
                 int slot=guideCells[i];
                 var option=all.get(i);
-                if(kind==ProgressionCatalog.Kind.TALENT)
-                    inv.setItem(slot,icon(option.icon(),"&9&l"+option.name(),
+                if(kind==ProgressionCatalog.Kind.TALENT) {
+                    boolean active=plugin.progression().hasTalent(player,option.id());
+                    inv.setItem(slot,icon(active ? option.icon() : Material.GRAY_DYE,
+                            active ? "&9&l"+option.name() : "&8&l"+option.name()+" &8[LOCKED]",
                             "&7"+option.description(),
+                            active ? "&a&lACTIVE" : "&8&lINACTIVE &7- &8Regain its milestone",
                             plugin.talentFeedback().cooldownLore(player,option.id()),
                             "&7Check cooldowns: &b/spree cooldowns"));
-                else inv.setItem(slot, icon(option.icon(),"&9&l"+option.name(),
+                } else inv.setItem(slot, icon(option.icon(),"&9&l"+option.name(),
                         "&7"+option.description(), "&7"+kind.title+" only"));
             }
         }
