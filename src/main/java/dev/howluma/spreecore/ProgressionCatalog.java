@@ -39,7 +39,7 @@ public final class ProgressionCatalog {
         new Option("hero", "Hero of the Village X", Material.POTION, "Permanent Hero of the Village X"));
 
     public static final List<Option> TALENTS = List.of(
-        new Option("mace_mastery", "Mace Mastery", Material.HEAVY_CORE, "Mace smash cooldown: 60s down to 30s"),
+        new Option("mace_mastery", "Mace Mastery", Material.HEAVY_CORE, "Smash cooldown reduced from 60s to 30s; see mace hotbar overlay"),
         new Option("executioner", "Executioner", Material.WITHER_SKELETON_SKULL, "+10% damage against enemies below half health"),
         new Option("combo_breaker", "Combo Breaker", Material.CLOCK, "After 3 unreturned hits, +10% damage until counter-hit or 5s gap"),
         new Option("concussive_blow", "Concussive Blow", Material.ANVIL, "Hit applies Mining Fatigue II for 5s; 45s cooldown"),
@@ -51,7 +51,7 @@ public final class ProgressionCatalog {
         new Option("field_medic", "Field Medic", Material.POTION, "PvP kill heals 5 hearts; 60s cooldown"),
         new Option("golden_aegis", "Golden Aegis", Material.GOLD_BLOCK, "Golden apples grant 2 extra absorption hearts; 45s cooldown"),
         new Option("windrunner", "Windrunner", Material.FEATHER, "Self-launched wind charges propel you 25% farther"),
-        new Option("escape_artist", "Escape Artist", Material.SHEARS, "On hit, escape cobwebs/Slowness for 3s; 50s cooldown"),
+        new Option("escape_artist", "Escape Artist", Material.SHEARS, "Blink to a safe spot when entering cobwebs; on hit cleanse Slowness for 3s; 50s cooldown"),
         new Option("acrobat", "Acrobat", Material.FEATHER, "-40% fall damage; +10% jump strength"),
         new Option("trailblazer", "Trailblazer", Material.LEATHER_BOOTS, "Walk up one-block ledges without jumping"),
         new Option("expanded_reserves", "Expanded Reserves", Material.EXPERIENCE_BOTTLE, "Carry one additional stack of capped XP bottles and wind charges"),
