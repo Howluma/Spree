@@ -65,7 +65,7 @@ public final class StreakManager implements Listener {
     }
 
     private void setStreakInternal(UUID id,int amount,boolean admin,boolean bypassFreeze) {
-        if(frozen() && !bypassFreeze)return;
+        if(StreakFreezeMath.blocksAutomaticChange(frozen(),bypassFreeze))return;
         PlayerDataStore.Profile p = plugin.data().get(id);
         int newStreak = SpreeMath.clamp(amount, cap());
         if (admin) newStreak = Math.max(0, newStreak);
