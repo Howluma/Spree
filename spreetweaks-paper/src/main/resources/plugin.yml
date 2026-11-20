@@ -1,0 +1,16 @@
+name: SpreeTweaks
+version: '1.0.0'
+main: dev.howluma.spreetweaks.SpreeTweaksPlugin
+api-version: '1.21.11'
+authors: [Howluma]
+description: Slightly more forgiving fishing-bobber hooks for players and dropped item entities.
+commands:
+  spreetweaks:
+    description: SpreeTweaks rod collision settings and reloading
+    usage: '/spreetweaks [status|reload]'
+    permission: spreetweaks.admin
+    aliases: [stweaks]
+permissions:
+  spreetweaks.admin:
+    default: op
+    description: View settings and reload SpreeTweaks.
