@@ -1,4 +1,4 @@
-# SpreeCore 1.8.7 - slightly enlarged fishing hook catch tolerance, integrated directly into SpreeCore.
+# SpreeCore 1.8.8 - slightly more forgiving rod catches and Flame Rod TNT ignition.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -20,8 +20,8 @@ rod-assist:
   enabled: true
   # Adds a small amount of reach around the target's true hitbox per side.
   # Player width remains physically 0.6 blocks; only bobber catches are helped.
-  player-extra-margin: 0.20
-  item-extra-margin: 0.25
+  player-extra-margin: 0.30
+  item-extra-margin: 0.35
   # Maximum distance sampled between bobber positions each tick.
   max-sweep-blocks-per-tick: 4.0
   respect-pvp-settings: true
@@ -218,8 +218,9 @@ talents:
     # The bobber visually burns and emits flame particles while the cast is active.
     bobber-particles: true
     cast-sound: true
-    # Ignite TNT only when the bobber touches the block, not at a distance.
-    contact-tolerance: 0.35
+    # Slightly expanded bobber-to-TNT contact zone (0.50 blocks outside TNT).
+    # Only Flame Rod casts can ignite TNT; block protection rules still apply.
+    contact-tolerance: 0.50
     max-ignitions-per-cast: 1
     tnt-fuse-ticks: 80
   streak-insurance:
