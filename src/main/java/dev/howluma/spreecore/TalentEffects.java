@@ -326,6 +326,60 @@ public final class TalentEffects implements Listener {
         }
     }
 
+    /** Remember accepted special-smash attempts, not ordinary mace swings. */
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void observedSmashAttempt(EntityAttemptSmashAttackEvent event) {
+        if(!(event.getEntity() instanceof Player player)
+                ||event.getWeapon().getType()!=Material.MACE)return;
+        UUID id=player.getUniqueId();
+        Event.Result result=event.getResult();
+        if(MaceSmashMath.successfulAttempt(event.getOriginalResult(),
+                result==Event.Result.ALLOW,result==Event.Result.DENY)
+                &&plugin.progression().hasPrivilege(player,"mace_wielder"))
+            acceptedSmashes.put(id,new SmashAttempt(
+                    event.getTarget().getUniqueId(),Bukkit.getCurrentTick()));
+        else acceptedSmashes.remove(id);
+    }
+
+    /** Visible in-world impact for everyone near the victim, not only the wielder. */
+    private void maceImpact(Player attacker, org.bukkit.entity.Entity target) {
+        Location center=target.getLocation().add(0,.9,0);
+        World world=center.getWorld();
+        if(plugin.getConfig().getBoolean("combat.mace.impact-particles",true)) {
+            world.spawnParticle(Particle.GUST_EMITTER_SMALL,center,1);
+            world.spawnParticle(Particle.CLOUD,center,26,.42,.32,.42,.06);
+            Particle.DustOptions blue=new Particle.DustOptions(Color.fromRGB(0x397FEA),1.45f);
+            world.spawnParticle(Particle.DUST,center,17,.65,.35,.65,.025,blue);
+            // A visible ground-level expanding shockwave, one burst per smash.
+            for(int step=0;step<16;step++) {
+                double angle=2*Math.PI*step/16;
+                Location ring=center.clone().add(
+                        Math.cos(angle)*1.65,-.67,Math.sin(angle)*1.65);
+                world.spawnParticle(Particle.DUST,ring,1,0,0,0,0,blue);
+            }
+        }
+        if(plugin.getConfig().getBoolean("combat.mace.impact-sound",true))
+            world.playSound(center,Sound.ITEM_MACE_SMASH_GROUND,.75f,1.13f);
+    }
+
+    /** Recreate the client-side mace icon overlay after relogging with a timer. */
+    private void restoreMaceOverlay(Player player) {
+        long remaining=plugin.data().get(player).talentCooldowns
+                .getOrDefault("mace_smash",0L)-System.currentTimeMillis();
+        int ticks=MaceSmashMath.overlayTicks(remaining);
+        if(ticks>0 && plugin.progression().hasPrivilege(player,"mace_wielder")
+                &&plugin.getConfig().getBoolean("combat.mace.cooldown-overlay",true)
+                &&player.getCooldown(Material.MACE)<ticks)
+            player.setCooldown(Material.MACE,ticks);
+    }
+
+    @EventHandler public void join(PlayerJoinEvent event) {
+        Player player=event.getPlayer();
+        Bukkit.getScheduler().runTaskLater(plugin,()->{
+            if(player.isOnline()&&!player.isDead())restoreMaceOverlay(player);
+        },3L);
+    }
+
     /** Only a confirmed, unblocked mace-smash damage event starts the timer. */
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void confirmedSmash(EntityDamageByEntityEvent e) {
@@ -333,20 +387,38 @@ public final class TalentEffects implements Listener {
                 || attacker.getInventory().getItemInMainHand().getType()!=Material.MACE
                 || !plugin.progression().hasPrivilege(attacker,"mace_wielder"))
             return;
-        boolean shield = e.getEntity() instanceof Player p && p.isBlocking();
-        if (!MaceSmashMath.connects(DamageType.MACE_SMASH.equals(e.getDamageSource().getDamageType()),
-                e.isCancelled(), e.getFinalDamage(), shield)) return;
-        Map<String,Long> timers = plugin.data().get(attacker).talentCooldowns;
-        long now=System.currentTimeMillis();
-        // A single smash may cause multiple damage events; never renew the
-        // cooldown for secondary impacts from the same smash.
-        if (timers.getOrDefault("mace_smash",0L)>now) return;
+        SmashAttempt observed=acceptedSmashes.get(attacker.getUniqueId());
+        int tick=Bukkit.getCurrentTick();
+        boolean actualAttempt=observed!=null && observed.target().equals(e.getEntity().getUniqueId())
+                && tick>=observed.tick() && tick-observed.tick()<=2;
+        // Some other plugins adjust DamageSource. An accepted Paper smash
+        // attempt is a second authoritative signal; normal hits have neither.
+        boolean special=DamageType.MACE_SMASH.equals(e.getDamageSource().getDamageType())
+                ||actualAttempt;
+        boolean shield=e.getEntity() instanceof Player defender
+                &&actualShieldBlock(e,defender,attacker);
+        if (!MaceSmashMath.connects(special,e.isCancelled(),e.getFinalDamage(),shield))return;
+        Map<String,Long> timers=plugin.data().get(attacker).talentCooldowns;
+        long timestamp=System.currentTimeMillis();
+        // Never create duplicate shockwaves or renew a cooldown for the same
+        // smash (Wind Burst and secondary entities may produce extra hits).
+        if(timers.getOrDefault("mace_smash",0L)>timestamp
+                ||lastSmashFx.getOrDefault(attacker.getUniqueId(),Integer.MIN_VALUE)==tick)return;
         int base=plugin.getConfig().getInt("combat.mace.slam-cooldown-seconds",60);
         int mastery=plugin.getConfig().getInt("combat.mace.mastery-slam-cooldown-seconds",30);
         int seconds=Math.max(0,Math.min(3600,has(attacker,"mace_mastery")?mastery:base));
-        if(seconds==0) return;
-        timers.put("mace_smash",now+seconds*1000L);
-        plugin.data().dirty();
+        lastSmashFx.put(attacker.getUniqueId(),tick);
+        acceptedSmashes.remove(attacker.getUniqueId());
+        if(seconds>0){
+            timers.put("mace_smash",timestamp+seconds*1000L);
+            plugin.data().dirty();
+            // Vanilla's shaded hotbar icon. This does not prevent regular mace
+            // attacks: the attempt event above blocks ONLY further smashes.
+            if(plugin.getConfig().getBoolean("combat.mace.cooldown-overlay",true))
+                attacker.setCooldown(Material.MACE,Math.max(
+                        attacker.getCooldown(Material.MACE),seconds*20));
+        }
+        maceImpact(attacker,e.getEntity());
         plugin.talentFeedback().activated(attacker,"mace_smash",seconds);
     }
 
