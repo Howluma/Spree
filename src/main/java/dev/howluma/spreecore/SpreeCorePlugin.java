@@ -4,6 +4,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import java.util.Objects;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
 
 public final class SpreeCorePlugin extends JavaPlugin {
     private PlayerDataStore data;
@@ -101,8 +105,31 @@ public final class SpreeCorePlugin extends JavaPlugin {
         // Track the bobber's travel every tick for accurate nearby catches.
         rodAssistTask = Bukkit.getScheduler().runTaskTimer(this, rodAssist::tick, 1L, 1L);
         scheduleConfigurableTasks();
+        warnIfLegacyKillstreakScriptPresent();
         getLogger().info("SpreeCore enabled. No Skript dependency required.");
     }
+    /**
+     * A still-active copy of the previous killstreak.sk Skript is a common
+     * cause of double score changes that no listener guard can prevent.
+     * This is a warning only; never disable someone else's Skript files.
+     */
+    private void warnIfLegacyKillstreakScriptPresent() {
+        if(!Bukkit.getPluginManager().isPluginEnabled("Skript"))return;
+        Path scripts=getDataFolder().getParentFile().toPath()
+                .resolve("Skript").resolve("scripts");
+        if(!Files.isDirectory(scripts))return;
+        try(Stream<Path> paths=Files.walk(scripts,3)) {
+            boolean found=paths.anyMatch(path -> Files.isRegularFile(path)
+                    &&path.getFileName().toString().equalsIgnoreCase("killstreak.sk"));
+            if(found) getLogger().warning("[DeathGuard] A legacy killstreak.sk script is present "
+                    +"and Skript is enabled. Verify that this script is NOT loaded alongside "
+                    +"SpreeCore's killstreak handler. It can apply an independent second "
+                    +"death penalty. This warning does not modify Skript.");
+        } catch(IOException ex) {
+            getLogger().fine("Cannot inspect legacy Skript scripts directory: "+ex.getMessage());
+        }
+    }
+
     private int heartbeatCount;
     private void heartbeat() {
         heartbeatCount++;
