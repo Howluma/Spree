@@ -192,6 +192,8 @@ public final class StreakManager implements Listener {
         Player killer = plugin.combat().killer(victim);
         plugin.combat().clearVictim(victim.getUniqueId());
         if (victim.equals(killer)) killer = null;
+        // Personal death sting on every death, whether PvP or environmental.
+        plugin.killDeathFeedback().onDeath(victim);
         PlayerDataStore.Profile victimProfile = get(victim);
         int old = victimProfile.streak;
         victimProfile.deaths++;
@@ -233,7 +235,9 @@ public final class StreakManager implements Listener {
             }
             if (plugin.events() != null) plugin.events().handleKill(killer, victim, reward);
             plugin.data().dirty();
-            killer.playSound(killer.getLocation(), Sound.BLOCK_VAULT_BREAK, 1f, 1f);
+            // Use the same credited killer as streak rewards and environmental
+            // kill attribution; never celebrate self-deaths or false PvP credit.
+            plugin.killDeathFeedback().onCreditedKill(killer, victim, reward);
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (victim.isOnline() && !victim.isDead()) update(victim);
