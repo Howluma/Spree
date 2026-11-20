@@ -1,4 +1,4 @@
-# SpreeCore 1.8.4 - 10% Quick Hands, Barbed Hook Talent and credited environmental deaths.
+# SpreeCore 1.8.5 - Flame Rod Talent replaces Barbed Hook with burning TNT-igniting bobbers.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -177,11 +177,16 @@ talents:
   quick-hands:
     # 0.90 = consume food and potions in 10% less time.
     consume-time-multiplier: 0.90
-  barbed-hook:
+  flame-rod:
     enabled: true
-    damage-hearts: 0.5
-    # True damage bypasses armor; enchantment, Resistance and absorption are
-    # handled by the damage event and any remaining reduction is corrected.
+    # Held fishing rods temporarily get Flame I, reverting when dropped or traded.
+    # The bobber visually burns and emits flame particles while the cast is active.
+    bobber-particles: true
+    cast-sound: true
+    # Ignite TNT only when the bobber touches the block, not at a distance.
+    contact-tolerance: 0.35
+    max-ignitions-per-cast: 1
+    tnt-fuse-ticks: 80
   streak-insurance:
     cooldown-seconds: 600
     protected-levels: 2
