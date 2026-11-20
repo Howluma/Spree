@@ -98,6 +98,15 @@ class DefaultConfigTest {
             assertEquals(expected[i],c.getString("fate-sigil.recipe.slot-"+(i+1)));
         assertEquals(721051,c.getInt("resource-pack.models.fate-sigil"));
     }
+    @Test void quickHandsRodTalentAndEnvironmentalCreditDefaults() {
+        var config=config();
+        assertEquals(.90,config.getDouble("talents.quick-hands.consume-time-multiplier"),1e-9);
+        assertTrue(config.getBoolean("talents.barbed-hook.enabled"));
+        assertEquals(.5,config.getDouble("talents.barbed-hook.damage-hearts"),1e-9);
+        assertTrue(config.getBoolean("combat.pvp-environment-credit.enabled"));
+        assertEquals(12,config.getInt("combat.pvp-environment-credit.window-seconds"));
+    }
+
     @Test void maceSmashCooldownDefaults() {
         var c = config();
         assertEquals(60, c.getInt("combat.mace.slam-cooldown-seconds"));
