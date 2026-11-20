@@ -117,7 +117,7 @@ public final class TalentFeedback implements Listener {
             case "combo_breaker","executioner" -> Sound.ENTITY_PLAYER_ATTACK_CRIT;
             case "battle_sense" -> Sound.BLOCK_AMETHYST_BLOCK_CHIME;
             case "streak_insurance" -> Sound.BLOCK_BEACON_ACTIVATE;
-            case "barbed_hook" -> Sound.ENTITY_FISHING_BOBBER_RETRIEVE;
+            case "flame_rod" -> Sound.ITEM_FIRECHARGE_USE;
             case "mace_mastery" -> Sound.ENTITY_IRON_GOLEM_ATTACK;
             default -> Sound.BLOCK_AMETHYST_BLOCK_CHIME;
         };
@@ -131,7 +131,8 @@ public final class TalentFeedback implements Listener {
             case "escape_artist","windrunner","acrobat" -> Particle.CLOUD;
             case "scavenger","blacksmith" -> Particle.HAPPY_VILLAGER;
             case "streak_insurance" -> Particle.TOTEM_OF_UNDYING;
-            case "executioner","barbed_hook" -> Particle.DAMAGE_INDICATOR;
+            case "executioner" -> Particle.DAMAGE_INDICATOR;
+            case "flame_rod" -> Particle.FLAME;
             default -> Particle.END_ROD;
         };
     }
