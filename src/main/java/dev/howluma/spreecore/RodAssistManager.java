@@ -9,6 +9,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.FishHook;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -71,7 +72,7 @@ public final class RodAssistManager implements Listener {
 
     private boolean validTarget(Player caster,Entity target) {
         if(target==caster || !target.isValid() || target.isDead())return false;
-        if(target instanceof Item)return true;
+        if(target instanceof Item || target instanceof TNTPrimed)return true;
         if(!(target instanceof Player other))return false;
         if(other.isDead() || other.getGameMode()==GameMode.SPECTATOR)return false;
         if(plugin.getConfig().getBoolean("rod-assist.respect-pvp-settings",true)
@@ -131,14 +132,16 @@ public final class RodAssistManager implements Listener {
                     .getDouble("rod-assist.player-extra-margin",.30));
             double itemMargin=RodGeometry.boundedMargin(plugin.getConfig()
                     .getDouble("rod-assist.item-extra-margin",.35));
-            if(playerMargin<=0 && itemMargin<=0)continue;
+            double primedTntMargin=RodGeometry.boundedMargin(plugin.getConfig()
+                    .getDouble("rod-assist.primed-tnt-extra-margin",.40));
+            if(playerMargin<=0 && itemMargin<=0 && primedTntMargin<=0)continue;
 
             double maxSweep=RodGeometry.boundedSweep(plugin.getConfig()
                     .getDouble("rod-assist.max-sweep-blocks-per-tick",4));
             if(previous.distanceSquared(now)>maxSweep*maxSweep)
                 previous=now.clone(); // No teleport or lag-spike magnetism.
 
-            double pad=Math.max(playerMargin,itemMargin)+.70;
+            double pad=Math.max(Math.max(playerMargin,itemMargin),primedTntMargin)+.70;
             BoundingBox area=new BoundingBox(
                     Math.min(previous.getX(),now.getX())-pad,
                     Math.min(previous.getY(),now.getY())-pad,
@@ -147,12 +150,14 @@ public final class RodAssistManager implements Listener {
                     Math.max(previous.getY(),now.getY())+pad,
                     Math.max(previous.getZ(),now.getZ())+pad);
             Collection<Entity> candidates=world.getNearbyEntities(area,
-                    target -> (target instanceof Player || target instanceof Item)
+                    target -> (target instanceof Player || target instanceof Item
+                            || target instanceof TNTPrimed)
                             && validTarget(caster,target));
             Entity earliestTarget=null;
             double earliest=Double.POSITIVE_INFINITY;
             for(Entity target:candidates) {
-                double margin=target instanceof Player ? playerMargin:itemMargin;
+                double margin=target instanceof Player ? playerMargin
+                        : target instanceof TNTPrimed ? primedTntMargin : itemMargin;
                 if(margin<=0)continue;
                 BoundingBox box=target.getBoundingBox();
                 double contact=RodGeometry.firstContact(
