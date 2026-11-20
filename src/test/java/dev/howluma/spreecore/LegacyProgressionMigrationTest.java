@@ -23,6 +23,21 @@ class LegacyProgressionMigrationTest {
                 ProgressionCatalog.Kind.PRIVILEGE, "strength"));
     }
 
+    @Test void oldBarbedHookSelectionsMigrateToFlameRod() {
+        assertEquals("flame_rod",PlayerDataStore.upgradeChoice(
+                ProgressionCatalog.Kind.TALENT,"barbed_hook"));
+        assertEquals("flame_rod",PlayerDataStore.upgradeChoice(
+                ProgressionCatalog.Kind.TALENT,"flame_rod"));
+        assertEquals("barbed_hook",PlayerDataStore.upgradeChoice(
+                ProgressionCatalog.Kind.PRIVILEGE,"barbed_hook"));
+        assertEquals(List.of("mace_mastery","flame_rod","second_wind"),
+                PlayerDataStore.migrateRetiredTalentOffers(
+                        List.of("mace_mastery","barbed_hook","second_wind"),Set.of()));
+        assertFalse(PlayerDataStore.migrateRetiredTalentOffers(
+                List.of("mace_mastery","barbed_hook","second_wind"),Set.of())
+                .contains("barbed_hook"));
+    }
+
     @Test void talentPoolNoLongerContainsIndustriousAndHasteIsAnInfusion() {
         assertEquals(22,ProgressionCatalog.TALENTS.size());
         assertNull(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,"industrious"));
