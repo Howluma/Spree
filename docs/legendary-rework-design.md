@@ -57,11 +57,11 @@ Each legendary is held in the **main hand**, with abilities tied to the **wielde
 - Consider safe teleports/respawns, anti-cheat compatibility, protection against rubber-banding and clean state restoration when coding.
 - Frostbite: subtle snow particles. Hard freeze: ice-crystal burst.
 
-## Blood Butcher - design in progress
+## Blood Butcher - accepted ability kit (balance tuning pending)
 
-**Official name:** Blood Butcher (never "Blood Butcherer"). Identity: risk/reward berserker axe, with custom bleeding rather than vanilla Wither. This is a design outline, not yet implemented.
+**Official name:** Blood Butcher (never "Blood Butcherer"). Identity: risk/reward berserker axe, with custom bleeding rather than vanilla Wither. All four ability concepts have been accepted by the user; cooldowns and implementation details still require testing. Not yet implemented.
 
-### Level 0: Passive I - Serrated Edge (approved revision)
+### Level 0: Passive I - Serrated Edge
 
 - A successful **fully charged axe attack** applies **Bleeding**.
 - Bleeding lasts **4 seconds**.
@@ -70,23 +70,50 @@ Each legendary is held in the **main hand**, with abilities tied to the **wielde
 - The prior proposed **7-second application cooldown per target** remains a provisional balancing value.
 - Current suggestions awaiting review: refreshing Bleeding does not stack additional overlapping instances; Totem of Undying and death protections remain functional; custom red blood-like particles indicate the effect.
 
-### Level 3: Active I - Blood Pact (F) - proposal
+### Level 3: Active I - Blood Pact (F)
 
 - Sacrifice 5 maximum hearts for 10 seconds for Strength III.
 - Proposed cooldown 55 seconds; health pool restores afterward, but missing health does not auto-heal.
 
-### Level 5: Passive II - Bloodthirst - proposal
+### Level 5: Passive II - Bloodthirst
 
 - Dealing weapon damage to a **Bleeding** opponent heals wielder for 0.5 hearts.
 - Proposed per-target cooldown 3 seconds.
 - Any older references to "Wither" as the qualifying debuff are superseded by **Bleeding**.
 
-### Level 7: Active II - Executioner's Cleave (Shift+F) - proposal
+### Level 7: Active II - Executioner's Cleave (Shift+F)
 
 - Empowers next axe hit within 6 seconds to strike a short frontal arc.
 - **Bleeding** targets take 20% bonus damage; wielder heals 1 heart per affected target, max 2 hearts.
-- Proposed cooldown 75 seconds. Ultimate mechanics are open for refinement.
+- Proposed cooldown 75 seconds; value is subject to balancing.
+
+## Storm Breaker - proposed ability kit (NOT YET APPROVED)
+
+**Identity:** Lightning vanguard / mobility, knockback and controlled area pressure. Avoid replicating Tundra Tantō's immobilization and Blood Butcher's bleed. All electric hits are custom: particle/sound lightning, **no vanilla lightning fire or block damage**.
+
+### Level 0: Passive I - Static Momentum (proposal)
+- While Storm Breaker is held in the main hand, traveling **8 blocks** charges its next fully charged axe hit, including grounded and airborne travel.
+- That hit consumes the charge and deals **1 additional heart of normal damage before armor**, with electric visuals.
+- It marks the struck enemy **Conductive for 5 seconds**. Charges cannot stack; switching away from the axe clears any stored charge.
+
+### Level 3: Active I - Thunderclap (F) (proposal)
+- Unleash a forward **5-block cone** of electricity.
+- Enemies caught take **2 hearts of normal pre-armor damage** and significant outward knockback.
+- Hitting a Conductive target adds **0.5 hearts** (before armor) and consumes that mark.
+- Proposed cooldown **35 seconds**.
+
+### Level 5: Passive II - Stormrunner (proposal)
+- When Static Momentum connects with a player, or Thunderclap hits an enemy, gain **15% increased movement/air steering** for **3 seconds**.
+- No vanilla Speed effect; cooldown **8 seconds** to avoid repeatedly retriggering.
+- The bonus affects on-ground and midair movement without multiplying velocity repeatedly.
+
+### Level 7: Active II - Tempest (Shift+F) (proposal)
+- Surround the wielder with a **6-block mobile storm** for **5 seconds**.
+- Periodic, visibly telegraphed lightning strikes selected opponents in the storm, dealing **1.5 hearts normal pre-armor damage** and a small upward knock.
+- Each enemy can be struck at most twice per cast and can evade strikes by moving out of the marked impact area.
+- Proposed cooldown **85 seconds**.
+- Does not grief blocks, start fires or bypass normal PvP/team protections.
 
 ## Other legendary designs
 
-Pending individual review. Candidates in the current SpreeCore roster: Storm Breaker, Aquafier, Darkheart, Hailstorm and Blood's Bane.
+Pending individual review. Candidates in the current SpreeCore roster: Aquafier, Darkheart, Hailstorm and Blood's Bane.
