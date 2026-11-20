@@ -52,8 +52,6 @@ public final class CombatManager implements Listener {
     private final SpreeCorePlugin plugin;
     private final NamespacedKey detonatorKey;
     private final Map<UUID, Hit> lastHit = new HashMap<>();
-    /** Only populated synchronously while a credited direct-health hook is lethal. */
-    private final Map<UUID,UUID> pendingDirectKill=new HashMap<>();
     private final Map<UUID, Long> maceWarnings = new HashMap<>();
     private final Deque<Blast> recentBlasts = new ArrayDeque<>();
     private static final long BLAST_BRIDGE_MS = 500;
@@ -69,11 +67,6 @@ public final class CombatManager implements Listener {
      * in StreakManager; it must NOT generate a natural-death Spree Token.
      */
     public Player killer(Player victim) {
-        UUID pending=pendingDirectKill.get(victim.getUniqueId());
-        if(pending!=null) {
-            Player hookKiller=Bukkit.getPlayer(pending);
-            if(hookKiller!=null && hookKiller.isOnline() && hookKiller!=victim)return hookKiller;
-        }
         Player nativeKiller = victim.getKiller();
         if(nativeKiller!=null && nativeKiller!=victim && nativeKiller.isOnline())return nativeKiller;
         Hit hit=lastHit.get(victim.getUniqueId());
@@ -99,30 +92,7 @@ public final class CombatManager implements Listener {
             return attacker;
         return null;
     }
-    /** Record a validated true-damage rod hook so a low-health direct finish
-     * has a credited attacker before a health-set death can occur.
-     */
-    public void recordRodHit(Player attacker, Player victim) {
-        if(attacker==null || victim==null || attacker.equals(victim))return;
-        lastHit.put(victim.getUniqueId(),new Hit(attacker.getUniqueId(),
-                System.currentTimeMillis(),false));
-    }
     public void clearVictim(UUID id) { lastHit.remove(id); }
-
-    /** Allows a fixed-health true-damage finish to retain exact player kill credit.
-     * Scoped to the immediate synchronous health change; never grants credit for
-     * a later unrelated death.
-     */
-    public void creditedRodAdjustment(Player attacker, Player target, double remainingHealthDamage) {
-        if(attacker==null || target==null || target.isDead() || remainingHealthDamage<=0)return;
-        UUID victimId=target.getUniqueId();
-        pendingDirectKill.put(victimId,attacker.getUniqueId());
-        try {
-            target.setHealth(Math.max(0,target.getHealth()-remainingHealthDamage));
-        } finally {
-            pendingDirectKill.remove(victimId);
-        }
-    }
 
     private UUID directPlayer(Entity source) {
         if (source instanceof Player p) return p.getUniqueId();
