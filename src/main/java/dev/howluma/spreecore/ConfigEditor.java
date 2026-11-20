@@ -110,6 +110,7 @@ public final class ConfigEditor {
             return between(amount.doubleValue(),1,16);
         if (path.startsWith("talents.") && value instanceof Number talentValue) {
             double v=talentValue.doubleValue();
+            if(path.equals("talents.flame-rod.contact-tolerance"))return between(v,.05,.70);
             if(path.endsWith("-fraction") || path.endsWith(".chance"))return between(v,0,1);
             if(path.endsWith("-multiplier"))return between(v,0,3);
             if(path.endsWith("step-height-addition"))return between(v,0,1.5);
