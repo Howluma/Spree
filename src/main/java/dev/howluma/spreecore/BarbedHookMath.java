@@ -21,10 +21,11 @@ final class BarbedHookMath {
     }
 
     static double additionalPoints(double requested, double beforeHealth, double afterHealth,
-            double beforeAbsorption, double afterAbsorption) {
+            double beforeAbsorption, double afterAbsorption, boolean acceptedDamageEvent) {
+        // A cancelled PvP event must NEVER be bypassed. A legitimate, but
+        // fully mitigated event still receives its true-damage compensation.
+        if(!acceptedDamageEvent) return 0;
         double actual=appliedPoints(beforeHealth,afterHealth,beforeAbsorption,afterAbsorption);
-        // Cancelled/invulnerable event: do NOT bypass the protection by setHealth.
-        if(actual <= 0.000001) return 0;
         return Math.max(0,requested-actual);
     }
 
