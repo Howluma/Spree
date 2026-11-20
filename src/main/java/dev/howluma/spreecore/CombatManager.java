@@ -92,6 +92,16 @@ public final class CombatManager implements Listener {
             return attacker;
         return null;
     }
+    /** A legit Flame Rod hook sets fire but has no immediate damage event.
+     * Register its caster for subsequent fire/lava environmental death credit
+     * using the same bounded PvP window as other player-caused hazards.
+     */
+    public void recordFlameRodIgnition(Player attacker,Player victim) {
+        if(attacker==null || victim==null || attacker.equals(victim))return;
+        lastHit.put(victim.getUniqueId(),new Hit(attacker.getUniqueId(),
+                System.currentTimeMillis(),false));
+    }
+
     public void clearVictim(UUID id) { lastHit.remove(id); }
 
     private UUID directPlayer(Entity source) {
