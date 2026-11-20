@@ -24,7 +24,7 @@ class LegacyProgressionMigrationTest {
     }
 
     @Test void talentPoolNoLongerContainsIndustriousAndHasteIsAnInfusion() {
-        assertEquals(21,ProgressionCatalog.TALENTS.size());
+        assertEquals(22,ProgressionCatalog.TALENTS.size());
         assertNull(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,"industrious"));
         assertEquals("Permanent Haste I",ProgressionCatalog.find(
                 ProgressionCatalog.Kind.INFUSION, "haste").description());
