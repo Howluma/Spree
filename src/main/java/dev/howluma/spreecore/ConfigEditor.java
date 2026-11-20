@@ -119,6 +119,11 @@ public final class ConfigEditor {
             if(path.endsWith("-items"))return between(v,0,256);
             if(path.endsWith(".hits-required") || path.endsWith(".protected-levels"))return between(v,1,20);
         }
+        if (path.startsWith("rod-assist.") && value instanceof Number n) {
+            if(path.endsWith("-extra-margin"))return between(n.doubleValue(),0,.50);
+            if(path.endsWith("max-sweep-blocks-per-tick"))
+                return between(n.doubleValue(),.50,5.0);
+        }
         if (path.startsWith("perks.") && value instanceof Number perkNumber) {
             if (path.endsWith(".max-copies")) return between(perkNumber.doubleValue(), 1, 8);
             if (path.endsWith(".per-copy"))
@@ -183,6 +188,7 @@ public final class ConfigEditor {
         return switch (id) {
             case "general" -> "General & Interface";
             case "combat" -> "Combat Balancing";
+            case "rod-assist" -> "Fishing Rod Hitbox Assist";
             case "perks" -> "Stackable Perks";
             case "hunt" -> "Wanted Status & Hunt";
             case "privileges" -> "Privilege Item Limits";
@@ -223,6 +229,7 @@ public final class ConfigEditor {
     private static Material icon(String id) {
         if (id.equals("general")) return Material.COMPARATOR;
         if (id.equals("combat")) return Material.TNT;
+        if (id.equals("rod-assist")) return Material.FISHING_ROD;
         if (id.equals("perks")) return Material.ENCHANTED_BOOK;
         if (id.startsWith("fate-sigil")) return Material.ECHO_SHARD;
         if (id.startsWith("talents")) {
