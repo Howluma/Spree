@@ -12,6 +12,12 @@ class DefaultConfigTest {
         assertNotNull(stream);
         return YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
     }
+    @Test void duplicateDeathTransactionsAreGuardedAndDiagnosable() {
+        var c=config();
+        assertTrue(c.getBoolean("killstreak.death-processing.warn-duplicate-events"));
+        assertFalse(c.getBoolean("killstreak.death-processing.log-transitions"));
+    }
+
     @Test void healthAndSelectableProgressionReplaceFixedMilestones() {
         var c = config();
         assertEquals(1_000_000_000, c.getInt("general.max-killstreak"));
