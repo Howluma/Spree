@@ -59,4 +59,4 @@ Each legendary is held in the **main hand**, with abilities tied to the **wielde
 
 ## Other legendary designs
 
-Pending individual review. Candidates in the current SpreeCore roster: Blood Butcherer (Blood Butcher), Storm Breaker, Aquafier, Darkheart, Hailstorm and Blood's Bane.
+Pending individual review. Candidates in the current SpreeCore roster: Blood Butcher, Storm Breaker, Aquafier, Darkheart, Hailstorm and Blood's Bane.
