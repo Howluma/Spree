@@ -12,6 +12,9 @@ public final class ConfigEditor {
         public boolean toggle() { return defaultValue instanceof Boolean; }
         public boolean number() { return defaultValue instanceof Number; }
         private String shown(Object value) {
+            if (path.startsWith("combat.") && path.endsWith("bonus-damage-per-victim-streak")
+                    && value instanceof Number number)
+                return format(number.doubleValue() * 100) + "% per target level";
             if (path.startsWith("display.streak-indicators.tier-colors.")) {
                 String code = String.valueOf(value);
                 return "&7" + code.replace("&", "\uFF06") + "  " + code + "\u25A0";
@@ -58,7 +61,9 @@ public final class ConfigEditor {
         if (setting == null) return new Result(false, "Unknown or unsupported setting.");
         Object value;
         String trimmed = input.trim();
-        if (path.startsWith("combat.") && path.endsWith("multiplier") && trimmed.endsWith("%")) {
+        if (path.startsWith("combat.")
+                && (path.endsWith("multiplier") || path.endsWith("bonus-damage-per-victim-streak"))
+                && trimmed.endsWith("%")) {
             try { trimmed = Double.toString(Double.parseDouble(trimmed.substring(0, trimmed.length() - 1).trim()) / 100.0); }
             catch (NumberFormatException ex) { return new Result(false, "Use a percentage like 75% or a decimal like 0.75."); }
         }
@@ -148,6 +153,11 @@ public final class ConfigEditor {
         if (path.equals("killstreak.health-per-level-hearts")) return between(amount, 0, 2);
         if (path.startsWith("resource-pack.models.")) return between(amount, 1, 16000000);
         if (path.endsWith("chance")) return between(amount, 0, 1);
+        if (path.startsWith("combat.") && path.endsWith("bonus-damage-per-victim-streak"))
+            return between(amount, 0, 1);
+        if (path.equals("combat.tnt-minecart.base-cap-hearts")) return between(amount, 0, 100);
+        if (path.equals("combat.tnt-minecart.cap-increase-per-victim-streak-hearts"))
+            return between(amount, 0, 5);
         if (path.startsWith("combat.") && path.endsWith("multiplier")) return between(amount, 0, 1);
         if (path.endsWith("multiplier") || path.endsWith("damage-multiplier")) return between(amount, 0, 10);
         if (path.contains("health-hearts") || path.endsWith("bonus-hearts") || path.endsWith("sacrifice-hearts"))

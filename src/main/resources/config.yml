@@ -1,4 +1,4 @@
-# SpreeCore 1.8.10 - at-most-once death penalties with TNT minecart diagnostics.
+# SpreeCore 1.8.12 - target-streak damage scaling and 7-heart post-armor minecart cap.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -381,12 +381,17 @@ legendary:
       launch-hits: 6
       launch-damage-per-hit-hearts: 0.75
 
-# These options are visible and editable in /spree settings > Combat Balancing.
-# Multipliers apply to the unmitigated base damage, before armor/enchantments.
+# Editable under /spree settings > Combat Balancing.
+# Bonuses add 5 percentage points per VICTIM killstreak (not attacker's).
+# Mace/TNT bonuses apply before armor; minecart caps apply AFTER armor.
+# Fractured (-1) counts as zero. Scaling is not capped at level 30.
 combat:
   mace:
     enabled: true
     player-damage-multiplier: 0.75
+    # Adds 5 percentage points per victim level: at level 5 the mace
+    # changes from 75% vanilla damage to 100% vanilla damage.
+    bonus-damage-per-victim-streak: 0.05
     # Only actual, unblocked smash damage starts the cooldown.
     # Normal mace swings, misses, and blocked attacks do not start it.
     slam-cooldown-seconds: 60
@@ -399,6 +404,16 @@ combat:
   tnt:
     enabled: true
     igniter-self-damage-multiplier: 0.50
+    # Normal TNT damage rises by 5% per streak level of the player hit.
+    # The igniter's self-damage multiplier still applies separately.
+    bonus-damage-per-victim-streak: 0.05
+  tnt-minecart:
+    enabled: true
+    # Caps are measured in HEARTS of final damage, after armor mitigation.
+    # 0 streak = 7 hearts; +0.5 heart per victim streak level.
+    # Does not increase minecart explosions that are already below the cap.
+    base-cap-hearts: 7.0
+    cap-increase-per-victim-streak-hearts: 0.5
   # Player combat credit also carries through short follow-up environmental deaths
   # (fall, lava, fire, void, drowning, suffocation, etc.). Those deaths reward
   # the credited killer and NEVER spawn an environmental-death Spree Token.

@@ -8,11 +8,13 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.damage.DamageType;
 import org.bukkit.entity.EnderCrystal;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.TNTPrimed;
+import org.bukkit.entity.minecart.ExplosiveMinecart;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -235,35 +237,74 @@ public final class CombatManager implements Listener {
         }
     }
 
-    /** Block all direct mace hits, including against mobs, until the player reaches level 1.
-     * This gate is independent of the optional mace damage multiplier toggle.
-     */
+    /** Scale mace and TNT damage against the hit player's killstreak. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBalanceDamage(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player attacker
                 && attacker.getInventory().getItemInMainHand().getType() == Material.MACE
                 && (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK
-                    || event.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)) {
-            if (!plugin.progression().hasPrivilege(attacker,"mace_wielder")) {
+                    || event.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK
+                    || DamageType.MACE_SMASH.equals(event.getDamageSource().getDamageType()))) {
+            if (!plugin.progression().hasPrivilege(attacker, "mace_wielder")) {
                 event.setCancelled(true);
                 warnMace(attacker);
                 return;
             }
-            // Keep the existing editable 75% PvP mace damage. Mobs take normal damage.
-            if (event.getEntity() instanceof Player && config().getBoolean("combat.mace.enabled", true)) {
-                event.setDamage(CombatMath.scaleDamage(event.getDamage(),
-                        config().getDouble("combat.mace.player-damage-multiplier", 0.75)));
+            if (event.getEntity() instanceof Player victim
+                    && config().getBoolean("combat.mace.enabled", true)) {
+                // Five percentage points per victim level are added to the
+                // existing 75% mace PvP multiplier, including smash attacks.
+                double multiplier = CombatMath.streakDamageMultiplier(
+                        config().getDouble("combat.mace.player-damage-multiplier", 0.75),
+                        plugin.streaks().streak(victim),
+                        config().getDouble("combat.mace.bonus-damage-per-victim-streak", 0.05));
+                event.setDamage(CombatMath.scaleDamage(event.getDamage(), multiplier));
             }
         }
-        if (!(event.getEntity() instanceof Player target)) return;
-        if (config().getBoolean("combat.tnt.enabled", true)
-                && event.getDamager() instanceof TNTPrimed tnt) {
-            UUID owner = tntOwner(tnt);
-            if (owner == null) owner = directPlayer(event.getDamageSource().getCausingEntity());
-            if (target.getUniqueId().equals(owner))
-                event.setDamage(CombatMath.scaleDamage(event.getDamage(),
-                        config().getDouble("combat.tnt.igniter-self-damage-multiplier", 0.50)));
+        if (!(event.getEntity() instanceof Player victim)) return;
+        if (config().getBoolean("combat.tnt.enabled", true)) {
+            TNTPrimed tnt = event.getDamager() instanceof TNTPrimed direct ? direct
+                    : event.getDamageSource().getDirectEntity() instanceof TNTPrimed sourced ? sourced : null;
+            if (tnt != null) {
+                // Normal TNT adds 5% damage per VICTIM streak level.
+                double multiplier = CombatMath.streakDamageMultiplier(1.0,
+                        plugin.streaks().streak(victim),
+                        config().getDouble("combat.tnt.bonus-damage-per-victim-streak", 0.05));
+                UUID owner = tntOwner(tnt);
+                if (owner == null) owner = directPlayer(event.getDamageSource().getCausingEntity());
+                if (victim.getUniqueId().equals(owner))
+                    multiplier *= config().getDouble("combat.tnt.igniter-self-damage-multiplier", 0.50);
+                event.setDamage(CombatMath.scaleDamage(event.getDamage(), multiplier));
+            }
         }
+    }
+
+    /** Limit TNT minecart explosion damage in actual hearts AFTER armor.
+     * Only minecart-caused explosions qualify, not normal TNT or cart impacts.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onMinecartExplosionDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player victim)
+                || !config().getBoolean("combat.tnt-minecart.enabled", true)
+                || (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_EXPLOSION
+                    && event.getCause() != EntityDamageEvent.DamageCause.BLOCK_EXPLOSION))
+            return;
+        boolean minecart = event.getDamageSource().getDirectEntity() instanceof ExplosiveMinecart
+                || (event instanceof EntityDamageByEntityEvent byEntity
+                    && byEntity.getDamager() instanceof ExplosiveMinecart);
+        if (!minecart) return;
+        double capPoints = CombatMath.minecartCapHealthPoints(
+                plugin.streaks().streak(victim),
+                config().getDouble("combat.tnt-minecart.base-cap-hearts", 7.0),
+                config().getDouble("combat.tnt-minecart.cap-increase-per-victim-streak-hearts", 0.5));
+        if (event.getDamage() <= 0 || event.getFinalDamage() <= capPoints) return;
+        // Paper recalculates mitigation when raw damage changes. Binary search
+        // for the highest raw damage that stays at/below the post-armor cap.
+        double cappedRaw = CombatMath.capRawDamage(event.getDamage(), capPoints, raw -> {
+            event.setDamage(raw);
+            return event.getFinalDamage();
+        });
+        event.setDamage(cappedRaw);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

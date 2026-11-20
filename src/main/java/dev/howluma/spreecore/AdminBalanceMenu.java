@@ -48,14 +48,15 @@ public final class AdminBalanceMenu implements Listener {
         "combat.mace.slam-cooldown-seconds",
         "combat.mace.mastery-slam-cooldown-seconds",
         "combat.mace.player-damage-multiplier",
-        "combat.mace.enabled"
+        "combat.mace.enabled",
+        "combat.mace.bonus-damage-per-victim-streak"
     };
     private static final String[] MACE_LABELS={
         "Normal Slam Cooldown","Mace Mastery Slam Cooldown","Mace PvP Damage Multiplier",
-        "Enable Mace Combat Adjustment"
+        "Enable Mace Combat Adjustment", "Bonus per Victim Streak"
     };
     private static final Material[] MACE_ICONS={
-        Material.MACE,Material.ENCHANTED_BOOK,Material.NETHERITE_AXE,Material.LIME_DYE
+        Material.MACE,Material.ENCHANTED_BOOK,Material.NETHERITE_AXE,Material.LIME_DYE,Material.REDSTONE
     };
 
     private static class Holder implements InventoryHolder {
@@ -150,13 +151,15 @@ public final class AdminBalanceMenu implements Listener {
                 "&7Missed mace hits, normal swings, blocked hits,",
                 "&7zero-damage and canceled hits DO NOT",
                 "&7start the smash cooldown"));
-        int[] slots={10,12,14,16};
+        int[] slots={10,12,14,16,22};
         for(int i=0;i<slots.length;i++){
             String path=MACE_PATHS[i];
             inv.setItem(slots[i],icon(MACE_ICONS[i],"&9&l"+MACE_LABELS[i],
                     "&7Current: &f"+value(path),
                     i==0||i==1?"&7Cooldown duration in seconds":
-                            i==2?"&7Use a fraction (0.75 = 75%)":"&7Combat multiplier enabled",
+                            i==2?"&7Use a fraction (0.75 = 75%)":
+                             i==3?"&7Combat multiplier enabled":
+                                  "&7+5 percentage points per victim level",
                     "&eLeft: "+(i==3?"Toggle":"Set exact value in chat"),
                     "&cRight: Restore default"));
         }
@@ -281,7 +284,7 @@ public final class AdminBalanceMenu implements Listener {
                     }
             }
             if(h.screen==Screen.MACE){
-                int[] slots={10,12,14,16};
+                int[] slots={10,12,14,16,22};
                 for(int i=0;i<slots.length;i++)if(slot==slots[i]){
                     String path=MACE_PATHS[i];
                     if(click==ClickType.RIGHT)
