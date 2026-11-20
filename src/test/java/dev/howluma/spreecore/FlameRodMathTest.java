@@ -24,7 +24,7 @@ class FlameRodMathTest {
         assertEquals(3,FlameRodMath.samples(1,0,0));
         assertEquals(6,FlameRodMath.samples(0,0,2));
         assertEquals(32,FlameRodMath.samples(100,0,0));
-        assertEquals(32,FlameRodMath.samples(Double.POSITIVE_INFINITY,0,0) == 1 ? 1 : 32);
+        assertEquals(1,FlameRodMath.samples(Double.POSITIVE_INFINITY,0,0));
     }
 
     @Test void noFlameDamageTalentRemainsInCatalog() {
