@@ -256,6 +256,12 @@ public final class SpreeCorePlugin extends JavaPlugin {
             getConfig().set("talents.quick-hands.consume-time-multiplier",0.9);
             changed = true;
         }
+        // Old servers retain their saved config.yml. Update previous stock
+        // bobber collision margins without overwriting custom balance values.
+        if (RodBalanceMigration.migrate(getConfig())) {
+            getLogger().info("Updated stock fishing rod catches to +0.30 player/+0.35 item blocks and Flame Rod TNT ignition tolerance to 0.50 blocks.");
+            changed = true;
+        }
         if (getConfig().isSet("talents.barbed-hook")) {
             getConfig().set("talents.barbed-hook", null); // Retired; no damage-on-hook logic remains.
             changed = true;
