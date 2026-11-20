@@ -62,6 +62,7 @@ public final class TalentEffects implements Listener {
     private final Map<UUID,Integer> lastSmashFx = new HashMap<>();
     private final Map<UUID,Location> lastWebSafe = new HashMap<>();
     private final Set<UUID> pendingEscapes = new HashSet<>();
+    private final Map<UUID,Long> lastEscapeFailure = new HashMap<>();
     private final Map<UUID,Integer> insuranceOnRespawn = new HashMap<>();
     private final NamespacedKey jumpKey,stepKey,appleKey,rodKey;
 
@@ -206,9 +207,14 @@ public final class TalentEffects implements Listener {
             if(web) {
                 Location exit=escapeDestination(player);
                 if(exit==null) {
-                    Text.action(player,"&cEscape Artist: no safe exit nearby");
+                    long now=System.currentTimeMillis();
+                    if(now-lastEscapeFailure.getOrDefault(id,0L)>3000L) {
+                        Text.action(player,"&cEscape Artist: no safe exit nearby");
+                        lastEscapeFailure.put(id,now);
+                    }
                     return; // Do not waste a Talent cooldown when stuck.
                 }
+                lastEscapeFailure.remove(id);
                 Location former=player.getLocation().clone();
                 if(!player.teleport(exit,PlayerTeleportEvent.TeleportCause.PLUGIN))return;
                 lastWebSafe.put(id,player.getLocation().clone());
@@ -284,6 +290,9 @@ public final class TalentEffects implements Listener {
         modifier(p,Attribute.STEP_HEIGHT,stepKey,AttributeModifier.Operation.ADD_NUMBER,
                 has(p,"trailblazer")?td("trailblazer.step-height-addition",.4):0);
         plugin.quickHands().refresh(p);
+        if(plugin.progression().hasPrivilege(p,"mace_wielder")
+                &&p.getCooldown(Material.MACE)==0)
+            restoreMaceOverlay(p);
     }
     public void clear(Player p){
         for(var pair:Map.of(jumpKey,Attribute.JUMP_STRENGTH,stepKey,Attribute.STEP_HEIGHT).entrySet())
@@ -296,6 +305,7 @@ public final class TalentEffects implements Listener {
         insuranceOnRespawn.remove(p.getUniqueId());
         lastWebSafe.remove(p.getUniqueId());
         pendingEscapes.remove(p.getUniqueId());
+        lastEscapeFailure.remove(p.getUniqueId());
         acceptedSmashes.remove(p.getUniqueId());
         lastSmashFx.remove(p.getUniqueId());
     }
