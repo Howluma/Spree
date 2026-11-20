@@ -1,4 +1,4 @@
-# SpreeCore 1.8.12 - target-streak damage scaling and 7-heart post-armor minecart cap.
+# SpreeCore 1.8.13 - normal TNT now adds 10% damage per victim streak level.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -382,7 +382,7 @@ legendary:
       launch-damage-per-hit-hearts: 0.75
 
 # Editable under /spree settings > Combat Balancing.
-# Bonuses add 5 percentage points per VICTIM killstreak (not attacker's).
+# Mace adds 5 percentage points, normal TNT adds 10 percentage points per VICTIM killstreak (not attacker's).
 # Mace/TNT bonuses apply before armor; minecart caps apply AFTER armor.
 # Fractured (-1) counts as zero. Scaling is not capped at level 30.
 combat:
@@ -404,9 +404,9 @@ combat:
   tnt:
     enabled: true
     igniter-self-damage-multiplier: 0.50
-    # Normal TNT damage rises by 5% per streak level of the player hit.
+    # Normal TNT damage rises by 10% per streak level of the player hit.
     # The igniter's self-damage multiplier still applies separately.
-    bonus-damage-per-victim-streak: 0.05
+    bonus-damage-per-victim-streak: 0.10
   tnt-minecart:
     enabled: true
     # Caps are measured in HEARTS of final damage, after armor mitigation.

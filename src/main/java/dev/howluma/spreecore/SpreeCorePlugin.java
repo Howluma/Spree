@@ -283,6 +283,20 @@ public final class SpreeCorePlugin extends JavaPlugin {
             getConfig().set("talents.quick-hands.consume-time-multiplier",0.9);
             changed = true;
         }
+        // One-time migration of the former stock 5% TNT-per-victim-streak value.
+        // Record completion so an admin can deliberately set 5% later without
+        // it being changed again on the next restart or /spreeadmin reload.
+        final String tntMigration = "migrations.tnt-10-percent-victim-scaling-1-8-13";
+        if (!getConfig().getBoolean(tntMigration, false)) {
+            String tntSetting = "combat.tnt.bonus-damage-per-victim-streak";
+            if (getConfig().isSet(tntSetting)
+                    && Math.abs(getConfig().getDouble(tntSetting) - 0.05) < 1e-8) {
+                getConfig().set(tntSetting, 0.10);
+                getLogger().info("Migrated TNT damage growth from 5% to 10% per victim killstreak.");
+            }
+            getConfig().set(tntMigration, true);
+            changed = true;
+        }
         // Old servers retain their saved config.yml. Update previous stock
         // bobber collision margins without overwriting custom balance values.
         if (RodBalanceMigration.migrate(getConfig())) {

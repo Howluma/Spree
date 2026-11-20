@@ -164,7 +164,7 @@ class DefaultConfigTest {
         var config = config();
         assertEquals(0.75, config.getDouble("combat.mace.player-damage-multiplier"), 1e-9);
         assertEquals(0.05, config.getDouble("combat.mace.bonus-damage-per-victim-streak"), 1e-9);
-        assertEquals(0.05, config.getDouble("combat.tnt.bonus-damage-per-victim-streak"), 1e-9);
+        assertEquals(0.10, config.getDouble("combat.tnt.bonus-damage-per-victim-streak"), 1e-9);
         assertEquals(0.5, config.getDouble("combat.tnt.igniter-self-damage-multiplier"), 1e-9);
         assertTrue(config.getBoolean("combat.tnt-minecart.enabled"));
         assertEquals(7.0, config.getDouble("combat.tnt-minecart.base-cap-hearts"), 1e-9);

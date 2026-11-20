@@ -45,13 +45,15 @@ class CombatMathTest {
         assertFalse(CombatMath.recent(25_000, 10_000, 12));
         assertFalse(CombatMath.recent(9_000, 10_000, 12));
     }
-    @Test void victimKillstreakAddsFivePercentagePointsToMaceAndTnt() {
+    @Test void victimKillstreakAddsFivePointsToMaceAndTenPointsToTnt() {
         assertEquals(0.75, CombatMath.streakDamageMultiplier(0.75, -1, 0.05), 1e-9);
         assertEquals(0.75, CombatMath.streakDamageMultiplier(0.75, 0, 0.05), 1e-9);
         assertEquals(1.00, CombatMath.streakDamageMultiplier(0.75, 5, 0.05), 1e-9);
         assertEquals(1.25, CombatMath.streakDamageMultiplier(0.75, 10, 0.05), 1e-9);
-        assertEquals(1.25, CombatMath.streakDamageMultiplier(1.0, 5, 0.05), 1e-9);
-        assertEquals(2.75, CombatMath.streakDamageMultiplier(1.0, 35, 0.05), 1e-9);
+        assertEquals(1.00, CombatMath.streakDamageMultiplier(1.0, 0, 0.10), 1e-9);
+        assertEquals(1.10, CombatMath.streakDamageMultiplier(1.0, 1, 0.10), 1e-9);
+        assertEquals(1.50, CombatMath.streakDamageMultiplier(1.0, 5, 0.10), 1e-9);
+        assertEquals(4.50, CombatMath.streakDamageMultiplier(1.0, 35, 0.10), 1e-9);
         assertThrows(IllegalArgumentException.class,
                 () -> CombatMath.streakDamageMultiplier(0.75, 5, -0.05));
     }

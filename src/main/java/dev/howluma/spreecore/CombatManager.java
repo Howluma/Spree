@@ -266,10 +266,10 @@ public final class CombatManager implements Listener {
             TNTPrimed tnt = event.getDamager() instanceof TNTPrimed direct ? direct
                     : event.getDamageSource().getDirectEntity() instanceof TNTPrimed sourced ? sourced : null;
             if (tnt != null) {
-                // Normal TNT adds 5% damage per VICTIM streak level.
+                // Normal TNT adds 10% damage per VICTIM streak level.
                 double multiplier = CombatMath.streakDamageMultiplier(1.0,
                         plugin.streaks().streak(victim),
-                        config().getDouble("combat.tnt.bonus-damage-per-victim-streak", 0.05));
+                        config().getDouble("combat.tnt.bonus-damage-per-victim-streak", 0.10));
                 UUID owner = tntOwner(tnt);
                 if (owner == null) owner = directPlayer(event.getDamageSource().getCausingEntity());
                 if (victim.getUniqueId().equals(owner))
