@@ -57,7 +57,8 @@ public final class ProgressionCatalog {
         new Option("expanded_reserves", "Expanded Reserves", Material.EXPERIENCE_BOTTLE, "Carry one additional stack of capped XP bottles and wind charges"),
         new Option("battle_sense", "Battle Sense", Material.SPYGLASS, "See an enemy's health for 8s after hitting them"),
         new Option("scavenger", "Scavenger", Material.BUNDLE, "15% hit chance to restore 4 wind charges; 90s cooldown"),
-        new Option("quick_hands", "Quick Hands", Material.RABBIT_FOOT, "Consume food and drink potions 20% faster"),
+        new Option("quick_hands", "Quick Hands", Material.RABBIT_FOOT, "Consume food and drink potions in 10% less time"),
+        new Option("barbed_hook", "Barbed Hook", Material.FISHING_ROD, "Hook an enemy player to deal 0.5 heart of true damage; once per cast"),
         new Option("streak_insurance", "Streak Insurance", Material.RECOVERY_COMPASS, "Preserve up to 2 lost streak levels on death; 10m cooldown"),
         new Option("blacksmith", "Blacksmith", Material.ANVIL, "Craft golden apples with 2 gold and breeze rods from 8 iron nuggets + stick"));
 
