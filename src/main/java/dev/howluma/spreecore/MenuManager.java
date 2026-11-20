@@ -25,7 +25,7 @@ public final class MenuManager implements Listener {
     private enum PlayerField { STREAK, BEST, KILLS, DEATHS, ENDED }
     private record PendingStatEdit(UUID target, PlayerField field) {}
     private record ConfirmPlayerReset(UUID target, long until) {}
-    private enum Screen { MAIN, ADMIN, PLAYERS, PLAYER, EVENTS, LEGENDARY, SETTINGS, SETTINGS_CATEGORY }
+    private enum Screen { MAIN, ADMIN, PLAYERS, PLAYER, EVENTS, FREEZE, LEGENDARY, SETTINGS, SETTINGS_CATEGORY }
     private record PendingEdit(String path, String category, int page) {}
     private static final class Holder implements InventoryHolder {
         final Screen screen;
@@ -151,6 +151,11 @@ public final class MenuManager implements Listener {
                 "&7Double-click confirmation required", "&4Danger: resets every current streak"));
         inv.setItem(25, icon(Material.KNOWLEDGE_BOOK, "&9&lProgression Guide",
                 "&7Review Privileges, Talents and Infusions", "&eClick to browse"));
+        inv.setItem(28,icon(plugin.events().freezeActive()?Material.BLUE_ICE:Material.CLOCK,
+                "&b&lTimed Spree Freeze",
+                "&7Pause ALL automatic killstreak changes for a period",
+                "&7Status: "+(plugin.events().freezeActive()?"&bFROZEN &7("+plugin.events().freezeRemainingText()+")":"&aOFF"),
+                "&eClick to set or stop the timer"));
         inv.setItem(29, icon(Material.ARROW, "&9Back to Dashboard"));
         inv.setItem(31, icon(Material.BARRIER, "&cClose"));
         inv.setItem(33, icon(Material.CRAFTING_TABLE, "&b&lBalance Workshop",
@@ -318,11 +323,47 @@ public final class MenuManager implements Listener {
         inv.setItem(16,icon(Material.PURPLE_STAINED_GLASS_PANE,"&5Chaos", "&7Faster legendary cooldowns"));
         inv.setItem(17,icon(Material.ORANGE_STAINED_GLASS_PANE,"&6Kill Race", "&7First to the target wins"));
         inv.setItem(20,icon(Material.CLOCK,"&eTimed Event: &f"+plugin.events().timed(),"&7Remaining: "+plugin.events().timedSecondsRemaining()+"s"));
+        inv.setItem(21,icon(plugin.events().freezeActive()?Material.BLUE_ICE:Material.PACKED_ICE,
+                "&b&lTimed Spree Freeze",
+                plugin.events().freezeActive()?"&bActive: &f"+plugin.events().freezeRemainingText()+" remaining":"&aCurrently OFF",
+                "&7Pause gains and losses without disabling PvP",
+                "&eClick for duration controls"));
         inv.setItem(22,icon(Material.BARRIER,"&cStop Timed Event"));
         inv.setItem(24,icon(Material.BARRIER,"&cStop Compass Event"));
         inv.setItem(26,icon(Material.ARROW,"&cBack"));
         p.openInventory(inv);
     }
+    public void openFreeze(Player p) {
+        if(!p.hasPermission("spree.admin"))return;
+        Holder holder=holder(Screen.FREEZE);
+        Inventory inv=create(holder,3,"&9&lSPREE &8| &bFreeze Controls");
+        boolean active=plugin.events().freezeActive();
+        inv.setItem(4,icon(active?Material.BLUE_ICE:Material.CLOCK,
+                active?"&b&lKILLSTREAKS FROZEN":"&a&lKILLSTREAKS UNFROZEN",
+                active?"&7Remaining: &f"+plugin.events().freezeRemainingText():"&7All automatic streak gains/losses enabled",
+                "&7Kills/deaths still count for statistics",
+                "&7No Spree tokens spawn or get claimed during freeze",
+                "&7Spree items and withdrawal are not consumed",
+                "&eChoose a duration below, or stop early"));
+        int[] slots={10,11,12,13,14,15};
+        long[] minutes={5,10,15,30,60,120};
+        for(int i=0;i<slots.length;i++){
+            long seconds=minutes[i]*60;
+            inv.setItem(slots[i],icon(Material.CLOCK,
+                    "&b&lFreeze "+StreakFreezeMath.format(seconds),
+                    "&7Disable automatic gain/loss for every player",
+                    "&7Duration begins when clicked",
+                    active?"&7Replaces the existing countdown":"&7Starts a new server-wide timer",
+                    "&eClick to activate"));
+        }
+        inv.setItem(22,icon(Material.BARRIER,"&c&lEnd Spree Freeze",
+                "&7Resume natural streak changes immediately",
+                active?"&eClick to unfreeze":"&8Already unfrozen"));
+        inv.setItem(24,icon(Material.OAK_DOOR,"&7Close"));
+        inv.setItem(26,icon(Material.ARROW,"&9Back to Admin"));
+        p.openInventory(inv);
+    }
+
     public void openLegendary(Player p) {
         if (!p.hasPermission("spree.admin")) return;
         Holder h=holder(Screen.LEGENDARY);Inventory inv=create(h,3,"&9&lSPREE &8| &fLegendaries");
@@ -375,6 +416,7 @@ public final class MenuManager implements Listener {
                     case 10 -> openPlayers(p,0);
                     case 12 -> openEvents(p,true);
                     case 14 -> openLegendary(p);
+                    case 28 -> openFreeze(p);
                     case 16 -> openConfigCategory(p,"combat",0);
                     case 19 -> openSettings(p);
                     case 21 -> {plugin.streaks().refreshOnline();Text.send(p,"&aRecalculated health for all online players.");}
@@ -382,7 +424,7 @@ public final class MenuManager implements Listener {
                         long now=System.currentTimeMillis();
                         if(resetConfirm.getOrDefault(p.getUniqueId(),0L)>now) {
                             resetConfirm.remove(p.getUniqueId());
-                            for(var profile:List.copyOf(plugin.data().all()))plugin.streaks().setStreak(profile.id,0,true);
+                            for(var profile:List.copyOf(plugin.data().all()))plugin.streaks().adminOverrideStreak(profile.id,0);
                             Bukkit.broadcastMessage(Text.c("&9&lSPREE &7All killstreaks have been reset."));
                             p.closeInventory();
                         } else {resetConfirm.put(p.getUniqueId(),now+5000);Text.send(p,"&cClick again within 5 seconds to confirm.");}
@@ -504,9 +546,29 @@ public final class MenuManager implements Listener {
                     case 17 -> plugin.events().setTimed(EventManager.Timed.RACE);
                     case 22 -> plugin.events().setTimed(EventManager.Timed.NONE);
                     case 24 -> plugin.events().setMode(EventManager.Mode.NONE);
+                    case 21 -> {openFreeze(p);return;}
                     default -> {}
                 }
                 openEvents(p,true);
+            }
+            case FREEZE -> {
+                if(!p.hasPermission("spree.admin"))return;
+                if(slot==26){openAdmin(p);return;}
+                if(slot==24){p.closeInventory();return;}
+                if(slot==22)plugin.events().stopFreeze();
+                else {
+                    long seconds=switch(slot) {
+                        case 10 -> 5*60L;
+                        case 11 -> 10*60L;
+                        case 12 -> 15*60L;
+                        case 13 -> 30*60L;
+                        case 14 -> 60*60L;
+                        case 15 -> 120*60L;
+                        default -> 0L;
+                    };
+                    if(seconds>0)plugin.events().startFreeze(seconds);
+                }
+                openFreeze(p);
             }
             case LEGENDARY -> {
                 if (!p.hasPermission("spree.admin")) return;
