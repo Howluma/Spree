@@ -10,6 +10,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.entity.Entity;
+import java.util.HashSet;
+import java.util.Set;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scoreboard.Team;
 
@@ -32,12 +36,29 @@ import java.util.UUID;
 public final class BarbedHookTalent implements Listener {
     private final SpreeCorePlugin plugin;
     private final Map<UUID,Long> processedHooks = new HashMap<>();
+    private final Map<UUID,UUID> pendingDamage = new HashMap<>();
+    private final Set<UUID> acceptedDamage = new HashSet<>();
 
     BarbedHookTalent(SpreeCorePlugin plugin) { this.plugin=plugin; }
 
     private boolean friendlyFireDisabled(Player shooter, Player target) {
         Team team=shooter.getScoreboard().getEntryTeam(shooter.getName());
         return team!=null && team.hasEntry(target.getName()) && !team.allowFriendlyFire();
+    }
+
+    /**
+     * Observe the real native PvP damage event before compensating armor/
+     * resistance reduction. If a protection plugin cancels the event,
+     * there is NO custom damage and NO kill credit.
+     */
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void approvedDamage(EntityDamageByEntityEvent event) {
+        if(!(event.getEntity() instanceof Player target))return;
+        UUID expectedHook=pendingDamage.get(target.getUniqueId());
+        if(expectedHook==null || event.getDamage()<=0)return;
+        Entity direct=event.getDamageSource().getDirectEntity();
+        if(direct!=null && expectedHook.equals(direct.getUniqueId()))
+            acceptedDamage.add(target.getUniqueId());
     }
 
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
@@ -71,18 +92,23 @@ public final class BarbedHookTalent implements Listener {
                 .withCausingEntity(shooter).withDirectEntity(event.getHook()).build();
         // Always dispatch ordinary damage first. A WorldGuard/other PvP cancel
         // is honored, and the native damage source carries the killer.
-        target.damage(points,source);
+        UUID victimId=target.getUniqueId();
+        acceptedDamage.remove(victimId);
+        pendingDamage.put(victimId,hookId);
+        try {
+            target.damage(points,source);
+        } finally {
+            pendingDamage.remove(victimId);
+        }
+        if(!acceptedDamage.remove(victimId))return; // Cancelled PvP event.
         double healthAfter=target.getHealth();
         double absorptionAfter=target.getAbsorptionAmount();
-        double actual=BarbedHookMath.appliedPoints(healthBefore,healthAfter,
-                absorptionBefore,absorptionAfter);
-        if(actual<=0.000001)return;
 
         // Register combat credit BEFORE compensating health; the compensation
         // may kill a 0.5-heart victim directly.
         plugin.combat().recordRodHit(shooter,target);
         double missing=BarbedHookMath.additionalPoints(points,
-                healthBefore,healthAfter,absorptionBefore,absorptionAfter);
+                healthBefore,healthAfter,absorptionBefore,absorptionAfter,true);
         if(missing>0 && !target.isDead()) {
             // Vanilla absorption absorbs first, including for true damage.
             double extraAbsorption=Math.min(missing,target.getAbsorptionAmount());
@@ -91,7 +117,7 @@ public final class BarbedHookTalent implements Listener {
                 missing-=extraAbsorption;
             }
             if(missing>0 && !target.isDead())
-                target.setHealth(Math.max(0,target.getHealth()-missing));
+                plugin.combat().creditedRodAdjustment(shooter,target,missing);
         }
 
         // The hook bobber itself is the recognizable visual reference.
@@ -105,5 +131,9 @@ public final class BarbedHookTalent implements Listener {
         long now=System.currentTimeMillis();
         processedHooks.entrySet().removeIf(e->now-e.getValue()>30_000);
     }
-    public void shutdown() { processedHooks.clear(); }
+    public void shutdown() {
+        processedHooks.clear();
+        pendingDamage.clear();
+        acceptedDamage.clear();
+    }
 }
