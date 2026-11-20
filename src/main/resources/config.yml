@@ -175,7 +175,13 @@ talents:
   expanded-reserves:
     extra-items: 64
   quick-hands:
-    consume-time-multiplier: 0.80
+    # 0.90 = consume food and potions in 10% less time.
+    consume-time-multiplier: 0.90
+  barbed-hook:
+    enabled: true
+    damage-hearts: 0.5
+    # True damage bypasses armor; enchantment, Resistance and absorption are
+    # handled by the damage event and any remaining reduction is corrected.
   streak-insurance:
     cooldown-seconds: 600
     protected-levels: 2
