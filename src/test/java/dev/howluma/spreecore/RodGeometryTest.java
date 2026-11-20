@@ -22,6 +22,20 @@ class RodGeometryTest {
                 -1,0,0.4,1,0,0.4,-.125,-.125,-.125,.125,.125,.125,.28)));
     }
 
+    @Test void modestlyExpandedDefaultsCatchNearMissesNotDistantTargets() {
+        // Player bobber at 0.58 Z is outside the old 0.20 margin
+        // (body edge 0.30 + 0.20) but inside the new 0.30 margin.
+        assertTrue(Double.isInfinite(RodGeometry.firstContact(
+                -2,1,.58,2,1,.58,-.3,0,-.3,.3,1.8,.3,.20)));
+        assertTrue(Double.isFinite(RodGeometry.firstContact(
+                -2,1,.58,2,1,.58,-.3,0,-.3,.3,1.8,.3,.30)));
+        // Dropped item radius approx 0.125 plus new 0.35 margin.
+        assertTrue(Double.isInfinite(RodGeometry.firstContact(
+                -1,0,.45,1,0,.45,-.125,-.125,-.125,.125,.125,.125,.25)));
+        assertTrue(Double.isFinite(RodGeometry.firstContact(
+                -1,0,.45,1,0,.45,-.125,-.125,-.125,.125,.125,.125,.35)));
+    }
+
     @Test void noLongDistanceMagneticRods() {
         assertTrue(Double.isInfinite(RodGeometry.firstContact(
                 0,1,0,5,1,0,2.4,0,1.5,3,2,2,.2)));
