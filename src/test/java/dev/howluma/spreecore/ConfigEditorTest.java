@@ -57,6 +57,18 @@ class ConfigEditorTest {
         assertNotNull(ConfigEditor.validate("talents.combo-breaker.hits-required",0));
         assertNull(ConfigEditor.validate("talents.combo-breaker.hits-required",3));
     }
+    @Test void rodCollisionMarginsCanBeEditedSafelyInSpreeCoreSettings() {
+        assertNull(ConfigEditor.validate("rod-assist.player-extra-margin",.20));
+        assertNull(ConfigEditor.validate("rod-assist.item-extra-margin",.25));
+        assertNull(ConfigEditor.validate("rod-assist.player-extra-margin",0));
+        assertNull(ConfigEditor.validate("rod-assist.item-extra-margin",.50));
+        assertNotNull(ConfigEditor.validate("rod-assist.player-extra-margin",.51));
+        assertNotNull(ConfigEditor.validate("rod-assist.item-extra-margin",-.01));
+        assertNotNull(ConfigEditor.validate("rod-assist.max-sweep-blocks-per-tick",0.25));
+        assertNull(ConfigEditor.validate("rod-assist.max-sweep-blocks-per-tick",4.0));
+        assertNotNull(ConfigEditor.validate("rod-assist.max-sweep-blocks-per-tick",5.01));
+    }
+
     @Test void tierColorEditorRejectsInvalidOrMultiColorValues() {
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.5", "&a"));
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.10", "<#123ABC>"));
