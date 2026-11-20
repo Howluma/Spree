@@ -55,6 +55,9 @@ public final class FlameRodTalent implements Listener {
         Location previous;
         final Set<String> attempted=new HashSet<>();
         final Set<UUID> ignitedPlayers=new HashSet<>();
+        // A protected target may cancel combustion; still try at most once
+        // per cast instead of re-firing the event on every 2-tick heartbeat.
+        final Set<UUID> attemptedPlayers=new HashSet<>();
         int ignited;
         ActiveHook(FishHook hook, UUID owner) {
             this.hook=hook;
@@ -221,12 +224,13 @@ public final class FlameRodTalent implements Listener {
                 owner.getWorld().getPVP() && owner.getWorld().equals(target.getWorld()),
                 owner.getUniqueId().equals(target.getUniqueId()),teammate,
                 target.getGameMode()==GameMode.SPECTATOR,
-                active.ignitedPlayers.contains(target.getUniqueId()));
+                active.attemptedPlayers.contains(target.getUniqueId()));
         if(!permitted || !plugin.getConfig().getBoolean("talents.flame-rod.ignite-players",true))
             return;
         double duration=Math.max(0,Math.min(15,plugin.getConfig()
                 .getDouble("talents.flame-rod.player-fire-seconds",4.0)));
         if(FlameRodRules.fireTicks(duration)<=0)return;
+        if(!active.attemptedPlayers.add(target.getUniqueId()))return;
 
         EntityCombustByEntityEvent combust=new EntityCombustByEntityEvent(
                 active.hook,target,(float)duration);
