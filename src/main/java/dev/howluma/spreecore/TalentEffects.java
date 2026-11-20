@@ -294,6 +294,10 @@ public final class TalentEffects implements Listener {
          jumpBlocked.remove(p.getUniqueId());
         sensed.remove(p.getUniqueId());
         insuranceOnRespawn.remove(p.getUniqueId());
+        lastWebSafe.remove(p.getUniqueId());
+        pendingEscapes.remove(p.getUniqueId());
+        acceptedSmashes.remove(p.getUniqueId());
+        lastSmashFx.remove(p.getUniqueId());
     }
     private void comboClear(UUID id){combos.remove(id);bloodlust.remove(id);}
     public void clearCombatCombo(Player player) { comboClear(player.getUniqueId()); }
@@ -524,24 +528,12 @@ public final class TalentEffects implements Listener {
                 &&apply(p,PotionEffectType.RESISTANCE,0,ti("iron-will.duration-seconds",5))){
             startDefense(p,"iron_will",ti("iron-will.cooldown-seconds",75));
         }
-        if(has(p,"escape_artist") && (p.hasPotionEffect(PotionEffectType.SLOWNESS)
-                ||p.getLocation().getBlock().getType()==Material.COBWEB)
-                &&available(p,"escape_artist")){
-            PotionEffect originalSlow=p.getPotionEffect(PotionEffectType.SLOWNESS);
-            if(originalSlow!=null)p.removePotionEffect(PotionEffectType.SLOWNESS);
-            apply(p,PotionEffectType.SPEED,2,3);
-            // Take one safe, immediately adjacent step out of the cobweb when
-            // possible. If enclosed, fall back to a short lift instead.
-            if(p.getLocation().getBlock().getType()==Material.COBWEB
-                    &&!stepOutOfWeb(p))
-                p.setVelocity(p.getVelocity().add(new org.bukkit.util.Vector(0,.42,0)));
-            start(p,"escape_artist",ti("escape-artist.cooldown-seconds",50));
-            if(originalSlow!=null && originalSlow.getDuration()>60)
-                Bukkit.getScheduler().runTaskLater(plugin,()->{
-                    if(p.isOnline()&&!p.isDead()&&!p.hasPotionEffect(PotionEffectType.SLOWNESS))
-                        p.addPotionEffect(originalSlow.withDuration(originalSlow.getDuration()-60),true);
-                },60L);
-        }
+        // Escape Artist also triggers on movement into webs, without needing
+        // to take damage. Hits can still trigger the Slowness-cleansing version.
+        if(has(p,"escape_artist") && available(p,"escape_artist")
+                && (p.hasPotionEffect(PotionEffectType.SLOWNESS)
+                        || touchesWeb(p,p.getLocation())))
+            queueEscape(p);
     }
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
@@ -623,6 +615,12 @@ public final class TalentEffects implements Listener {
         plugin.talentFeedback().tick();
         long now=System.currentTimeMillis();
         for(Player p:Bukkit.getOnlinePlayers()){
+            // Catch webs placed around a stationary player as well as
+            // first entering one (handled immediately by PlayerMoveEvent).
+            if(!p.isDead() && has(p,"escape_artist")
+                    && available(p,"escape_artist")
+                    && touchesWeb(p,p.getLocation()))
+                queueEscape(p);
             Sense sense=sensed.get(p.getUniqueId());
             if(sense==null||now>=sense.expires()||!has(p,"battle_sense")
                     ||plugin.talentFeedback().suppressBattleSense(p))continue;
