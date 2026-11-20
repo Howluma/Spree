@@ -1,4 +1,4 @@
-# SpreeCore 1.8.3 - visible mace smash impacts/cooldowns and reliable Escape Artist web blinks.
+# SpreeCore 1.8.4 - 10% Quick Hands, Barbed Hook Talent and credited environmental deaths.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -341,6 +341,12 @@ combat:
   tnt:
     enabled: true
     igniter-self-damage-multiplier: 0.50
+  # Player combat credit also carries through short follow-up environmental deaths
+  # (fall, lava, fire, void, drowning, suffocation, etc.). Those deaths reward
+  # the credited killer and NEVER spawn an environmental-death Spree Token.
+  pvp-environment-credit:
+    enabled: true
+    window-seconds: 12
   explosive-kill-credit:
     enabled: true
     window-seconds: 12
