@@ -234,9 +234,11 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         Text.send(s,"&9&lSPREE ADMIN &7- GUI: /spreeadmin");
         Text.send(s,"&bShortcuts: &f/spreeset <player> <value> &7and &f/spreesetall <value>");
         Text.send(s,"&bFate Sigils: &f/fatesigil [amount] &7or &f/fatesigil give <player> [amount]");
+        Text.send(s,"&bSpree Freeze: &f/spreeadmin freeze <15m|2h|90s|30> &7| off | status");
+        Text.send(s,"&7Frozen players keep their killstreaks through all kills/deaths; staff can still manually adjust values.");
         for(String line:List.of("set <player> <value>","add <player> <value>","remove <player> <value>",
                 "reset <player>","fracture <player>","giveitem <player> [amount]","setall <value>","resetall (twice to confirm)",
-                "update [player]","reload","migrateitems","importskript [force]"))
+                "freeze <15m|2h|off|status>","update [player]","reload","migrateitems","importskript [force]"))
             Text.send(s,"&7/spreeadmin &f"+line);
     }
     private final Map<String,Long> adminResets=new HashMap<>();
@@ -248,6 +250,32 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
         String cmd=args[0].toLowerCase(Locale.ROOT);
         switch(cmd) {
             case "help" -> adminHelp(sender);
+            case "freeze" -> {
+                if(args.length==1 || (args.length==2 && args[1].equalsIgnoreCase("status"))) {
+                    if(plugin.events().freezeActive())
+                        message(sender,"&b❄ Global Spree Freeze ACTIVE &7- &f"
+                                +plugin.events().freezeRemainingText()+" &7remaining.");
+                    else message(sender,"&aGlobal Spree Freeze is OFF. &7Use /spreeadmin freeze 15m to start.");
+                    return;
+                }
+                if(args.length!=2) {
+                    message(sender,"&cUsage: /spreeadmin freeze <minutes|15m|2h|90s|1d|off|status>");
+                    return;
+                }
+                if(args[1].equalsIgnoreCase("off")||args[1].equalsIgnoreCase("stop")
+                        ||args[1].equalsIgnoreCase("end")) {
+                    plugin.events().stopFreeze();
+                    message(sender,"&aSpree Freeze is now OFF.");
+                    return;
+                }
+                long seconds=StreakFreezeMath.parseSeconds(args[1]);
+                if(seconds<1) {
+                    message(sender,"&cInvalid freeze duration. Try 15m, 2h, 90s or 30 (minutes). Max 7d.");
+                    return;
+                }
+                plugin.events().startFreeze(seconds);
+                message(sender,"&aSpree gains/losses paused for &f"+StreakFreezeMath.format(seconds)+"&a.");
+            }
             case "reload" -> {plugin.reloadSpreeConfiguration();message(sender,"&aConfiguration, effects and schedules reloaded.");}
             case "settings" -> {
                 Player p=requirePlayer(sender);
@@ -274,7 +302,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                     return;
                 }
                 adminResets.remove(id);
-                for(var profile:List.copyOf(plugin.data().all()))plugin.streaks().setStreak(profile.id,0,true);
+                for(var profile:List.copyOf(plugin.data().all()))plugin.streaks().adminOverrideStreak(profile.id,0);
                 Bukkit.broadcastMessage(Text.c("&9&lSPREE &7All killstreaks reset by an admin."));
             }
             case "setall" -> {
@@ -282,7 +310,7 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                 Integer value=exactSpreeValue(sender,args[1]);if(value==null)return;
                 for (Player player : Bukkit.getOnlinePlayers()) plugin.data().get(player);
                 List<PlayerDataStore.Profile> targets = List.copyOf(plugin.data().all());
-                for(var profile:targets)plugin.streaks().setStreak(profile.id,value,value>=0);
+                for(var profile:targets)plugin.streaks().adminOverrideStreak(profile.id,value);
                 plugin.data().save();
                 plugin.getLogger().info(sender.getName() + " set all " + targets.size() + " stored killstreaks to " + value);
                 message(sender,"&aSet " + targets.size() + " saved player killstreaks to &f"
@@ -322,8 +350,8 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
                     if(parsed==null)return;
                     value=switch(cmd){case "set" -> parsed;case "add" -> (int)Math.min(plugin.streaks().cap(), (long)p.streak+parsed);default -> (int)Math.max(0L, (long)p.streak-parsed);};
                 }
-                if(cmd.equals("fracture") || cmd.equals("recovery"))plugin.streaks().setStreak(p.id,-1,false);
-                else plugin.streaks().setStreak(p.id,value,value>=0);
+                if(cmd.equals("fracture") || cmd.equals("recovery"))plugin.streaks().adminOverrideStreak(p.id,-1);
+                else plugin.streaks().adminOverrideStreak(p.id,value);
                 plugin.data().save();
                 message(sender,"&aUpdated &f"+p.name+"&a: " + plugin.streaks().display(p.streak));
             }
@@ -443,7 +471,9 @@ public final class CoreCommands implements CommandExecutor, TabCompleter {
             }
         }
         else if(root.equals("spreeadmin") && sender.hasPermission("spree.admin")) {
-            if(args.length==1)options=List.of("set","add","remove","reset","fracture","giveitem","setall","resetall","update","reload","settings","migrateitems","importskript","help");
+            if(args.length==1)options=List.of("freeze","set","add","remove","reset","fracture","giveitem","setall","resetall","update","reload","settings","migrateitems","importskript","help");
+            else if(args.length==2 && args[0].equalsIgnoreCase("freeze"))
+                options=List.of("status","off","5m","10m","15m","30m","1h","2h","1d");
             else if(args.length==2 && List.of("set","add","remove","reset","fracture","recovery","update","giveitem").contains(args[0]))
                 options=plugin.data().all().stream().map(p->p.name).sorted().toList();
             else if(args.length==3 && args[0].equalsIgnoreCase("giveitem")) options=List.of("1","5","16","32","64");
