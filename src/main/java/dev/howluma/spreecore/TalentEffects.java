@@ -4,6 +4,13 @@ import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import io.papermc.paper.event.entity.EntityAttemptSmashAttackEvent;
 import io.papermc.paper.event.player.PlayerShieldDisableEvent;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.Material;
 import org.bukkit.damage.DamageType;
 import org.bukkit.NamespacedKey;
@@ -22,6 +29,9 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
@@ -42,11 +52,16 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class TalentEffects implements Listener {
     private record Combo(UUID victim, int hits, long lastHit) {}
     private record Sense(UUID target, long expires) {}
+    private record SmashAttempt(UUID target, int tick) {}
     private final SpreeCorePlugin plugin;
      private final Map<UUID,Combo> combos = new HashMap<>();
     private final Map<UUID,Integer> bloodlust = new HashMap<>();
     private final Map<UUID,Long> jumpBlocked = new HashMap<>();
     private final Map<UUID,Sense> sensed = new HashMap<>();
+    private final Map<UUID,SmashAttempt> acceptedSmashes = new HashMap<>();
+    private final Map<UUID,Integer> lastSmashFx = new HashMap<>();
+    private final Map<UUID,Location> lastWebSafe = new HashMap<>();
+    private final Set<UUID> pendingEscapes = new HashSet<>();
     private final Map<UUID,Integer> insuranceOnRespawn = new HashMap<>();
     private final NamespacedKey jumpKey,stepKey,appleKey,rodKey;
 
@@ -90,28 +105,150 @@ public final class TalentEffects implements Listener {
         return p.addPotionEffect(new PotionEffect(type,duration,amplifier,true,false,true),true);
     }
     /**
-     * Move out of a web only when a neighboring two-block-high air column is
-     * clear. Never break blocks or teleport through solid blocks; protected
-     * regions can still reject the Bukkit teleport.
+     * A player's feet block is not always the cobweb they are touching:
+     * the web may overlap their head or only the edge of their hitbox.
+     * Check all touched blocks using the actual entity bounding box.
      */
-    private boolean stepOutOfWeb(Player player) {
-        org.bukkit.block.Block origin=player.getLocation().getBlock();
-        if(origin.getType()!=Material.COBWEB)return false;
-        for(org.bukkit.block.BlockFace face:new org.bukkit.block.BlockFace[]{
-                org.bukkit.block.BlockFace.NORTH,org.bukkit.block.BlockFace.EAST,
-                org.bukkit.block.BlockFace.SOUTH,org.bukkit.block.BlockFace.WEST,
-                org.bukkit.block.BlockFace.UP}) {
-            org.bukkit.block.Block target=origin.getRelative(face);
-            if(!target.getType().isAir()||!target.getRelative(
-                    org.bukkit.block.BlockFace.UP).getType().isAir())continue;
-            var destination=target.getLocation().add(.5,0,.5);
-            destination.setYaw(player.getLocation().getYaw());
-            destination.setPitch(player.getLocation().getPitch());
-            if(player.teleport(destination,
-                    org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN))return true;
-        }
-        return false;
+    private BoundingBox at(Player player, Location location) {
+        Location current=player.getLocation();
+        return player.getBoundingBox().clone().shift(
+                location.getX()-current.getX(),
+                location.getY()-current.getY(),
+                location.getZ()-current.getZ());
     }
+
+    private boolean touchesWeb(Player player, Location location) {
+        if(location==null || !player.getWorld().equals(location.getWorld()))return false;
+        BoundingBox box=at(player,location);
+        return WebEscapeMath.occupied(box.getMinX(),box.getMinY(),box.getMinZ(),
+                box.getMaxX(),box.getMaxY(),box.getMaxZ(),
+                (x,y,z)->location.getWorld().getBlockAt(x,y,z).getType()==Material.COBWEB);
+    }
+
+    /** A safe landing cannot contain web, liquid, or solid collision blocks. */
+    private boolean clearBody(Player player, Location location, boolean allowWeb) {
+        if(location==null || !player.getWorld().equals(location.getWorld()))return false;
+        World world=location.getWorld();
+        BoundingBox box=at(player,location);
+        return !WebEscapeMath.occupied(box.getMinX(),box.getMinY(),box.getMinZ(),
+                box.getMaxX(),box.getMaxY(),box.getMaxZ(),(x,y,z)->{
+                    if(!world.isChunkLoaded(x>>4,z>>4))return true;
+                    Block block=world.getBlockAt(x,y,z);
+                    Material m=block.getType();
+                    return !block.isPassable() || block.isLiquid()
+                            || (!allowWeb && m==Material.COBWEB)
+                            || m==Material.FIRE || m==Material.SOUL_FIRE
+                            || m==Material.POWDER_SNOW || m==Material.SWEET_BERRY_BUSH;
+                });
+    }
+
+    private boolean safeLanding(Player player, Location location) {
+        World world=location.getWorld();
+        int x=location.getBlockX(),y=(int)Math.floor(location.getY()-.10),
+                z=location.getBlockZ();
+        return world.isChunkLoaded(x>>4,z>>4) && world.getBlockAt(x,y,z).getType().isSolid()
+                && clearBody(player,location,false);
+    }
+
+    /** Check a straight unobstructed route. Cobwebs are traversable, walls are not. */
+    private boolean routeClear(Player player, Location from, Location to) {
+        if(!from.getWorld().equals(to.getWorld()))return false;
+        double distance=from.distance(to);
+        int steps=Math.max(1,(int)Math.ceil(distance*5));
+        for(int i=1;i<=steps;i++) {
+            double alpha=(double)i/steps;
+            Location step=from.clone().add(
+                    (to.getX()-from.getX())*alpha,
+                    (to.getY()-from.getY())*alpha,
+                    (to.getZ()-from.getZ())*alpha);
+            if(!clearBody(player,step,true))return false;
+        }
+        return true;
+    }
+
+    /** Prefer the position the player occupied before entering the web. */
+    private Location escapeDestination(Player player) {
+        Location current=player.getLocation();
+        Location previous=lastWebSafe.get(player.getUniqueId());
+        if(previous!=null && previous.getWorld().equals(current.getWorld())
+                && previous.distanceSquared(current)<=36
+                && safeLanding(player,previous) && routeClear(player,current,previous)) {
+            Location back=previous.clone();
+            back.setYaw(current.getYaw());
+            back.setPitch(current.getPitch());
+            return back;
+        }
+        int bx=current.getBlockX(),by=current.getBlockY(),bz=current.getBlockZ();
+        for(int[] offset:WebEscapeMath.candidateOffsets(5)) {
+            Location candidate=new Location(current.getWorld(),
+                    bx+offset[0]+.5,by+offset[1],bz+offset[2]+.5,
+                    current.getYaw(),current.getPitch());
+            if(safeLanding(player,candidate) && routeClear(player,current,candidate))
+                return candidate;
+        }
+        return null; // Never teleport into a wall or outside protected areas.
+    }
+
+    /**
+     * Schedule once for the next tick so the movement event has finished.
+     * No cooldown is spent until a real escape/Slowness cleanse succeeds.
+     */
+    private void queueEscape(Player player) {
+        UUID id=player.getUniqueId();
+        if(!pendingEscapes.add(id))return;
+        Bukkit.getScheduler().runTask(plugin,()->{
+            pendingEscapes.remove(id);
+            if(!player.isOnline()||player.isDead()
+                    ||!has(player,"escape_artist")||!available(player,"escape_artist"))return;
+            boolean web=touchesWeb(player,player.getLocation());
+            PotionEffect slow=player.getPotionEffect(PotionEffectType.SLOWNESS);
+            if(!web && slow==null)return;
+            if(web) {
+                Location exit=escapeDestination(player);
+                if(exit==null) {
+                    Text.action(player,"&cEscape Artist: no safe exit nearby");
+                    return; // Do not waste a Talent cooldown when stuck.
+                }
+                Location former=player.getLocation().clone();
+                if(!player.teleport(exit,PlayerTeleportEvent.TeleportCause.PLUGIN))return;
+                lastWebSafe.put(id,player.getLocation().clone());
+                player.setVelocity(new org.bukkit.util.Vector(0,0,0));
+                if(plugin.getConfig().getBoolean("talents.feedback.particles",true))
+                    former.getWorld().spawnParticle(Particle.CLOUD,former.add(0,.85,0),
+                            24,.34,.55,.34,.035);
+                if(plugin.getConfig().getBoolean("talents.feedback.sounds",true))
+                    player.getWorld().playSound(player.getLocation(),
+                            Sound.ENTITY_ENDERMAN_TELEPORT,.7f,1.3f);
+            }
+            if(slow!=null)player.removePotionEffect(PotionEffectType.SLOWNESS);
+            apply(player,PotionEffectType.SPEED,2,3);
+            start(player,"escape_artist",ti("escape-artist.cooldown-seconds",50));
+            if(slow!=null && slow.getDuration()>60)
+                Bukkit.getScheduler().runTaskLater(plugin,()->{
+                    if(player.isOnline()&&!player.isDead()
+                            &&!player.hasPotionEffect(PotionEffectType.SLOWNESS))
+                        player.addPotionEffect(slow.withDuration(slow.getDuration()-60),true);
+                },60L);
+        });
+    }
+
+    /** Enters webs without damage, including webs crossing only the head. */
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void moveIntoWeb(PlayerMoveEvent event) {
+        if(event instanceof PlayerTeleportEvent || !event.hasChangedPosition())return;
+        Player player=event.getPlayer();
+        if(!has(player,"escape_artist") || !available(player,"escape_artist"))return;
+        Location next=event.getTo();
+        if(touchesWeb(player,next)) {
+            Location before=event.getFrom();
+            if(!touchesWeb(player,before) && safeLanding(player,before))
+                lastWebSafe.put(player.getUniqueId(),before.clone());
+            queueEscape(player);
+        }else if(player.isOnGround() && safeLanding(player,next)) {
+            lastWebSafe.put(player.getUniqueId(),next.clone());
+        }
+    }
+
     private static boolean axe(Material type){return type.name().endsWith("_AXE");}
     private static Player credited(EntityDamageByEntityEvent event){
         if(event.getDamager() instanceof Player p)return p;
