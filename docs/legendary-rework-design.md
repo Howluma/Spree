@@ -57,6 +57,36 @@ Each legendary is held in the **main hand**, with abilities tied to the **wielde
 - Consider safe teleports/respawns, anti-cheat compatibility, protection against rubber-banding and clean state restoration when coding.
 - Frostbite: subtle snow particles. Hard freeze: ice-crystal burst.
 
+## Blood Butcher - design in progress
+
+**Official name:** Blood Butcher (never "Blood Butcherer"). Identity: risk/reward berserker axe, with custom bleeding rather than vanilla Wither. This is a design outline, not yet implemented.
+
+### Level 0: Passive I - Serrated Edge (approved revision)
+
+- A successful **fully charged axe attack** applies **Bleeding**.
+- Bleeding lasts **4 seconds**.
+- Bleeding inflicts **1 full Minecraft heart of true damage (2 health points) every 2 seconds**: at 2 seconds and 4 seconds, for **2 total hearts** if the effect lasts its full duration.
+- This is a **custom damage-over-time mechanic**, not the Wither potion effect. It bypasses normal armor and protection enchantment reductions.
+- The prior proposed **7-second application cooldown per target** remains a provisional balancing value.
+- Current suggestions awaiting review: refreshing Bleeding does not stack additional overlapping instances; Totem of Undying and death protections remain functional; custom red blood-like particles indicate the effect.
+
+### Level 3: Active I - Blood Pact (F) - proposal
+
+- Sacrifice 5 maximum hearts for 10 seconds for Strength III.
+- Proposed cooldown 55 seconds; health pool restores afterward, but missing health does not auto-heal.
+
+### Level 5: Passive II - Bloodthirst - proposal
+
+- Dealing weapon damage to a **Bleeding** opponent heals wielder for 0.5 hearts.
+- Proposed per-target cooldown 3 seconds.
+- Any older references to "Wither" as the qualifying debuff are superseded by **Bleeding**.
+
+### Level 7: Active II - Executioner's Cleave (Shift+F) - proposal
+
+- Empowers next axe hit within 6 seconds to strike a short frontal arc.
+- **Bleeding** targets take 20% bonus damage; wielder heals 1 heart per affected target, max 2 hearts.
+- Proposed cooldown 75 seconds. Ultimate mechanics are open for refinement.
+
 ## Other legendary designs
 
-Pending individual review. Candidates in the current SpreeCore roster: Blood Butcher, Storm Breaker, Aquafier, Darkheart, Hailstorm and Blood's Bane.
+Pending individual review. Candidates in the current SpreeCore roster: Storm Breaker, Aquafier, Darkheart, Hailstorm and Blood's Bane.
