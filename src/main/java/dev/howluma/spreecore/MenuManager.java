@@ -25,7 +25,7 @@ public final class MenuManager implements Listener {
     private enum PlayerField { STREAK, BEST, KILLS, DEATHS, ENDED }
     private record PendingStatEdit(UUID target, PlayerField field) {}
     private record ConfirmPlayerReset(UUID target, long until) {}
-    private enum Screen { MAIN, ADMIN, PLAYERS, PLAYER, EVENTS, LEGENDARY, SETTINGS, SETTINGS_CATEGORY }
+    private enum Screen { MAIN, ADMIN, PLAYERS, PLAYER, EVENTS, FREEZE, LEGENDARY, SETTINGS, SETTINGS_CATEGORY }
     private record PendingEdit(String path, String category, int page) {}
     private static final class Holder implements InventoryHolder {
         final Screen screen;
@@ -56,6 +56,8 @@ public final class MenuManager implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(Text.c(name));
         meta.setLore(Arrays.stream(lore).map(Text::c).toList());
+        if (material == Material.ECHO_SHARD) plugin.models().sigil(meta);
+        if (material == Material.HEART_OF_THE_SEA) plugin.models().token(meta);
         item.setItemMeta(meta);
         return item;
     }
@@ -91,7 +93,7 @@ public final class MenuManager implements Listener {
                 .filter(e -> e.getKey() <= profile.streak).count();
         inv.setItem(19, icon(Material.POTION, "&9&lActive Bonuses",
                 "&7Max health: &f+" + ConfigEditor.format(
-                        Math.max(0, profile.streak)*plugin.getConfig().getDouble("killstreak.health-per-level-hearts",.5)) + " hearts",
+                        SpreeMath.benefitLevel(profile.streak)*plugin.getConfig().getDouble("killstreak.health-per-level-hearts",.5)) + " hearts",
                 "&7Permanent Infusions: &f" + infusionCount,
                 "&7Glowing: " + (profile.streak >= plugin.getConfig().getInt("hunt.glowing-level",10)?"&aYes":"&8No"),
                 "&bClick to see your build"));
@@ -118,7 +120,7 @@ public final class MenuManager implements Listener {
     static String[] currentBuffLore(org.bukkit.configuration.file.FileConfiguration config, int streak) {
         if (streak <= 0) return new String[]{"&8No active Spree buffs"};
         List<String> current = new ArrayList<>();
-        double healthBonus = streak * config.getDouble("killstreak.health-per-level-hearts", 0.5);
+        double healthBonus = SpreeMath.benefitLevel(streak) * config.getDouble("killstreak.health-per-level-hearts", 0.5);
         if (healthBonus > 0)
             current.add("&9❤ &7Health &f+" + ConfigEditor.format(healthBonus) + " hearts");
         // Actual Infusions and Privileges are player-selected, not automatic.
@@ -149,6 +151,11 @@ public final class MenuManager implements Listener {
                 "&7Double-click confirmation required", "&4Danger: resets every current streak"));
         inv.setItem(25, icon(Material.KNOWLEDGE_BOOK, "&9&lProgression Guide",
                 "&7Review Privileges, Talents and Infusions", "&eClick to browse"));
+        inv.setItem(28,icon(plugin.events().freezeActive()?Material.BLUE_ICE:Material.CLOCK,
+                "&b&lTimed Spree Freeze",
+                "&7Pause ALL automatic killstreak changes for a period",
+                "&7Status: "+(plugin.events().freezeActive()?"&bFROZEN &7("+plugin.events().freezeRemainingText()+")":"&aOFF"),
+                "&eClick to set or stop the timer"));
         inv.setItem(29, icon(Material.ARROW, "&9Back to Dashboard"));
         inv.setItem(31, icon(Material.BARRIER, "&cClose"));
         inv.setItem(33, icon(Material.CRAFTING_TABLE, "&b&lBalance Workshop",
@@ -269,11 +276,11 @@ public final class MenuManager implements Listener {
         inv.setItem(13, icon(Material.EMERALD, "&a+1 Killstreak", "&7Increase by one"));
         inv.setItem(14, icon(Material.EMERALD_BLOCK, "&a+5 Killstreak", "&7Increase by five"));
         inv.setItem(12, icon(Material.NETHER_STAR, "&9&lCurrent: " + plugin.indicators().streakColor(profile.streak) + plugin.streaks().display(profile.streak),
-                "&7Max: &f" + plugin.streaks().cap(), "&7Click Exact Value to set a number"));
+                "&7Benefits cap at &f30 &7| Score max: &f" + plugin.streaks().cap(), "&7Click Exact Value to set a number"));
         inv.setItem(20, icon(Material.AMETHYST_SHARD, "&c&lSet Fractured Killstreak",
                 "&7Marks the player as Fractured", "&7Internally preserves the legacy penalty", "&eClick to apply"));
         inv.setItem(22, icon(Material.NAME_TAG, "&9&lSet Exact Killstreak",
-                "&7Enter 0 to " + plugin.streaks().cap(), "&7Use Fractured to apply its special state", "&eClick to enter in chat"));
+                "&7Enter 0 to " + plugin.streaks().cap(), "&7Bonuses stop at 30; use Fractured for -1", "&eClick to enter in chat"));
         ConfirmPlayerReset confirm = playerResetConfirm.get(p.getUniqueId());
         boolean awaiting = confirm != null && confirm.target().equals(id) && confirm.until() > System.currentTimeMillis();
         inv.setItem(24, icon(awaiting ? Material.ORANGE_DYE : Material.BARRIER,
@@ -287,9 +294,17 @@ public final class MenuManager implements Listener {
                 "&eClick to enter an exact number"));
         inv.setItem(34, icon(Material.BOOK, "&fEdit Streaks Ended", "&7Current: &f" + profile.ended,
                 "&eClick to enter an exact number"));
-        inv.setItem(40, icon(Material.CLOCK, "&aRefresh This Player",
+        inv.setItem(37, icon(Material.HEAVY_CORE, "&b&lSet Talent",
+                "&7Choose an exact Talent at any milestone",
+                "&7Bypass random offers and Fate Sigils",
+                "&eClick to select a Talent to test"));
+        inv.setItem(39, icon(Material.ENCHANTED_BOOK, "&b&lSet Perk",
+                "&7Choose an exact Perk at any milestone",
+                "&7Supports stacking copies within configured limits",
+                "&eClick to select a Perk to test"));
+        inv.setItem(41, icon(Material.CLOCK, "&aRefresh This Player",
                 target == null ? "&7Changes take effect on next login" : "&7Reapply health and nameplates"));
-        inv.setItem(42, icon(Material.HEART_OF_THE_SEA, "&9&lGive Spree Item",
+        inv.setItem(43, icon(Material.HEART_OF_THE_SEA, "&9&lGive Spree Item",
                 target == null ? "&8Player must be online" : "&7Right-click item for +1 killstreak",
                 "&eClick: give 1 &8| &eShift-click: give 5"));
         inv.setItem(49, icon(Material.ARROW, "&9Back to Players"));
@@ -308,11 +323,47 @@ public final class MenuManager implements Listener {
         inv.setItem(16,icon(Material.PURPLE_STAINED_GLASS_PANE,"&5Chaos", "&7Faster legendary cooldowns"));
         inv.setItem(17,icon(Material.ORANGE_STAINED_GLASS_PANE,"&6Kill Race", "&7First to the target wins"));
         inv.setItem(20,icon(Material.CLOCK,"&eTimed Event: &f"+plugin.events().timed(),"&7Remaining: "+plugin.events().timedSecondsRemaining()+"s"));
+        inv.setItem(21,icon(plugin.events().freezeActive()?Material.BLUE_ICE:Material.PACKED_ICE,
+                "&b&lTimed Spree Freeze",
+                plugin.events().freezeActive()?"&bActive: &f"+plugin.events().freezeRemainingText()+" remaining":"&aCurrently OFF",
+                "&7Pause gains and losses without disabling PvP",
+                "&eClick for duration controls"));
         inv.setItem(22,icon(Material.BARRIER,"&cStop Timed Event"));
         inv.setItem(24,icon(Material.BARRIER,"&cStop Compass Event"));
         inv.setItem(26,icon(Material.ARROW,"&cBack"));
         p.openInventory(inv);
     }
+    public void openFreeze(Player p) {
+        if(!p.hasPermission("spree.admin"))return;
+        Holder holder=holder(Screen.FREEZE);
+        Inventory inv=create(holder,3,"&9&lSPREE &8| &bFreeze Controls");
+        boolean active=plugin.events().freezeActive();
+        inv.setItem(4,icon(active?Material.BLUE_ICE:Material.CLOCK,
+                active?"&b&lKILLSTREAKS FROZEN":"&a&lKILLSTREAKS UNFROZEN",
+                active?"&7Remaining: &f"+plugin.events().freezeRemainingText():"&7All automatic streak gains/losses enabled",
+                "&7Kills/deaths still count for statistics",
+                "&7No Spree tokens spawn or get claimed during freeze",
+                "&7Spree items and withdrawal are not consumed",
+                "&eChoose a duration below, or stop early"));
+        int[] slots={10,11,12,13,14,15};
+        long[] minutes={5,10,15,30,60,120};
+        for(int i=0;i<slots.length;i++){
+            long seconds=minutes[i]*60;
+            inv.setItem(slots[i],icon(Material.CLOCK,
+                    "&b&lFreeze "+StreakFreezeMath.format(seconds),
+                    "&7Disable automatic gain/loss for every player",
+                    "&7Duration begins when clicked",
+                    active?"&7Replaces the existing countdown":"&7Starts a new server-wide timer",
+                    "&eClick to activate"));
+        }
+        inv.setItem(22,icon(Material.BARRIER,"&c&lEnd Spree Freeze",
+                "&7Resume natural streak changes immediately",
+                active?"&eClick to unfreeze":"&8Already unfrozen"));
+        inv.setItem(24,icon(Material.OAK_DOOR,"&7Close"));
+        inv.setItem(26,icon(Material.ARROW,"&9Back to Admin"));
+        p.openInventory(inv);
+    }
+
     public void openLegendary(Player p) {
         if (!p.hasPermission("spree.admin")) return;
         Holder h=holder(Screen.LEGENDARY);Inventory inv=create(h,3,"&9&lSPREE &8| &fLegendaries");
@@ -365,6 +416,7 @@ public final class MenuManager implements Listener {
                     case 10 -> openPlayers(p,0);
                     case 12 -> openEvents(p,true);
                     case 14 -> openLegendary(p);
+                    case 28 -> openFreeze(p);
                     case 16 -> openConfigCategory(p,"combat",0);
                     case 19 -> openSettings(p);
                     case 21 -> {plugin.streaks().refreshOnline();Text.send(p,"&aRecalculated health for all online players.");}
@@ -372,7 +424,7 @@ public final class MenuManager implements Listener {
                         long now=System.currentTimeMillis();
                         if(resetConfirm.getOrDefault(p.getUniqueId(),0L)>now) {
                             resetConfirm.remove(p.getUniqueId());
-                            for(var profile:List.copyOf(plugin.data().all()))plugin.streaks().setStreak(profile.id,0,true);
+                            for(var profile:List.copyOf(plugin.data().all()))plugin.streaks().adminOverrideStreak(profile.id,0);
                             Bukkit.broadcastMessage(Text.c("&9&lSPREE &7All killstreaks have been reset."));
                             p.closeInventory();
                         } else {resetConfirm.put(p.getUniqueId(),now+5000);Text.send(p,"&cClick again within 5 seconds to confirm.");}
@@ -427,14 +479,14 @@ public final class MenuManager implements Listener {
                     default -> null;
                 };
                 if (changed != null) {
-                    if (changed != profile.streak) plugin.streaks().setStreak(h.target, changed, changed >= 0);
+                    if (changed != profile.streak) plugin.streaks().adminOverrideStreak(h.target, changed);
                     playerResetConfirm.remove(p.getUniqueId());
                     openPlayer(p, h.target);
                     return;
                 }
                 switch(slot) {
                     case 20 -> {
-                        plugin.streaks().setStreak(h.target, -1, false);
+                        plugin.streaks().adminOverrideStreak(h.target, -1);
                         playerResetConfirm.remove(p.getUniqueId());
                         openPlayer(p, h.target);
                     }
@@ -456,7 +508,9 @@ public final class MenuManager implements Listener {
                     case 30 -> promptStat(p, h.target, PlayerField.KILLS);
                     case 32 -> promptStat(p, h.target, PlayerField.DEATHS);
                     case 34 -> promptStat(p, h.target, PlayerField.ENDED);
-                    case 42 -> {
+                    case 37 -> plugin.adminUpgrades().openMilestones(p,h.target,ProgressionCatalog.Kind.TALENT,0);
+                    case 39 -> plugin.adminUpgrades().openMilestones(p,h.target,ProgressionCatalog.Kind.PERK,0);
+                    case 43 -> {
                         Player online = Bukkit.getPlayer(h.target);
                         if (online == null) Text.send(p, plugin.prefix() + "&cPlayer must be online.");
                         else {
@@ -466,7 +520,7 @@ public final class MenuManager implements Listener {
                         }
                         openPlayer(p, h.target);
                     }
-                    case 40 -> {
+                    case 41 -> {
                         Player online = Bukkit.getPlayer(h.target);
                         if (online != null) {
                             plugin.streaks().update(online);
@@ -492,9 +546,29 @@ public final class MenuManager implements Listener {
                     case 17 -> plugin.events().setTimed(EventManager.Timed.RACE);
                     case 22 -> plugin.events().setTimed(EventManager.Timed.NONE);
                     case 24 -> plugin.events().setMode(EventManager.Mode.NONE);
+                    case 21 -> {openFreeze(p);return;}
                     default -> {}
                 }
                 openEvents(p,true);
+            }
+            case FREEZE -> {
+                if(!p.hasPermission("spree.admin"))return;
+                if(slot==26){openAdmin(p);return;}
+                if(slot==24){p.closeInventory();return;}
+                if(slot==22)plugin.events().stopFreeze();
+                else {
+                    long seconds=switch(slot) {
+                        case 10 -> 5*60L;
+                        case 11 -> 10*60L;
+                        case 12 -> 15*60L;
+                        case 13 -> 30*60L;
+                        case 14 -> 60*60L;
+                        case 15 -> 120*60L;
+                        default -> 0L;
+                    };
+                    if(seconds>0)plugin.events().startFreeze(seconds);
+                }
+                openFreeze(p);
             }
             case LEGENDARY -> {
                 if (!p.hasPermission("spree.admin")) return;
@@ -565,7 +639,8 @@ public final class MenuManager implements Listener {
         }
         var profile = plugin.data().get(pending.target());
         int low = 0;
-        int high = pending.field() == PlayerField.STREAK ? plugin.streaks().cap() : 100000000;
+        int high = pending.field() == PlayerField.STREAK || pending.field() == PlayerField.BEST
+                ? plugin.streaks().cap() : 100000000;
         if (value < low || value > high) {
             Text.send(admin, "&cAllowed range: " + low + " to " + high + ". Try again.");
             return true;

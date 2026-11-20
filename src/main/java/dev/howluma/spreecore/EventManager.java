@@ -27,6 +27,8 @@ public final class EventManager implements Listener {
     private Mode mode=Mode.NONE;
     private Timed timed=Timed.NONE;
     private long timedEnds;
+    /** Independent of the timed-event slot. Stored as real-world epoch time. */
+    private long freezeEnds;
     private boolean locator,bloodsBane;
     private UUID juggernaut;
 
@@ -38,6 +40,8 @@ public final class EventManager implements Listener {
         try {mode=Mode.valueOf(y.getString("compass-mode","NONE"));} catch(IllegalArgumentException ignored) {}
         try {timed=Timed.valueOf(y.getString("timed-event","NONE"));} catch(IllegalArgumentException ignored) {}
         timedEnds=y.getLong("timed-ends");
+        freezeEnds=Math.max(0,y.getLong("streak-freeze-ends",0));
+        if(freezeEnds<=System.currentTimeMillis())freezeEnds=0;
         if (timed == Timed.SURGE) { timed = Timed.NONE; timedEnds = 0; } // Old buff-only event retired.
         locator=y.getBoolean("locator");
         bloodsBane=y.getBoolean("bloodsbane");
@@ -55,11 +59,40 @@ public final class EventManager implements Listener {
     public boolean isJuggernaut(Player p) {return mode==Mode.JUGGERNAUT && p.getUniqueId().equals(juggernaut);}
     public UUID juggernaut() {return juggernaut;}
     public int timedSecondsRemaining() {return timed==Timed.NONE?0:(int)Math.max(0,(timedEnds-System.currentTimeMillis()+999)/1000);}
+
+    /** The freeze is global: all automatic Spree gain/loss is disabled. */
+    public boolean freezeActive() {
+        return StreakFreezeMath.active(freezeEnds,System.currentTimeMillis());
+    }
+
+    public long freezeSecondsRemaining() {
+        return StreakFreezeMath.secondsRemaining(freezeEnds,System.currentTimeMillis());
+    }
+
+    public String freezeRemainingText() {
+        return StreakFreezeMath.format(freezeSecondsRemaining());
+    }
+
+    /** Starting again replaces the countdown; it never stacks invisible timers. */
+    public void startFreeze(long seconds) {
+        freezeEnds=StreakFreezeMath.endAt(System.currentTimeMillis(),seconds);
+        persist(); // Survives server restart or /spreeadmin reload.
+        Bukkit.broadcastMessage(Text.c("&9&lSPREE FREEZE &7| &bKillstreak gains and losses paused for &f"
+                +StreakFreezeMath.format(seconds)+"&b. &7PvP and other gameplay continue."));
+    }
+
+    public void stopFreeze() {
+        if(freezeEnds<=0)return;
+        freezeEnds=0;
+        persist();
+        Bukkit.broadcastMessage(Text.c("&9&lSPREE FREEZE &7| &aEnded. &7Killstreak gains and losses resumed."));
+    }
     private void persist() {
         YamlConfiguration y=new YamlConfiguration();
         y.set("compass-mode",mode.name());
         y.set("timed-event",timed.name());
         y.set("timed-ends",timedEnds);
+        y.set("streak-freeze-ends",freezeEnds);
         y.set("locator",locator);
         y.set("bloodsbane",bloodsBane);
         y.set("juggernaut",juggernaut==null?null:juggernaut.toString());
@@ -185,6 +218,7 @@ public final class EventManager implements Listener {
         persist();
     }
     public int timedKillBonus() {
+        if(freezeActive())return 0;
         return timed==Timed.BLOODMOON?plugin.getConfig().getInt("events.timed.bloodmoon.extra-streak-per-kill",1):0;
     }
     public double cooldownMultiplier(Player player) {
@@ -193,7 +227,7 @@ public final class EventManager implements Listener {
         return 1.0;
     }
     public void handleKill(Player killer,Player victim,boolean eligible) {
-        if(!eligible)return;
+        if(freezeActive()||!eligible)return;
         if(mode==Mode.HUNT) {
             int bonus=0;
             if(killer.getUniqueId().equals(huntTargets.get(victim.getUniqueId())))
@@ -225,6 +259,7 @@ public final class EventManager implements Listener {
         }
     }
     public void tick() {
+        if(freezeEnds>0 && !freezeActive())stopFreeze();
         if(timed!=Timed.NONE && System.currentTimeMillis()>=timedEnds)setTimed(Timed.NONE);
         if(mode==Mode.HUNT) {
             for(Player p:Bukkit.getOnlinePlayers()) {

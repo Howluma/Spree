@@ -16,6 +16,9 @@ class MilestoneEffectsTest {
         assertFalse(MilestoneEffects.unlocked(19, 20));
         assertTrue(MilestoneEffects.unlocked(20, 20));
         assertTrue(MilestoneEffects.unlocked(30, 20));
+        assertTrue(MilestoneEffects.unlocked(500, 30));
+        assertFalse(MilestoneEffects.unlocked(500, 31));
+        assertFalse(MilestoneEffects.unlocked(500, 35));
         assertFalse(MilestoneEffects.unlocked(0, 0));
     }
 }

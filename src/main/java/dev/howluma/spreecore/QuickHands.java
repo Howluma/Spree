@@ -14,6 +14,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -63,14 +64,14 @@ public final class QuickHands implements Listener {
         float originalTime=stored==null?component.consumeSeconds():stored;
         if(active&&ours &&
             Math.abs(component.consumeSeconds()-Math.max(.05f,originalTime*
-                (float)plugin.getConfig().getDouble("talents.quick-hands.consume-time-multiplier",.8)))<.001f)return null;
+                (float)plugin.getConfig().getDouble("talents.quick-hands.consume-time-multiplier",.9)))<.001f)return null;
         ItemStack changed=original.clone();
         ItemMeta update=changed.getItemMeta();
         if(active) update.getPersistentDataContainer().set(originalSeconds,PersistentDataType.FLOAT,originalTime);
         else update.getPersistentDataContainer().remove(originalSeconds);
         changed.setItemMeta(update);
         changed.setData(DataComponentTypes.CONSUMABLE,component.toBuilder()
-                .consumeSeconds(active?Math.max(.05f,originalTime*(float)plugin.getConfig().getDouble("talents.quick-hands.consume-time-multiplier",.8)):originalTime).build());
+                .consumeSeconds(active?Math.max(.05f,originalTime*(float)plugin.getConfig().getDouble("talents.quick-hands.consume-time-multiplier",.9)):originalTime).build());
         return changed;
     }
     private void restoreContainer(Inventory inv) {
@@ -150,6 +151,12 @@ public final class QuickHands implements Listener {
             ItemStack revised=modify(e.getDrops().get(i),false);
             if(revised!=null)e.getDrops().set(i,revised);
         }
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void consumed(PlayerItemConsumeEvent e) {
+        if(plugin.progression().hasTalent(e.getPlayer(),"quick_hands")
+                &&marked(e.getItem()))
+            plugin.talentFeedback().passive(e.getPlayer(),"quick_hands");
     }
     @EventHandler public void quit(PlayerQuitEvent e) {
         pending.remove(e.getPlayer().getUniqueId());

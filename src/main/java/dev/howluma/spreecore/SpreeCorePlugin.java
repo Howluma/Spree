@@ -4,6 +4,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import java.util.Objects;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
 
 public final class SpreeCorePlugin extends JavaPlugin {
     private PlayerDataStore data;
@@ -24,10 +28,16 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private FateSigil fate;
     private ProgressionMenu progressMenus;
     private PrivilegeRules privilegeRules;
+    private SpecialistItems specialistItems;
     private TalentEffects talents;
     private QuickHands quickHands;
+    private FlameRodTalent flameRod;
+    private RodAssistManager rodAssist;
     private AdminBalanceMenu balanceMenu;
-    private BukkitTask hudTask, saveTask;
+    private AdminUpgradeMenu adminUpgrades;
+    private TalentFeedback talentFeedback;
+    private KillDeathFeedback killDeathFeedback;
+    private BukkitTask hudTask, saveTask, flameRodTask, rodAssistTask;
 
     @Override public void onEnable() {
         saveDefaultConfig();
@@ -50,10 +60,16 @@ public final class SpreeCorePlugin extends JavaPlugin {
         combat = new CombatManager(this);
         hunt = new HuntManager(this);
         privilegeRules = new PrivilegeRules(this);
+        specialistItems = new SpecialistItems(this);
         talents = new TalentEffects(this);
+        talentFeedback = new TalentFeedback(this);
+        killDeathFeedback = new KillDeathFeedback(this);
         quickHands = new QuickHands(this);
+        flameRod = new FlameRodTalent(this);
+        rodAssist = new RodAssistManager(this);
         progressMenus = new ProgressionMenu(this);
         balanceMenu = new AdminBalanceMenu(this);
+        adminUpgrades = new AdminUpgradeMenu(this);
         Bukkit.getPluginManager().registerEvents(streaks, this);
         Bukkit.getPluginManager().registerEvents(legendaries, this);
         Bukkit.getPluginManager().registerEvents(forges, this);
@@ -68,11 +84,16 @@ public final class SpreeCorePlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(fate, this);
         Bukkit.getPluginManager().registerEvents(progressMenus, this);
         Bukkit.getPluginManager().registerEvents(privilegeRules, this);
+        Bukkit.getPluginManager().registerEvents(specialistItems, this);
         Bukkit.getPluginManager().registerEvents(talents, this);
+        Bukkit.getPluginManager().registerEvents(talentFeedback, this);
         Bukkit.getPluginManager().registerEvents(quickHands, this);
+        Bukkit.getPluginManager().registerEvents(flameRod, this);
+        Bukkit.getPluginManager().registerEvents(rodAssist, this);
         Bukkit.getPluginManager().registerEvents(balanceMenu, this);
+        Bukkit.getPluginManager().registerEvents(adminUpgrades, this);
         for (String command : new String[]{"spree", "spreehud", "killstreak", "stats", "leaderboard",
-                "spreeinfo", "spreeadmin", "spreesettings", "spreeevent", "legendary"}) {
+                "spreeinfo", "spreeadmin", "spreeset", "spreesetall", "fatesigil", "spreesettings", "spreeevent", "legendary"}) {
             Objects.requireNonNull(getCommand(command), "Missing command " + command).setExecutor(commands);
             Objects.requireNonNull(getCommand(command)).setTabCompleter(commands);
         }
@@ -80,15 +101,42 @@ public final class SpreeCorePlugin extends JavaPlugin {
         fate.registerRecipe();
         talents.registerRecipes();
         Bukkit.getScheduler().runTaskTimer(this, this::heartbeat, 20L, 20L);
+        flameRodTask = Bukkit.getScheduler().runTaskTimer(this, flameRod::tick, 1L, 2L);
+        // Track the bobber's travel every tick for accurate nearby catches.
+        rodAssistTask = Bukkit.getScheduler().runTaskTimer(this, rodAssist::tick, 1L, 1L);
         scheduleConfigurableTasks();
+        warnIfLegacyKillstreakScriptPresent();
         getLogger().info("SpreeCore enabled. No Skript dependency required.");
     }
+    /**
+     * A still-active copy of the previous killstreak.sk Skript is a common
+     * cause of double score changes that no listener guard can prevent.
+     * This is a warning only; never disable someone else's Skript files.
+     */
+    private void warnIfLegacyKillstreakScriptPresent() {
+        if(!Bukkit.getPluginManager().isPluginEnabled("Skript"))return;
+        Path scripts=getDataFolder().getParentFile().toPath()
+                .resolve("Skript").resolve("scripts");
+        if(!Files.isDirectory(scripts))return;
+        try(Stream<Path> paths=Files.walk(scripts,3)) {
+            boolean found=paths.anyMatch(path -> Files.isRegularFile(path)
+                    &&path.getFileName().toString().equalsIgnoreCase("killstreak.sk"));
+            if(found) getLogger().warning("[DeathGuard] A legacy killstreak.sk script is present "
+                    +"and Skript is enabled. Verify that this script is NOT loaded alongside "
+                    +"SpreeCore's killstreak handler. It can apply an independent second "
+                    +"death penalty. This warning does not modify Skript.");
+        } catch(IOException ex) {
+            getLogger().fine("Cannot inspect legacy Skript scripts directory: "+ex.getMessage());
+        }
+    }
+
     private int heartbeatCount;
     private void heartbeat() {
         heartbeatCount++;
         events.tick();
         hunt.tick();
         privilegeRules.tick();
+        specialistItems.tick();
         talents.tick();
         forges.tick();
         legendaries.tick();
@@ -115,7 +163,13 @@ public final class SpreeCorePlugin extends JavaPlugin {
         if (capacity != null) capacity.shutdown();
         if (hunt != null) hunt.shutdown();
         if (talents != null) talents.shutdown();
+        if (talentFeedback != null) talentFeedback.shutdown();
         if (quickHands != null) quickHands.shutdown();
+        if (flameRodTask != null) flameRodTask.cancel();
+        if (rodAssistTask != null) rodAssistTask.cancel();
+        if (rodAssist != null) rodAssist.shutdown();
+        if (flameRod != null) flameRod.shutdown();
+        if (specialistItems != null) specialistItems.shutdown();
         if (data != null) data.save();
     }
     public PlayerDataStore data() { return data; }
@@ -135,9 +189,15 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public FateSigil fate() { return fate; }
     public ProgressionMenu progressMenus() { return progressMenus; }
     public PrivilegeRules privilegeRules() { return privilegeRules; }
+    public SpecialistItems specialistItems() { return specialistItems; }
     public TalentEffects talents() { return talents; }
+    public TalentFeedback talentFeedback() { return talentFeedback; }
     public QuickHands quickHands() { return quickHands; }
+    public FlameRodTalent flameRod() { return flameRod; }
+    public RodAssistManager rodAssist() { return rodAssist; }
     public AdminBalanceMenu balanceMenu() { return balanceMenu; }
+    public AdminUpgradeMenu adminUpgrades() { return adminUpgrades; }
+    public KillDeathFeedback killDeathFeedback() { return killDeathFeedback; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
@@ -208,6 +268,48 @@ public final class SpreeCorePlugin extends JavaPlugin {
                 getConfig().set(removed, null);
                 changed = true;
             }
+        }
+        // Older versions wrote a hard 30 cap into existing servers' config.yml.
+        // A new JAR alone must not leave returning players locked at 30.
+        int formerScoreCap = getConfig().getInt("general.max-killstreak", 30);
+        if (formerScoreCap <= SpreeMath.BENEFIT_CAP) {
+            getConfig().set("general.max-killstreak", 1_000_000_000);
+            getLogger().info("Migrated legacy 30-level killstreak cap: scoring now continues above 30; rewards still stop at 30.");
+            changed = true;
+        }
+        // 0.80 was the former built-in 20%-faster eating default.
+        // Preserve intentional custom multipliers other than the old default.
+        if (Math.abs(getConfig().getDouble("talents.quick-hands.consume-time-multiplier",0.9)-0.8)<1e-8) {
+            getConfig().set("talents.quick-hands.consume-time-multiplier",0.9);
+            changed = true;
+        }
+        // One-time migration of the former stock 5% TNT-per-victim-streak value.
+        // Record completion so an admin can deliberately set 5% later without
+        // it being changed again on the next restart or /spreeadmin reload.
+        final String tntMigration = "migrations.tnt-10-percent-victim-scaling-1-8-13";
+        if (!getConfig().getBoolean(tntMigration, false)) {
+            String tntSetting = "combat.tnt.bonus-damage-per-victim-streak";
+            if (getConfig().isSet(tntSetting)
+                    && Math.abs(getConfig().getDouble(tntSetting) - 0.05) < 1e-8) {
+                getConfig().set(tntSetting, 0.10);
+                getLogger().info("Migrated TNT damage growth from 5% to 10% per victim killstreak.");
+            }
+            getConfig().set(tntMigration, true);
+            changed = true;
+        }
+        // Old servers retain their saved config.yml. Update previous stock
+        // bobber collision margins without overwriting custom balance values.
+        if (RodBalanceMigration.migrate(getConfig())) {
+            getLogger().info("Updated stock fishing rod catches to +0.30 player/+0.35 item blocks and Flame Rod TNT ignition tolerance to 0.50 blocks.");
+            changed = true;
+        }
+        if (getConfig().isSet("talents.barbed-hook")) {
+            getConfig().set("talents.barbed-hook", null); // Retired; no damage-on-hook logic remains.
+            changed = true;
+        }
+        if (FateSigil.migrateOldRecipe(getConfig())) {
+            getLogger().info("Updated the old default Fate Sigil recipe to Ominous Trial Keys, Netherite Ingots and a Heart of the Sea.");
+            changed = true;
         }
         if (changed) saveConfig();
     }

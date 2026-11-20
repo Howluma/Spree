@@ -1,6 +1,8 @@
 package dev.howluma.spreecore;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -58,6 +60,15 @@ public final class ProgressionMenu implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(Text.c(label));
         meta.setLore(Arrays.stream(lore).map(Text::c).toList());
+        if (type == Material.ECHO_SHARD) plugin.models().sigil(meta);
+        if (type == Material.HEART_OF_THE_SEA) plugin.models().token(meta);
+        if (type == Material.POTION && meta instanceof PotionMeta potion) {
+            String name = label.toLowerCase(Locale.ROOT);
+            int rgb = name.contains("speed") ? 0x7CAFC6 : name.contains("haste") ? 0xDDBE49 :
+                    name.contains("weaving") ? 0xB9B9B9 : name.contains("regeneration") || name.contains("medic") ? 0xCD5CAB :
+                    name.contains("luck") ? 0x339900 : name.contains("hero") ? 0x44BB66 : 0x4466CC;
+            potion.setColor(Color.fromRGB(rgb));
+        }
         item.setItemMeta(meta);
         return item;
     }
@@ -89,7 +100,8 @@ public final class ProgressionMenu implements Listener {
         }
         inv.setItem(22, icon(Material.ECHO_SHARD, "&b&lFate Sigil",
                 "&7Reroll saved upgrades with a crafted Sigil",
-                "&7Recipe: 4 diamonds, 4 amethyst, 1 netherite scrap",
+                "&7Recipe: 4 Ominous Trial Keys, 4 Netherite Ingots,",
+                "&7Real Spree item in the center",
                 "&eClick to see reroll options"));
         inv.setItem(18, icon(Material.ARROW, "&9Back to Dashboard"));
         inv.setItem(26, icon(Material.BARRIER, "&cClose"));
@@ -97,10 +109,22 @@ public final class ProgressionMenu implements Listener {
     }
 
     private int[] milestonesSlots() { return new int[]{11, 13, 15, 29, 31, 33}; }
-    private String coloredStatus(boolean unlocked, String current, boolean reroll) {
-        if (!unlocked) return "&8LOCKED";
-        if (current != null) return reroll ? "&eCHANGE THIS CHOICE" : "&aCLAIMED";
-        return reroll ? "&8No saved choice" : "&bREADY TO CLAIM";
+    /** Selection is permanent, but appearance tracks the *current* killstreak.
+     * Inactive earned rewards must never be labelled CLAIMED or ACTIVE in the UI.
+     */
+    static String displayedMilestoneStatus(boolean historicallyEarned, boolean selected,
+            int currentStreak, int requiredStreak, boolean reroll) {
+        if (!historicallyEarned) return "&8&lLOCKED";
+        if (currentStreak < requiredStreak)
+            return "&8&lINACTIVE &7- &8Requires killstreak " + requiredStreak;
+        if (selected) return reroll ? "&eCHANGE ACTIVE CHOICE" : "&a&lACTIVE";
+        return reroll ? "&8No saved choice" : "&b&lREADY TO CHOOSE";
+    }
+
+    static Material milestoneIcon(Material selectedMaterial, boolean selected,
+            int currentStreak, int requiredStreak) {
+        if (currentStreak < requiredStreak) return Material.GRAY_DYE;
+        return selected && selectedMaterial != null ? selectedMaterial : Material.LIME_DYE;
     }
 
     public void openSlots(Player player, ProgressionCatalog.Kind kind, boolean reroll) {
@@ -108,26 +132,57 @@ public final class ProgressionMenu implements Listener {
         if (kind == ProgressionCatalog.Kind.PERK) { openConfirm(player, kind, 0); return; }
         Holder h = holder(reroll ? Screen.SIGIL_SLOTS : Screen.SLOTS, kind, 0);
         Inventory inv = inventory(h, 6, "&9&l" + kind.title + (reroll ? " &8| &fReselect" : " &8| &fMilestones"));
-        List<Integer> levels = ProgressionCatalog.milestones(kind, plugin.streaks().cap());
+        List<Integer> levels = ProgressionCatalog.milestones(kind, plugin.streaks().progressionCap());
         int[] cells = milestonesSlots();
         for (int i=0; i<Math.min(6, levels.size()); i++) {
             int level = levels.get(i);
             boolean unlocked = plugin.progression().milestoneUnlocked(player, kind, level);
             String current = plugin.progression().choice(player, kind, level);
+            if (!unlocked) continue; // Future unknown upgrades remain hidden.
             var option = ProgressionCatalog.find(kind, current);
-            Material material = option != null ? option.icon()
-                    : unlocked ? Material.LIME_DYE : Material.GRAY_DYE;
-            inv.setItem(cells[i], icon(material, "&9&lLevel " + level,
-                    coloredStatus(unlocked, current, reroll),
-                    option != null ? "&f" + option.name() : "&7Not chosen yet",
-                    option != null ? "&7" + option.description() : "&8One choice per milestone",
-                    unlocked ? (current != null && !reroll ? "&aAlready claimed - hover to inspect" :
-                            "&eClick to " + (reroll ? "rechoose" : "choose")) : "&8Reach level " + level + " first"));
+            int streak=plugin.streaks().streak(player);
+            boolean active=streak>=level;
+            Material material=milestoneIcon(option==null?null:option.icon(),
+                    current!=null,streak,level);
+            List<String> details=new ArrayList<>();
+            details.add(displayedMilestoneStatus(unlocked,current!=null,streak,level,reroll));
+            details.add(option != null
+                    ? (active ? "&f" + option.name() : "&7Saved choice: &8" + option.name())
+                    : "&7No upgrade selected yet");
+            details.add(option != null ? "&7" + option.description() : "&8One choice per milestone");
+            if(kind == ProgressionCatalog.Kind.TALENT && current == null
+                    && plugin.data().get(player).retiredTalentMilestones.contains(level))
+                details.add("&bIndustrious retired: free replacement Talent available");
+            if(kind==ProgressionCatalog.Kind.TALENT && option!=null) {
+                details.add(plugin.talentFeedback().cooldownLore(player,option.id()));
+                details.add("&7All cooldowns: &b/spree cooldowns");
+            }
+            if (!active) {
+                details.add("&8Permanently earned; temporarily locked");
+                details.add("&7Regain killstreak &b" + level + " &7to activate");
+            } else details.add("&aRequirement met at your current killstreak");
+            if (reroll && (kind == ProgressionCatalog.Kind.PRIVILEGE
+                    || kind == ProgressionCatalog.Kind.INFUSION))
+                details.add("&7Can swap with an upgrade in another milestone");
+            details.add(current != null && !reroll
+                    ? (active ? "&7Hover to inspect your current reward"
+                            : "&7Selection saved; no effect while inactive")
+                    : reroll ? (current == null ? "&8Choose this reward before reselecting" :
+                        "&eClick to reconfigure with a Fate Sigil")
+                    : "&eClick to choose an earned reward");
+            inv.setItem(cells[i],icon(material,
+                    active ? "&9&lLevel "+level : "&8&lLevel "+level+" &8[LOCKED]",
+                    details.toArray(String[]::new)));
             h.levels.put(cells[i], level);
         }
         inv.setItem(22, icon(kind.icon, "&9&l" + kind.title,
-                "&7One unlock at each listed milestone",
-                reroll ? "&7Requires 1 Fate Sigil" : "&7Choices save between deaths and logins"));
+                "&7You keep earned milestones after dying",
+                reroll ? "&7A successful change spends 1 Fate Sigil" :
+                        "&7Benefits activate at the current killstreak",
+                reroll && (kind == ProgressionCatalog.Kind.PRIVILEGE
+                        || kind == ProgressionCatalog.Kind.INFUSION)
+                        ? "&eAll six owned? Swap their milestone positions!"
+                        : "&7Unlocks are saved permanently"));
         controls(inv, reroll ? "Fate Sigil" : "Progression", true);
         player.openInventory(inv);
     }
@@ -137,17 +192,25 @@ public final class ProgressionMenu implements Listener {
         Inventory inv = inventory(h, 6, "&9&lSPREE &8| &fYour Perks");
         int[] slots = {10,12,14,16,19,21,23,25,28,30,32,34};
         int index = 0;
-        for (int level : ProgressionCatalog.milestones(ProgressionCatalog.Kind.PERK, plugin.streaks().cap())) {
+        for (int level : ProgressionCatalog.milestones(ProgressionCatalog.Kind.PERK, plugin.streaks().progressionCap())) {
             if (index >= slots.length) break;
             String id = plugin.data().get(player).perkRolls.get(level);
+            if (id == null) continue; // Show earned Perks, even if temporarily inactive.
             PerkType perk = PerkType.fromId(id);
-            int current = plugin.streaks().streak(player);
-            String state = level > current ? "&8Inactive / locked" : "&aActive";
-            int slot = slots[index++];
-            inv.setItem(slot, icon(perk == null ? Material.GRAY_DYE : Material.ENCHANTED_BOOK,
-                    "&9&lLevel " + level, perk == null ? "&8Not earned yet" : "&f" + perk.display,
-                    perk == null ? "&7Gain killstreak to roll" : state,
-                    "&7Perks roll automatically, duplicates stack"));
+            if (perk == null) continue;
+            List<String> lore = new ArrayList<>();
+            if(level>plugin.streaks().streak(player))
+                lore.add("&7Saved Perk: &8"+perk.display);
+            lore.add("&7Unlocked at killstreak &b" + level);
+            lore.addAll(Arrays.asList(plugin.perks().detailLore(perk, plugin.data().get(player))));
+            boolean active=level<=plugin.streaks().streak(player);
+            lore.add(active ? "&a&lACTIVE" : "&8&lINACTIVE &7- &8Requires killstreak "+level);
+            if (!active) lore.add("&7Saved Perk; regain this level to enable it");
+            lore.add("&8Duplicates stack; perks stop at level 30");
+            inv.setItem(slots[index++], icon(active ? perk.icon() : Material.GRAY_DYE,
+                    active ? "&9&l" + perk.display + " &8(Lv " + level + ")"
+                            : "&8&lLevel "+level+" &8[LOCKED]",
+                    lore.toArray(String[]::new)));
         }
         inv.setItem(40, icon(Material.ECHO_SHARD, "&b&lReroll All Perks",
                 "&7Use 1 Fate Sigil to reroll",
@@ -159,13 +222,13 @@ public final class ProgressionMenu implements Listener {
 
     private void openChoices(Player player, ProgressionCatalog.Kind kind, int level, boolean sigil) {
         Holder h = holder(sigil ? Screen.SIGIL_CHOOSE : Screen.CHOOSE, kind, level);
-        Inventory inv = inventory(h, 3, "&9&lLevel " + level + " &8| &fChoose " + kind.title);
+        Inventory inv = inventory(h, kind == ProgressionCatalog.Kind.TALENT ? 3 : 6, "&9&lLevel " + level + " &8| &fChoose " + kind.title);
         List<String> optionIds = new ArrayList<>();
         if (kind == ProgressionCatalog.Kind.TALENT) optionIds.addAll(plugin.progression().talentOffers(player, level));
         else for (var option : plugin.progression().availableOptions(player, kind, level, sigil))
             optionIds.add(option.id());
         int[] three = {11, 13, 15};
-        int[] six = {11, 13, 15, 20, 22, 24};
+        int[] six = {11, 13, 15, 29, 31, 33};
         int[] cells = kind == ProgressionCatalog.Kind.TALENT ? three : six;
         int index = 0;
         for (String id : optionIds) {
@@ -173,15 +236,31 @@ public final class ProgressionMenu implements Listener {
             var option = ProgressionCatalog.find(kind, id);
             if (option == null) continue;
             int slot = cells[index++];
-            inv.setItem(slot, icon(option.icon(), "&b&l" + option.name(),
-                    "&7" + option.description(),
-                    sigil ? "&cConsumes 1 Fate Sigil" : "&aClick to claim this upgrade"));
+            int atLevel = plugin.progression().assignedMilestone(player, kind, id);
+            if (sigil && atLevel >= 0 && atLevel != level) {
+                inv.setItem(slot, icon(option.icon(), "&b&l" + option.name(),
+                        "&7" + option.description(),
+                        "&eCurrently assigned at level " + atLevel,
+                        "&7Swaps positions with this level's reward",
+                        "&7Both unlocks are kept; effects depend on streak",
+                        "&cConsumes 1 Fate Sigil on selection"));
+            } else {
+                inv.setItem(slot, icon(option.icon(), "&b&l" + option.name(),
+                        "&7" + option.description(),
+                        sigil ? "&7Replaces the choice for level " + level :
+                                "&aClick to claim this upgrade",
+                        sigil ? "&cConsumes 1 Fate Sigil on selection" :
+                                "&7Benefits require current killstreak"));
+            }
             h.choices.put(slot, option.id());
         }
         if (optionIds.isEmpty()) inv.setItem(13, icon(Material.BARRIER, "&cNo alternative choices",
-                "&7You already own every available option"));
-        inv.setItem(18, icon(Material.ARROW, "&9Back to Milestones"));
-        inv.setItem(26, icon(Material.BARRIER, "&cClose"));
+                "&7No different upgrade is currently available"));
+        if (inv.getSize() == 54) controls(inv, "Milestones", true);
+        else {
+            inv.setItem(18, icon(Material.ARROW, "&9Back to Milestones"));
+            inv.setItem(26, icon(Material.BARRIER, "&cClose"));
+        }
         player.openInventory(inv);
     }
 
@@ -199,12 +278,14 @@ public final class ProgressionMenu implements Listener {
                             ? "Reroll All Perks" : "Reselect " + kind.title),
                     kind == ProgressionCatalog.Kind.TALENT ? "&7Receive 3 new Talent offers" :
                             kind == ProgressionCatalog.Kind.PERK ? "&7Rebuild all earned Perks" :
-                            "&7Choose a different unlocked " + kind.title.substring(0,kind.title.length()-1),
+                            "&7Change or swap an unlocked " + kind.title.substring(0,kind.title.length()-1),
+                    "&7Past milestones remain accessible after death",
                     "&eClick to continue"));
         }
         inv.setItem(22, icon(Material.EMERALD, "&fSigils in inventory: &b"
                 + (plugin.fate().has(player) ? "Available" : "None"),
-                "&7Recipe: 4 diamonds + 4 amethyst + netherite scrap"));
+                "&7Recipe: 4 Ominous Trial Keys, 4 Netherite Ingots,",
+                "&7Real Spree item in the center"));
         inv.setItem(18, icon(Material.ARROW, "&9Back to Progression"));
         inv.setItem(26, icon(Material.BARRIER, "&cClose"));
         player.openInventory(inv);
@@ -252,23 +333,48 @@ public final class ProgressionMenu implements Listener {
         Holder h=holder(Screen.GUIDE_KIND,kind,0);
         Inventory inv=inventory(h,6,"&9&lGuide &8| &f"+kind.title);
         if (kind == ProgressionCatalog.Kind.PERK) {
-            var all=PerkType.values();
-            for (int i=0; i<Math.min(35,all.length); i++) {
-                int slot=10+(i/7)*9+(i%7);
-                var perk=all[i];
-                inv.setItem(slot, icon(Material.ENCHANTED_BOOK,"&9&l"+perk.display,
-                        "&7Bonus per roll: &f"+ ConfigEditor.format(perk==PerkType.CAPACITY ||
-                                        perk==PerkType.REACH ? perk.defaultPerCopy : perk.defaultPerCopy*100) +
-                                (perk==PerkType.CAPACITY?" items":perk==PerkType.REACH?" blocks":"%"),
-                        "&7Max duplicates: &f"+perk.defaultMaxCopies,
-                        "&7Automatically assigned at Perk milestones"));
+            List<PerkType> all = new ArrayList<>();
+            for (var entry : plugin.data().get(player).perkRolls.entrySet()) {
+                if (entry.getKey() > Math.max(plugin.streaks().streak(player),
+                        plugin.data().get(player).best)) continue;
+                PerkType perk = PerkType.fromId(entry.getValue());
+                if (perk != null && !all.contains(perk)) all.add(perk);
+            }
+            int[] guideCells={10,12,14,16,19,21,23,25,28,30,32,34,37,39,41,43};
+            for (int i=0; i<Math.min(guideCells.length,all.size()); i++) {
+                int slot=guideCells[i];
+                var perk=all.get(i);
+                List<String> lore = new ArrayList<>(
+                        Arrays.asList(plugin.perks().detailLore(perk, plugin.data().get(player))));
+                boolean active=plugin.perks().stacks(plugin.data().get(player),perk)>0;
+                lore.add(active ? "&a&lACTIVE" : "&8&lINACTIVE &7- &8No active copies");
+                lore.add("&7Automatically rolled at Perk milestones");
+                inv.setItem(slot, icon(active ? perk.icon() : Material.GRAY_DYE,
+                        active ? "&9&l" + perk.display : "&8&l" + perk.display + " &8[LOCKED]",
+                        lore.toArray(String[]::new)));
             }
         } else {
             List<ProgressionCatalog.Option> all=ProgressionCatalog.options(kind);
-            for (int i=0; i<Math.min(35,all.size()); i++) {
-                int slot=10+(i/7)*9+(i%7);
+            if (kind == ProgressionCatalog.Kind.TALENT) {
+                Set<String> known = new HashSet<>();
+                for (var entry : plugin.data().get(player).talentChoices.entrySet())
+                    if (entry.getKey() <= Math.max(plugin.streaks().streak(player),
+                            plugin.data().get(player).best)) known.add(entry.getValue());
+                all = all.stream().filter(option -> known.contains(option.id())).toList();
+            }
+            int[] guideCells={11,13,15,20,22,24,29,31,33,38,40,42};
+            for (int i=0; i<Math.min(guideCells.length,all.size()); i++) {
+                int slot=guideCells[i];
                 var option=all.get(i);
-                inv.setItem(slot, icon(option.icon(),"&9&l"+option.name(),
+                if(kind==ProgressionCatalog.Kind.TALENT) {
+                    boolean active=plugin.progression().hasTalent(player,option.id());
+                    inv.setItem(slot,icon(active ? option.icon() : Material.GRAY_DYE,
+                            active ? "&9&l"+option.name() : "&8&l"+option.name()+" &8[LOCKED]",
+                            "&7"+option.description(),
+                            active ? "&a&lACTIVE" : "&8&lINACTIVE &7- &8Regain its milestone",
+                            plugin.talentFeedback().cooldownLore(player,option.id()),
+                            "&7Check cooldowns: &b/spree cooldowns"));
+                } else inv.setItem(slot, icon(option.icon(),"&9&l"+option.name(),
                         "&7"+option.description(), "&7"+kind.title+" only"));
             }
         }
@@ -358,6 +464,8 @@ public final class ProgressionMenu implements Listener {
                 switch(h.screen) {
                     case GUIDE_KIND -> openGuide(player);
                     case SIGIL_SLOTS -> openSigil(player);
+                    case CHOOSE -> openSlots(player,h.kind,false);
+                    case SIGIL_CHOOSE -> openSlots(player,h.kind,true);
                     default -> open(player);
                 }
                 return;
@@ -380,7 +488,7 @@ public final class ProgressionMenu implements Listener {
                 if(level==null) return;
                 boolean reroll=h.screen==Screen.SIGIL_SLOTS;
                 if(!plugin.progression().milestoneUnlocked(player,h.kind,level)) {
-                    Text.action(player,"&cReach killstreak "+level+" first."); return;
+                    Text.action(player,"&cEarn killstreak "+level+" first."); return;
                 }
                 String existing=plugin.progression().choice(player,h.kind,level);
                 if(reroll) {
@@ -388,7 +496,12 @@ public final class ProgressionMenu implements Listener {
                     if(h.kind==ProgressionCatalog.Kind.TALENT)openConfirm(player,h.kind,level);
                     else openChoices(player,h.kind,level,true);
                 } else {
-                    if(existing!=null) {Text.action(player,"&aUpgrade claimed. &7Hover over the slot to read its effect.");return;}
+                    if(existing!=null) {
+                        Text.action(player,plugin.streaks().streak(player)<level
+                                ? "&8Upgrade saved but inactive. &7Regain killstreak "+level+" to activate it."
+                                : "&aUpgrade active. &7Hover over the slot to read its effect.");
+                        return;
+                    }
                     openChoices(player,h.kind,level,false);
                 }
             }
@@ -408,6 +521,11 @@ public final class ProgressionMenu implements Listener {
                 if(kind!=null)openSlots(player,kind,true);
             }
             case SIGIL_CONFIRM -> {
+                if (slot == 11) {
+                    if (h.kind == ProgressionCatalog.Kind.PERK) openSigil(player);
+                    else openSlots(player, h.kind, true);
+                    return;
+                }
                 if(slot!=15)return;
                 var result=h.kind==ProgressionCatalog.Kind.PERK
                         ? plugin.progression().rerollPerks(player)

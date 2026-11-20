@@ -29,6 +29,8 @@ public final class StreakManager implements Listener {
     private final NamespacedKey tokenOwner, tokenValue, tokenSerial, spreeConsumable;
     private final Map<UUID, Integer> lastSpreeItemTick = new HashMap<>();
     private final Map<UUID, Long> tokenWarnings = new HashMap<>();
+    /** Ensures a death halves a player's streak no more than once per life. */
+    private final DeathLifeGuard deathGuard = new DeathLifeGuard();
     private final MilestoneEffects milestones;
     private static final Pattern LEGACY_WORTH = Pattern.compile("Worth:\\s*\\+(\\d+)");
     private static final Pattern LEGACY_OWNER = Pattern.compile("Owner ID:\\s*([0-9a-fA-F-]{36})");
@@ -44,11 +46,28 @@ public final class StreakManager implements Listener {
     private FileConfiguration c() { return plugin.getConfig(); }
     public PlayerDataStore.Profile get(Player player) { return plugin.data().get(player); }
     public int streak(OfflinePlayer player) { return plugin.data().get(player).streak; }
-    public int cap() { return c().getInt("general.max-killstreak", 30); }
+    /** Technical maximum score, separate from the level-30 progression ceiling. */
+    public int cap() { return Math.max(31, Math.min(1_000_000_000,
+            c().getInt("general.max-killstreak", 1_000_000_000))); }
+    public int progressionCap() { return SpreeMath.BENEFIT_CAP; }
     public String display(int streak) { return Text.formatStreak(streak, c().getString("general.fractured-label", "&c&lFractured")); }
 
-    /** Single entry point for every stat modification; handles best, HUD, health, relic leader. */
+    private boolean frozen() {
+        return plugin.events()!=null && plugin.events().freezeActive();
+    }
+
+    /** Explicit staff commands and GUI adjustments can override a freeze, even to Fractured (-1). */
+    public void adminOverrideStreak(UUID id, int amount) {
+        setStreakInternal(id,amount,false,true);
+    }
+
+    /** Single entry point for normal stat modifications; admin=true bypasses a freeze. */
     public void setStreak(UUID id, int amount, boolean admin) {
+        setStreakInternal(id,amount,admin,admin);
+    }
+
+    private void setStreakInternal(UUID id,int amount,boolean admin,boolean bypassFreeze) {
+        if(StreakFreezeMath.blocksAutomaticChange(frozen(),bypassFreeze))return;
         PlayerDataStore.Profile p = plugin.data().get(id);
         int newStreak = SpreeMath.clamp(amount, cap());
         if (admin) newStreak = Math.max(0, newStreak);
@@ -65,7 +84,8 @@ public final class StreakManager implements Listener {
         Player online = Bukkit.getPlayer(id);
         if (online != null && newStreak > old) {
             List<String> gainedPerks = new ArrayList<>();
-            for (int level = Math.max(1, old + 1); level <= newStreak; level++) {
+            for (int level = Math.max(1, Math.min(progressionCap(), old) + 1);
+                    level <= Math.min(progressionCap(), newStreak); level++) {
                 if (!PerkMath.isPerkMilestone(level)) continue;
                 String perk = p.perkRolls.get(level);
                 PerkType type = PerkType.fromId(perk);
@@ -89,6 +109,7 @@ public final class StreakManager implements Listener {
         plugin.legendaries().queueBloodsBaneSync();
     }
     public void addStreak(Player player, int gain) {
+        if(frozen())return;
         setStreak(player.getUniqueId(), SpreeMath.applyKill(streak(player), gain, cap()), false);
     }
     public void tabName(Player player) { plugin.indicators().refreshPlayer(player); }
@@ -124,10 +145,16 @@ public final class StreakManager implements Listener {
             PlayerDataStore.Profile profile = get(player);
             if (profile.hideHud) continue;
             String color = plugin.indicators().streakColor(profile.streak);
-            Text.action(player, StreakIndicators.ICON_COLOR + "⚔ &7Killstreak: " + color + display(profile.streak));
+            if(frozen()) {
+                Text.action(player,"&b❄ &9&lSPREE FROZEN &7("+plugin.events().freezeRemainingText()
+                        +") &8| "+color+display(profile.streak));
+            } else Text.action(player, StreakIndicators.ICON_COLOR + "⚔ &7Killstreak: " + color + display(profile.streak));
         }
     }
-    public void shutdown() { for (Player player : Bukkit.getOnlinePlayers()) milestones.clear(player); }
+    public void shutdown() {
+        for (Player player : Bukkit.getOnlinePlayers()) milestones.clear(player);
+        deathGuard.shutdown();
+    }
 
     /** Normalize legacy item_model overrides for real PDC-tagged Spree
      * consumables and tokens already in an inventory. Ignore unrelated items. */
@@ -151,11 +178,17 @@ public final class StreakManager implements Listener {
 
     @EventHandler public void join(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        deathGuard.join(player.getUniqueId(),player.isDead());
         plugin.data().get(player);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) return;
             update(player);
             tabName(player);
+            if (!get(player).retiredTalentMilestones.isEmpty())
+                Text.send(player, plugin.prefix()
+                        + "&bIndustrious was retired. &7Your earned Talent slot(s) "
+                        + get(player).retiredTalentMilestones
+                        + " can be reselected &afor free &7in &9/spree &7> Talents.");
             plugin.legendaries().migrate(player);
             migrateTokenModels(player);
             if (streak(player) >= c().getInt("general.announce-joining-streak", 10))
@@ -164,6 +197,9 @@ public final class StreakManager implements Listener {
     }
     @EventHandler public void respawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
+        // A respawn begins a new life. Never unlock the guard merely because
+        // another damage/death callback arrived or the player disconnected.
+        deathGuard.respawn(player.getUniqueId());
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && !player.isDead()) {
                 update(player);
@@ -180,12 +216,70 @@ public final class StreakManager implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void death(PlayerDeathEvent event) {
         Player victim = event.getEntity();
+        PlayerDataStore.Profile victimProfile = get(victim);
+        DeathLifeGuard.Snapshot snapshot=deathGuard.begin(
+                victim.getUniqueId(),victimProfile.streak,
+                Bukkit.getCurrentTick(),System.currentTimeMillis());
+        if(snapshot==null) {
+            // The first event has already applied the ONE allowed death
+            // transaction. A second event must not halve again, give another
+            // kill reward, mint a second token, or play duplicate cues.
+            if(deathGuard.firstDuplicate(victim.getUniqueId())
+                    &&c().getBoolean("killstreak.death-processing.warn-duplicate-events",true)) {
+                DeathLifeGuard.Snapshot first=deathGuard.snapshot(victim.getUniqueId());
+                EntityDamageEvent cause=victim.getLastDamageCause();
+                String damage=cause==null?"UNKNOWN":cause.getCause().name();
+                String source=cause instanceof EntityDamageByEntityEvent byEntity
+                        ? byEntity.getDamager().getType().name() : "none";
+                plugin.getLogger().warning("[DeathGuard] Ignored duplicate player death for "
+                        +victim.getName()+". Initial streak="+
+                        (first==null?"?":first.streakBeforeDeath())
+                        +", current streak="+victimProfile.streak
+                        +", first tick="+(first==null?"?":first.tick())
+                        +", duplicate tick="+Bukkit.getCurrentTick()
+                        +", final damage="+damage+", source="+source
+                        +". Check for another active killstreak Skript/plugin if scores still halve twice.");
+            }
+            return;
+        }
+        // Capture the original PRE-DEATH value once. Never calculate a death
+        // penalty from an already-halved or externally modified score.
+        int old = snapshot.streakBeforeDeath();
         Player killer = plugin.combat().killer(victim);
         plugin.combat().clearVictim(victim.getUniqueId());
         if (victim.equals(killer)) killer = null;
-        PlayerDataStore.Profile victimProfile = get(victim);
-        int old = victimProfile.streak;
+        // Personal death sting on every actual death, including minecart TNT.
+        plugin.killDeathFeedback().onDeath(victim);
         victimProfile.deaths++;
+        if(c().getBoolean("killstreak.death-processing.log-transitions",false)) {
+            EntityDamageEvent last=victim.getLastDamageCause();
+            String cause=last==null?"UNKNOWN":last.getCause().name();
+            String source=last instanceof EntityDamageByEntityEvent byEntity
+                    ? byEntity.getDamager().getType().name():"none";
+            plugin.getLogger().info("[DeathGuard] Death "+victim.getName()
+                    +" tick="+snapshot.tick()+" score-before="+old
+                    +" cause="+cause+" source="+source
+                    +" credited-killer="+(killer==null?"none":killer.getName()));
+        }
+        if(frozen()) {
+            // Combat/death statistics and cosmetics continue. No streak loss
+            // (including Fractured), kill reward, token drop, spent Spree item,
+            // event streak bonus, or newly unlocked progression milestone.
+            // The kill is counted but does not consume an anti-farm reward slot.
+            if(killer!=null) {
+                PlayerDataStore.Profile attacker=get(killer);
+                attacker.kills++;
+                plugin.killDeathFeedback().onCreditedKill(killer,victim,false);
+                Text.action(killer,"&b❄ Spree frozen &7- &fNo killstreak gained");
+            }
+            plugin.data().dirty();
+            Text.send(victim,plugin.prefix()+"&b❄ Spree Freeze active! &7Your "
+                    +display(old)+" &7killstreak was preserved.");
+            Bukkit.getScheduler().runTaskLater(plugin,()->{
+                if(victim.isOnline()&&!victim.isDead())update(victim);
+            },2L);
+            return;
+        }
         if (old > 0) victimProfile.ended++;
         plugin.data().dirty();
         if (killer == null) {
@@ -224,7 +318,9 @@ public final class StreakManager implements Listener {
             }
             if (plugin.events() != null) plugin.events().handleKill(killer, victim, reward);
             plugin.data().dirty();
-            killer.playSound(killer.getLocation(), Sound.BLOCK_VAULT_BREAK, 1f, 1f);
+            // Use the same credited killer as streak rewards and environmental
+            // kill attribution; never celebrate self-deaths or false PvP credit.
+            plugin.killDeathFeedback().onCreditedKill(killer, victim, reward);
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (victim.isOnline() && !victim.isDead()) update(victim);
@@ -243,6 +339,13 @@ public final class StreakManager implements Listener {
         return true;
     }
     /** A distinct consumable: unlike environmental-death trap tokens, this grants exactly +1 on use. */
+    /** True only for the SpreeCore +1 killstreak consumable, never vanilla Hearts of the Sea. */
+    public boolean isSpreeItem(ItemStack item) {
+        return item != null && item.getType() == Material.HEART_OF_THE_SEA && item.hasItemMeta()
+                && item.getItemMeta().getPersistentDataContainer()
+                    .has(spreeConsumable, PersistentDataType.BYTE);
+    }
+
     public ItemStack createSpreeItem(int amount) {
         if (amount < 1 || amount > 64) throw new IllegalArgumentException("Amount must be 1-64");
         ItemStack item = new ItemStack(Material.HEART_OF_THE_SEA, amount);
@@ -266,6 +369,10 @@ public final class StreakManager implements Listener {
      * Full inventory means no items and no deduction; no ground drops.
      */
     public WithdrawalResult withdrawSpree(Player player, int amount) {
+        if(frozen())return new WithdrawalResult(false,
+                "Spree Freeze is active for "+plugin.events().freezeRemainingText()
+                        +". You cannot withdraw killstreak points during the freeze.",
+                0,streak(player));
         int streak = streak(player);
         if (streak <= 0) return new WithdrawalResult(false,
                 "You need a positive killstreak to withdraw Spree.", 0, streak);
@@ -315,15 +422,18 @@ public final class StreakManager implements Listener {
         ItemStack item = hand == EquipmentSlot.HAND
                 ? event.getPlayer().getInventory().getItemInMainHand()
                 : event.getPlayer().getInventory().getItemInOffHand();
-        if (item.getType() != Material.HEART_OF_THE_SEA || !item.hasItemMeta()
-                || !item.getItemMeta().getPersistentDataContainer().has(spreeConsumable, PersistentDataType.BYTE)) return;
+        if (!isSpreeItem(item)) return;
         event.setCancelled(true);
         Player player = event.getPlayer();
+        if(frozen()) {
+            Text.action(player,"&b❄ Spree frozen &7- &fItem kept; no gain");
+            return; // Do not consume or spend a +1 Spree consumable.
+        }
         int tick = player.getTicksLived();
         if (lastSpreeItemTick.getOrDefault(player.getUniqueId(), -1) == tick) return;
         lastSpreeItemTick.put(player.getUniqueId(), tick);
         if (streak(player) >= cap()) {
-            Text.action(player, "&cYou are already at the maximum killstreak.");
+            Text.action(player, "&cMaximum supported killstreak reached.");
             return; // Never waste the item at the cap.
         }
         ItemStack remaining = item.clone();
@@ -375,6 +485,15 @@ public final class StreakManager implements Listener {
         ItemStack stack = event.getItem().getItemStack();
         Token token = token(stack);
         if (token != null) {
+            if(frozen()) {
+                event.setCancelled(true); // Leave the token on the ground, unclaimed.
+                long now=System.currentTimeMillis();
+                if(now-tokenWarnings.getOrDefault(player.getUniqueId(),0L)>2500L) {
+                    Text.action(player,"&b❄ Spree frozen &7- &fTokens cannot be claimed yet");
+                    tokenWarnings.put(player.getUniqueId(),now);
+                }
+                return;
+            }
             int current = streak(player);
             if (player.getUniqueId().equals(token.owner()) && current > 0) {
                 event.setCancelled(true);
