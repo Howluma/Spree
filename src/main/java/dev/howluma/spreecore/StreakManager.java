@@ -29,6 +29,8 @@ public final class StreakManager implements Listener {
     private final NamespacedKey tokenOwner, tokenValue, tokenSerial, spreeConsumable;
     private final Map<UUID, Integer> lastSpreeItemTick = new HashMap<>();
     private final Map<UUID, Long> tokenWarnings = new HashMap<>();
+    /** Ensures a death halves a player's streak no more than once per life. */
+    private final DeathLifeGuard deathGuard = new DeathLifeGuard();
     private final MilestoneEffects milestones;
     private static final Pattern LEGACY_WORTH = Pattern.compile("Worth:\\s*\\+(\\d+)");
     private static final Pattern LEGACY_OWNER = Pattern.compile("Owner ID:\\s*([0-9a-fA-F-]{36})");
@@ -149,7 +151,10 @@ public final class StreakManager implements Listener {
             } else Text.action(player, StreakIndicators.ICON_COLOR + "⚔ &7Killstreak: " + color + display(profile.streak));
         }
     }
-    public void shutdown() { for (Player player : Bukkit.getOnlinePlayers()) milestones.clear(player); }
+    public void shutdown() {
+        for (Player player : Bukkit.getOnlinePlayers()) milestones.clear(player);
+        deathGuard.shutdown();
+    }
 
     /** Normalize legacy item_model overrides for real PDC-tagged Spree
      * consumables and tokens already in an inventory. Ignore unrelated items. */
@@ -173,6 +178,7 @@ public final class StreakManager implements Listener {
 
     @EventHandler public void join(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        deathGuard.join(player.getUniqueId(),player.isDead());
         plugin.data().get(player);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) return;
@@ -191,6 +197,9 @@ public final class StreakManager implements Listener {
     }
     @EventHandler public void respawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
+        // A respawn begins a new life. Never unlock the guard merely because
+        // another damage/death callback arrived or the player disconnected.
+        deathGuard.respawn(player.getUniqueId());
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && !player.isDead()) {
                 update(player);
@@ -207,14 +216,51 @@ public final class StreakManager implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void death(PlayerDeathEvent event) {
         Player victim = event.getEntity();
+        PlayerDataStore.Profile victimProfile = get(victim);
+        DeathLifeGuard.Snapshot snapshot=deathGuard.begin(
+                victim.getUniqueId(),victimProfile.streak,
+                Bukkit.getCurrentTick(),System.currentTimeMillis());
+        if(snapshot==null) {
+            // The first event has already applied the ONE allowed death
+            // transaction. A second event must not halve again, give another
+            // kill reward, mint a second token, or play duplicate cues.
+            if(deathGuard.firstDuplicate(victim.getUniqueId())
+                    &&c().getBoolean("killstreak.death-processing.warn-duplicate-events",true)) {
+                DeathLifeGuard.Snapshot first=deathGuard.snapshot(victim.getUniqueId());
+                EntityDamageEvent cause=victim.getLastDamageCause();
+                String damage=cause==null?"UNKNOWN":cause.getCause().name();
+                String source=cause instanceof EntityDamageByEntityEvent byEntity
+                        ? byEntity.getDamager().getType().name() : "none";
+                plugin.getLogger().warning("[DeathGuard] Ignored duplicate player death for "
+                        +victim.getName()+". Initial streak="+
+                        (first==null?"?":first.streakBeforeDeath())
+                        +", current streak="+victimProfile.streak
+                        +", first tick="+(first==null?"?":first.tick())
+                        +", duplicate tick="+Bukkit.getCurrentTick()
+                        +", final damage="+damage+", source="+source
+                        +". Check for another active killstreak Skript/plugin if scores still halve twice.");
+            }
+            return;
+        }
+        // Capture the original PRE-DEATH value once. Never calculate a death
+        // penalty from an already-halved or externally modified score.
+        int old = snapshot.streakBeforeDeath();
         Player killer = plugin.combat().killer(victim);
         plugin.combat().clearVictim(victim.getUniqueId());
         if (victim.equals(killer)) killer = null;
-        // Personal death sting on every death, whether PvP or environmental.
+        // Personal death sting on every actual death, including minecart TNT.
         plugin.killDeathFeedback().onDeath(victim);
-        PlayerDataStore.Profile victimProfile = get(victim);
-        int old = victimProfile.streak;
         victimProfile.deaths++;
+        if(c().getBoolean("killstreak.death-processing.log-transitions",false)) {
+            EntityDamageEvent last=victim.getLastDamageCause();
+            String cause=last==null?"UNKNOWN":last.getCause().name();
+            String source=last instanceof EntityDamageByEntityEvent byEntity
+                    ? byEntity.getDamager().getType().name():"none";
+            plugin.getLogger().info("[DeathGuard] Death "+victim.getName()
+                    +" tick="+snapshot.tick()+" score-before="+old
+                    +" cause="+cause+" source="+source
+                    +" credited-killer="+(killer==null?"none":killer.getName()));
+        }
         if(frozen()) {
             // Combat/death statistics and cosmetics continue. No streak loss
             // (including Fractured), kill reward, token drop, spent Spree item,
