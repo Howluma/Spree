@@ -102,6 +102,9 @@ class DefaultConfigTest {
         var c = config();
         assertEquals(60, c.getInt("combat.mace.slam-cooldown-seconds"));
         assertEquals(30, c.getInt("combat.mace.mastery-slam-cooldown-seconds"));
+        assertTrue(c.getBoolean("combat.mace.cooldown-overlay"));
+        assertTrue(c.getBoolean("combat.mace.impact-particles"));
+        assertTrue(c.getBoolean("combat.mace.impact-sound"));
     }
     @Test void combatDefaultsPreserved() {
         var c = config();
