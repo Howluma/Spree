@@ -30,8 +30,8 @@ import java.util.UUID;
  * is reduced by potion/enchantment protection, a narrowly scoped health/absorption
  * adjustment tops the applied damage up to exactly one health point.
  *
- * No direct setHealth is performed if Bukkit cancelled the damage, the player
- * had invulnerability frames, or the damage event had no effect.
+ * No direct setHealth is performed when the Bukkit damage event was cancelled;
+ * a fully resisted but otherwise approved event still receives true damage.
  */
 public final class BarbedHookTalent implements Listener {
     private final SpreeCorePlugin plugin;
