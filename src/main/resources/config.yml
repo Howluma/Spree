@@ -1,4 +1,4 @@
-# SpreeCore 1.8.5 - Flame Rod Talent replaces Barbed Hook with burning TNT-igniting bobbers.
+# SpreeCore 1.8.6 - distinct personal kill/death sounds and navy-blue elimination particles.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -11,6 +11,26 @@ general:
   actionbar-interval-ticks: 40
   save-interval-seconds: 120
   announce-joining-streak: 10
+
+# Personal combat cues. They use vanilla sounds, so the complete resource pack
+# needs no new assets. Only the credited killer hears the kill chime;
+# only the dead player hears the descending death sting.
+combat-feedback:
+  enabled: true
+  kill:
+    enabled: true
+    sounds: true
+    particles: true
+    volume: 0.8
+    # Number of positions in each of the two blue dust rings (8..32).
+    ring-points: 16
+    # false = also celebrate a valid kill if anti-farming blocks the streak gain.
+    # true = only celebrate kills that actually award killstreak points.
+    only-rewarded: false
+  death:
+    enabled: true
+    sounds: true
+    volume: 0.75
 
 # Blue (&9) sword symbol matches menu headings; bold number colors change every five kills.
 # Overhead tags use scoreboard suffixes when the player is NOT already in a team.
