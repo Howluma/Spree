@@ -1,0 +1,35 @@
+name: Build and Test SpreeTweaks Paper Companion
+
+on:
+  push:
+    paths:
+      - 'spreetweaks-paper/**'
+      - '.github/workflows/spreetweaks-paper-build.yml'
+  pull_request:
+    paths:
+      - 'spreetweaks-paper/**'
+      - '.github/workflows/spreetweaks-paper-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
+      - name: Test and compile SpreeTweaks
+        run: gradle -p spreetweaks-paper clean test build --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SpreeTweaks-Paper-JAR
+          path: spreetweaks-paper/build/libs/SpreeTweaks-1.0.0.jar
+          if-no-files-found: error
