@@ -136,8 +136,8 @@ public final class TalentEffects implements Listener {
                     if(!world.isChunkLoaded(x>>4,z>>4))return true;
                     Block block=world.getBlockAt(x,y,z);
                     Material m=block.getType();
-                    return !block.isPassable() || block.isLiquid()
-                            || (!allowWeb && m==Material.COBWEB)
+                    return (!block.isPassable() && !(allowWeb && m==Material.COBWEB))
+                            || block.isLiquid() || (!allowWeb && m==Material.COBWEB)
                             || m==Material.FIRE || m==Material.SOUL_FIRE
                             || m==Material.POWDER_SNOW || m==Material.SWEET_BERRY_BUSH;
                 });
