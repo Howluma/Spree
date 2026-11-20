@@ -31,6 +31,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     private AdminBalanceMenu balanceMenu;
     private AdminUpgradeMenu adminUpgrades;
     private TalentFeedback talentFeedback;
+    private KillDeathFeedback killDeathFeedback;
     private BukkitTask hudTask, saveTask, flameRodTask;
 
     @Override public void onEnable() {
@@ -57,6 +58,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
         specialistItems = new SpecialistItems(this);
         talents = new TalentEffects(this);
         talentFeedback = new TalentFeedback(this);
+        killDeathFeedback = new KillDeathFeedback(this);
         quickHands = new QuickHands(this);
         flameRod = new FlameRodTalent(this);
         progressMenus = new ProgressionMenu(this);
@@ -160,6 +162,7 @@ public final class SpreeCorePlugin extends JavaPlugin {
     public FlameRodTalent flameRod() { return flameRod; }
     public AdminBalanceMenu balanceMenu() { return balanceMenu; }
     public AdminUpgradeMenu adminUpgrades() { return adminUpgrades; }
+    public KillDeathFeedback killDeathFeedback() { return killDeathFeedback; }
     public String prefix() { return getConfig().getString("general.prefix", "&9&lSPREE &8| &f"); }
     /** Apply an in-memory GUI edit without reloading YAML or re-registering unrelated recipes. */
     public void applySettingChange(String path) {
