@@ -128,9 +128,9 @@ public final class RodAssistManager implements Listener {
             Vector previous=cast.previous;
             cast.previous=now.clone();
             double playerMargin=RodGeometry.boundedMargin(plugin.getConfig()
-                    .getDouble("rod-assist.player-extra-margin",.20));
+                    .getDouble("rod-assist.player-extra-margin",.30));
             double itemMargin=RodGeometry.boundedMargin(plugin.getConfig()
-                    .getDouble("rod-assist.item-extra-margin",.25));
+                    .getDouble("rod-assist.item-extra-margin",.35));
             if(playerMargin<=0 && itemMargin<=0)continue;
 
             double maxSweep=RodGeometry.boundedSweep(plugin.getConfig()
