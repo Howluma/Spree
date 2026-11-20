@@ -73,6 +73,9 @@ class ConfigEditorTest {
         assertNull(ConfigEditor.validate("talents.flame-rod.contact-tolerance",.70));
         assertNotNull(ConfigEditor.validate("talents.flame-rod.contact-tolerance",.71));
         assertNotNull(ConfigEditor.validate("talents.flame-rod.contact-tolerance",0));
+        assertNull(ConfigEditor.validate("talents.flame-rod.player-fire-seconds",4));
+        assertNull(ConfigEditor.validate("talents.flame-rod.player-fire-seconds",15));
+        assertNotNull(ConfigEditor.validate("talents.flame-rod.player-fire-seconds",16));
     }
 
     @Test void tierColorEditorRejectsInvalidOrMultiColorValues() {
