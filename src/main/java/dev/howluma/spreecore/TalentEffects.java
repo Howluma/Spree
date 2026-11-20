@@ -196,6 +196,10 @@ public final class TalentEffects implements Listener {
      */
     private void queueEscape(Player player) {
         UUID id=player.getUniqueId();
+        // An entirely enclosed web trap should not rescan hundreds of blocks
+        // on every tiny PlayerMoveEvent. Retry after a short interval instead.
+        if(System.currentTimeMillis()-lastEscapeFailure.getOrDefault(id,0L)<1500L)
+            return;
         if(!pendingEscapes.add(id))return;
         Bukkit.getScheduler().runTask(plugin,()->{
             pendingEscapes.remove(id);
