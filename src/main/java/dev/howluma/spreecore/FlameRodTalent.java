@@ -13,12 +13,16 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.FishHook;
 import org.bukkit.entity.Player;
+import org.bukkit.GameMode;
+import org.bukkit.scoreboard.Team;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.TNTPrimeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.EntityCombustByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -50,6 +54,7 @@ public final class FlameRodTalent implements Listener {
         final TriState originalFire;
         Location previous;
         final Set<String> attempted=new HashSet<>();
+        final Set<UUID> ignitedPlayers=new HashSet<>();
         int ignited;
         ActiveHook(FishHook hook, UUID owner) {
             this.hook=hook;
@@ -186,6 +191,10 @@ public final class FlameRodTalent implements Listener {
             searchTnt(active,hook.getLocation());
             return;
         }
+        if(event.getState()==PlayerFishEvent.State.CAUGHT_ENTITY
+                &&event.getCaught() instanceof Player caught) {
+            ignitePlayer(active,caught);
+        }
 
         // Retracting/reeling a hook removes the visual flames and tracking.
         if(event.getState()==PlayerFishEvent.State.REEL_IN
@@ -195,6 +204,50 @@ public final class FlameRodTalent implements Listener {
             hooks.remove(id);
             stop(active);
         }
+    }
+
+    /**
+     * Combust a hooked ENEMY player one time per cast, on hook contact or on
+     * caught-entity events. All normal region plugins can veto this through
+     * EntityCombustByEntityEvent. Vanilla fire does the follow-up damage.
+     */
+    private void ignitePlayer(ActiveHook active,Player target) {
+        Player owner=Bukkit.getPlayer(active.owner);
+        if(owner==null || !empowered(owner) || !target.isOnline() || target.isDead())return;
+        Team team=owner.getScoreboard().getEntryTeam(owner.getName());
+        boolean teammate=team!=null && team.hasEntry(target.getName())
+                && !team.allowFriendlyFire();
+        boolean permitted=FlameRodRules.canIgnitePlayer(true,
+                owner.getWorld().getPVP() && owner.getWorld().equals(target.getWorld()),
+                owner.getUniqueId().equals(target.getUniqueId()),teammate,
+                target.getGameMode()==GameMode.SPECTATOR,
+                active.ignitedPlayers.contains(target.getUniqueId()));
+        if(!permitted || !plugin.getConfig().getBoolean("talents.flame-rod.ignite-players",true))
+            return;
+        double duration=Math.max(0,Math.min(15,plugin.getConfig()
+                .getDouble("talents.flame-rod.player-fire-seconds",4.0)));
+        if(FlameRodRules.fireTicks(duration)<=0)return;
+
+        EntityCombustByEntityEvent combust=new EntityCombustByEntityEvent(
+                active.hook,target,(float)duration);
+        Bukkit.getPluginManager().callEvent(combust);
+        if(combust.isCancelled())return;
+        int ticks=FlameRodRules.fireTicks(combust.getDuration());
+        if(ticks<=0)return;
+        if(!active.ignitedPlayers.add(target.getUniqueId()))return;
+        target.setFireTicks(Math.max(target.getFireTicks(),ticks));
+        // Retain player kill credit if the target burns to death after the
+        // initial fishing hit, within the normal PvP environment credit window.
+        plugin.combat().recordFlameRodIgnition(owner,target);
+        if(plugin.getConfig().getBoolean("talents.flame-rod.player-fire-particles",true)) {
+            Location location=target.getLocation().add(0,1,0);
+            location.getWorld().spawnParticle(Particle.FLAME,location,
+                    20,.24,.40,.24,.045);
+        }
+        if(plugin.getConfig().getBoolean("talents.flame-rod.player-fire-sound",true))
+            target.getWorld().playSound(target.getLocation(),
+                    Sound.ITEM_FIRECHARGE_USE,.65f,1.35f);
+        plugin.talentFeedback().passive(owner,"flame_rod");
     }
 
     private String positionKey(Block block) {
@@ -270,6 +323,9 @@ public final class FlameRodTalent implements Listener {
         FishHook hook=active.hook;
         if(!hook.isValid())return;
         Location current=hook.getLocation();
+        Entity hooked=hook.getHookedEntity();
+        if(hooked instanceof Player target)
+            ignitePlayer(active,target);
         if(plugin.getConfig().getBoolean("talents.flame-rod.bobber-particles",true))
             current.getWorld().spawnParticle(Particle.FLAME,current,4,.065,.065,.065,.008);
         int max=Math.max(1,Math.min(16,plugin.getConfig()
