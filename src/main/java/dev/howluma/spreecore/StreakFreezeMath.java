@@ -36,6 +36,11 @@ final class StreakFreezeMath {
         return Math.addExact(nowMillis,Math.multiplyExact(seconds,1000));
     }
 
+    /** The only exception to a global freeze is an explicit staff score edit. */
+    static boolean blocksAutomaticChange(boolean frozen,boolean explicitAdminOverride) {
+        return frozen && !explicitAdminOverride;
+    }
+
     static boolean active(long endMillis,long nowMillis) {
         return endMillis>nowMillis;
     }
