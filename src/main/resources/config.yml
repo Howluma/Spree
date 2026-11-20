@@ -1,4 +1,4 @@
-# SpreeCore 1.8.9 - timed global Spree Freeze, admin GUI and /spreeadmin freeze controls.
+# SpreeCore 1.8.9 - timed Spree Freeze and Flame Rod player ignition on successful hooks.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
@@ -226,6 +226,13 @@ talents:
     contact-tolerance: 0.50
     max-ignitions-per-cast: 1
     tnt-fuse-ticks: 80
+    # Hooking an enemy player with a flaming bobber ignites them for 4 seconds.
+    # This causes normal vanilla fire damage, not direct fishing-rod damage.
+    # PvP-disabled worlds, friendly-fire rules and cancelled combustion events are respected.
+    ignite-players: true
+    player-fire-seconds: 4.0
+    player-fire-particles: true
+    player-fire-sound: true
   streak-insurance:
     cooldown-seconds: 600
     protected-levels: 2
