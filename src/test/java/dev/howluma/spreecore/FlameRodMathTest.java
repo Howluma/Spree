@@ -11,6 +11,16 @@ class FlameRodMathTest {
         assertTrue(FlameRodMath.touchesBlock(1.0,1.0,1.0,0,0,0,0));
     }
 
+    @Test void increasedTntContactZoneIgnitesOnlyCloseNearMisses() {
+        // The TNT block fills x=0..1. A bobber 0.44 blocks past the
+        // surface failed at 0.35 but should ignite with the new 0.50.
+        assertFalse(FlameRodMath.touchesBlock(1.44,.5,.5,0,0,0,.35));
+        assertTrue(FlameRodMath.touchesBlock(1.44,.5,.5,0,0,0,.50));
+        assertFalse(FlameRodMath.touchesBlock(1.55,.5,.5,0,0,0,.50));
+        // The new margin still cannot reach TNT that is several blocks away.
+        assertFalse(FlameRodMath.touchesBlock(3,.5,.5,0,0,0,.50));
+    }
+
     @Test void doesNotIgniteTntAtAVisibleButNotTouchingDistance() {
         assertFalse(FlameRodMath.touchesBlock(1.5,.5,.5,0,0,0,.35));
         assertFalse(FlameRodMath.touchesBlock(.5,1.6,.5,0,0,0,.35));
