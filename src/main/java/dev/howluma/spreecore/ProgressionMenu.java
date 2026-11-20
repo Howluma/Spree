@@ -109,10 +109,22 @@ public final class ProgressionMenu implements Listener {
     }
 
     private int[] milestonesSlots() { return new int[]{11, 13, 15, 29, 31, 33}; }
-    private String coloredStatus(boolean unlocked, String current, boolean reroll) {
-        if (!unlocked) return "&8LOCKED";
-        if (current != null) return reroll ? "&eCHANGE THIS CHOICE" : "&aCLAIMED";
-        return reroll ? "&8No saved choice" : "&bREADY TO CLAIM";
+    /** Selection is permanent, but appearance tracks the *current* killstreak.
+     * Inactive earned rewards must never be labelled CLAIMED or ACTIVE in the UI.
+     */
+    static String displayedMilestoneStatus(boolean historicallyEarned, boolean selected,
+            int currentStreak, int requiredStreak, boolean reroll) {
+        if (!historicallyEarned) return "&8&lLOCKED";
+        if (currentStreak < requiredStreak)
+            return "&8&lINACTIVE &7- &8Requires killstreak " + requiredStreak;
+        if (selected) return reroll ? "&eCHANGE ACTIVE CHOICE" : "&a&lACTIVE";
+        return reroll ? "&8No saved choice" : "&b&lREADY TO CHOOSE";
+    }
+
+    static Material milestoneIcon(Material selectedMaterial, boolean selected,
+            int currentStreak, int requiredStreak) {
+        if (currentStreak < requiredStreak) return Material.GRAY_DYE;
+        return selected && selectedMaterial != null ? selectedMaterial : Material.LIME_DYE;
     }
 
     public void openSlots(Player player, ProgressionCatalog.Kind kind, boolean reroll) {
@@ -128,11 +140,15 @@ public final class ProgressionMenu implements Listener {
             String current = plugin.progression().choice(player, kind, level);
             if (!unlocked) continue; // Future unknown upgrades remain hidden.
             var option = ProgressionCatalog.find(kind, current);
-            Material material = option != null ? option.icon()
-                    : unlocked ? Material.LIME_DYE : Material.GRAY_DYE;
+            int streak=plugin.streaks().streak(player);
+            boolean active=streak>=level;
+            Material material=milestoneIcon(option==null?null:option.icon(),
+                    current!=null,streak,level);
             List<String> details=new ArrayList<>();
-            details.add(coloredStatus(unlocked, current, reroll));
-            details.add(option != null ? "&f" + option.name() : "&7Not chosen yet");
+            details.add(displayedMilestoneStatus(unlocked,current!=null,streak,level,reroll));
+            details.add(option != null
+                    ? (active ? "&f" + option.name() : "&7Saved choice: &8" + option.name())
+                    : "&7No upgrade selected yet");
             details.add(option != null ? "&7" + option.description() : "&8One choice per milestone");
             if(kind == ProgressionCatalog.Kind.TALENT && current == null
                     && plugin.data().get(player).retiredTalentMilestones.contains(level))
@@ -141,18 +157,22 @@ public final class ProgressionMenu implements Listener {
                 details.add(plugin.talentFeedback().cooldownLore(player,option.id()));
                 details.add("&7All cooldowns: &b/spree cooldowns");
             }
-            if (plugin.streaks().streak(player) < level)
-                details.add("&8Inactive: requires current killstreak " + level);
-            else details.add("&aActive at your current killstreak");
+            if (!active) {
+                details.add("&8Permanently earned; temporarily locked");
+                details.add("&7Regain killstreak &b" + level + " &7to activate");
+            } else details.add("&aRequirement met at your current killstreak");
             if (reroll && (kind == ProgressionCatalog.Kind.PRIVILEGE
                     || kind == ProgressionCatalog.Kind.INFUSION))
                 details.add("&7Can swap with an upgrade in another milestone");
             details.add(current != null && !reroll
-                    ? "&aAlready claimed - hover to inspect"
-                    : reroll ? (current == null ? "&8Claim first to reselect" :
+                    ? (active ? "&7Hover to inspect your current reward"
+                            : "&7Selection saved; no effect while inactive")
+                    : reroll ? (current == null ? "&8Choose this reward before reselecting" :
                         "&eClick to reconfigure with a Fate Sigil")
                     : "&eClick to choose an earned reward");
-            inv.setItem(cells[i],icon(material,"&9&lLevel "+level,details.toArray(String[]::new)));
+            inv.setItem(cells[i],icon(material,
+                    active ? "&9&lLevel "+level : "&8&lLevel "+level+" &8[LOCKED]",
+                    details.toArray(String[]::new)));
             h.levels.put(cells[i], level);
         }
         inv.setItem(22, icon(kind.icon, "&9&l" + kind.title,
@@ -181,10 +201,13 @@ public final class ProgressionMenu implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add("&7Unlocked at killstreak &b" + level);
             lore.addAll(Arrays.asList(plugin.perks().detailLore(perk, plugin.data().get(player))));
-            lore.add(level <= plugin.streaks().streak(player)
-                    ? "&aPerk earned and active" : "&8Previously earned; inactive until level " + level);
+            boolean active=level<=plugin.streaks().streak(player);
+            lore.add(active ? "&a&lACTIVE" : "&8&lINACTIVE &7- &8Requires killstreak "+level);
+            if (!active) lore.add("&7Saved Perk; regain this level to enable it");
             lore.add("&8Duplicates stack; perks stop at level 30");
-            inv.setItem(slots[index++], icon(perk.icon(), "&9&l" + perk.display + " &8(Lv " + level + ")",
+            inv.setItem(slots[index++], icon(active ? perk.icon() : Material.GRAY_DYE,
+                    active ? "&9&l" + perk.display + " &8(Lv " + level + ")"
+                            : "&8&lLevel "+level+" &8[LOCKED]",
                     lore.toArray(String[]::new)));
         }
         inv.setItem(40, icon(Material.ECHO_SHARD, "&b&lReroll All Perks",
@@ -465,7 +488,12 @@ public final class ProgressionMenu implements Listener {
                     if(h.kind==ProgressionCatalog.Kind.TALENT)openConfirm(player,h.kind,level);
                     else openChoices(player,h.kind,level,true);
                 } else {
-                    if(existing!=null) {Text.action(player,"&aUpgrade claimed. &7Hover over the slot to read its effect.");return;}
+                    if(existing!=null) {
+                        Text.action(player,plugin.streaks().streak(player)<level
+                                ? "&8Upgrade saved but inactive. &7Regain killstreak "+level+" to activate it."
+                                : "&aUpgrade active. &7Hover over the slot to read its effect.");
+                        return;
+                    }
                     openChoices(player,h.kind,level,false);
                 }
             }
