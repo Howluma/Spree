@@ -63,7 +63,7 @@ public final class PlayerDataStore {
         ConfigurationSection root = yml.getConfigurationSection("players");
         if (root == null) return;
         boolean migrated = false;
-        int retiredTalentCount = 0, strengthConversionCount = 0;
+        int retiredTalentCount = 0, strengthConversionCount = 0, hookConversions = 0;
         for (String key : root.getKeys(false)) {
             UUID id;
             try { id = UUID.fromString(key); } catch (IllegalArgumentException ex) { continue; }
@@ -106,6 +106,17 @@ public final class PlayerDataStore {
                     }
                 } catch(NumberFormatException ignored) {}
             }
+            if (pastTalents != null) for (String raw : pastTalents.getKeys(false)) {
+                if (!"barbed_hook".equals(pastTalents.getString(raw))) continue;
+                try {
+                    int level = Integer.parseInt(raw);
+                    if (ProgressionCatalog.milestone(ProgressionCatalog.Kind.TALENT,level)
+                            && level <= SpreeMath.BENEFIT_CAP) {
+                        hookConversions++;
+                        migrated = true;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
             readChoices(section, "talent-choices", p.talentChoices, ProgressionCatalog.Kind.TALENT);
             ConfigurationSection pastInfusions=section.getConfigurationSection("infusion-choices");
             if(pastInfusions!=null) for(String milestone : pastInfusions.getKeys(false)) {
@@ -129,7 +140,7 @@ public final class PlayerDataStore {
                     if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.TALENT, milestone)) continue;
                     List<String> oldOffers=offers.getStringList(offerKey);
                     List<String> available=migrateRetiredTalentOffers(oldOffers,p.talentChoices.values());
-                    if (oldOffers.contains("industrious")) migrated=true;
+                    if (oldOffers.contains("industrious") || oldOffers.contains("barbed_hook")) migrated=true;
                     if (!available.isEmpty() && !p.talentChoices.containsKey(milestone))
                         p.talentOffers.put(milestone,available);
                 } catch (NumberFormatException ignored) {}
@@ -151,9 +162,10 @@ public final class PlayerDataStore {
             players.put(id, p);
         }
         dirty = migrated;
-        if (migrated) plugin.getLogger().info("SpreeCore 1.8.2 migration: converted "
+        if (migrated) plugin.getLogger().info("SpreeCore progression migration: converted "
                 + strengthConversionCount + " Strength Infusions to Haste, refunded "
-                + retiredTalentCount + " Industrious Talents and repaired retired Talent offers.");
+                + retiredTalentCount + " Industrious Talents, and upgraded "
+                + hookConversions + " Barbed Hook Talents to Flame Rod.");
         plugin.getLogger().info("Loaded " + players.size() + " player profiles.");
     }
 
@@ -161,18 +173,25 @@ public final class PlayerDataStore {
     static String upgradeChoice(ProgressionCatalog.Kind kind, String id) {
         if(kind==ProgressionCatalog.Kind.INFUSION && "strength".equals(id)) return "haste";
         if(kind==ProgressionCatalog.Kind.TALENT && "industrious".equals(id)) return null;
+        if(kind==ProgressionCatalog.Kind.TALENT && "barbed_hook".equals(id)) return "flame_rod";
         return id;
     }
 
-    /** Repair only offers that included the retired Talent; preserve all valid ones. */
+    /** Repair retired offers and silently rename the Barbed Hook option.
+     * Existing valid offers are stable; no extra free roll is granted.
+     */
     static List<String> migrateRetiredTalentOffers(List<String> old, Collection<String> selected) {
+        boolean retired=old.contains("industrious");
+        boolean renamed=old.contains("barbed_hook");
         List<String> valid=new ArrayList<>();
-        for(String id:old) {
-            if(ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,id)!=null
-                    && !valid.contains(id) && valid.size()<3)
+        for(String legacyId:old) {
+            String id=upgradeChoice(ProgressionCatalog.Kind.TALENT,legacyId);
+            if(id!=null && ProgressionCatalog.find(ProgressionCatalog.Kind.TALENT,id)!=null
+                    && !valid.contains(id) && valid.size()<3
+                    && !(renamed && selected.contains(id)))
                 valid.add(id);
         }
-        if(!old.contains("industrious")) return List.copyOf(valid);
+        if(!retired && !renamed) return List.copyOf(valid);
         List<String> fresh=new ArrayList<>();
         for(var option:ProgressionCatalog.TALENTS)
             if(!valid.contains(option.id()) && !selected.contains(option.id()))
