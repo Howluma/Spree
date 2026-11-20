@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.howluma"
-version = "1.8.6"
+version = "1.8.7"
 
 repositories {
     mavenCentral()
