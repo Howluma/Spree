@@ -1,0 +1,16 @@
+# SpreeTweaks — Paper 1.21.11 fishing-rod assist
+#
+# This changes the EFFECTIVE collision tolerance of FISHING BOBBERS,
+# not the player's real hitbox or Minecraft's melee attack reach.
+# Other normal fishing mechanics remain unchanged.
+rod-assist:
+  enabled: true
+  # Additional blocks on each side of the target's original hitbox.
+  # 0.20 player / 0.25 dropped-item is intentionally a SMALL increase.
+  player-extra-margin: 0.20
+  item-extra-margin: 0.25
+  # Bounded per-tick bobber-path scan, avoids hooks jumping through walls.
+  max-sweep-blocks-per-tick: 4.0
+  # Respect PvP-disabled worlds and scoreboard teams with friendly fire disabled.
+  respect-pvp-settings: true
+  respect-friendly-fire: true
