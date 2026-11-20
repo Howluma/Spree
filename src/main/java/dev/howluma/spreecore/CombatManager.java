@@ -62,24 +62,43 @@ public final class CombatManager implements Listener {
     }
     private FileConfiguration config() { return plugin.getConfig(); }
 
-    /** Resolve Bukkit native kill credit first, with a bounded fallback for explosions and resulting falls. */
+    /** Resolve native player credit first, then recent combat followed by a natural finish.
+     * A successfully credited environmental death must use the player-kill branch
+     * in StreakManager; it must NOT generate a natural-death Spree Token.
+     */
     public Player killer(Player victim) {
         Player nativeKiller = victim.getKiller();
-        Hit hit = lastHit.get(victim.getUniqueId());
-        EntityDamageEvent lastDamage = victim.getLastDamageCause();
-        boolean explosiveAftermath = lastDamage != null && switch (lastDamage.getCause()) {
-            case ENTITY_EXPLOSION, BLOCK_EXPLOSION, FALL, VOID, FIRE, FIRE_TICK -> true;
-            default -> false;
-        };
-        if (config().getBoolean("combat.explosive-kill-credit.enabled", true)
-                && hit != null && hit.explosive() && explosiveAftermath
-                && CombatMath.recent(System.currentTimeMillis(), hit.when(),
-                    config().getLong("combat.explosive-kill-credit.window-seconds", 12))) {
-            Player attacker = Bukkit.getPlayer(hit.attacker());
-            if (attacker != null && attacker.isOnline() && !attacker.getUniqueId().equals(victim.getUniqueId()))
-                return attacker;
-        }
-        return nativeKiller == victim ? null : nativeKiller;
+        if(nativeKiller!=null && nativeKiller!=victim && nativeKiller.isOnline())return nativeKiller;
+        Hit hit=lastHit.get(victim.getUniqueId());
+        if(hit==null || hit.attacker().equals(victim.getUniqueId()))return null;
+        Player attacker=Bukkit.getPlayer(hit.attacker());
+        if(attacker==null || !attacker.isOnline())return null;
+        long now=System.currentTimeMillis();
+        EntityDamageEvent lastDamage=victim.getLastDamageCause();
+        EntityDamageEvent.DamageCause cause=lastDamage==null?null:lastDamage.getCause();
+        if(config().getBoolean("combat.pvp-environment-credit.enabled",true)
+                &&CombatMath.creditedEnvironmentalDeath(cause,now,hit.when(),
+                    config().getLong("combat.pvp-environment-credit.window-seconds",12)))
+            return attacker;
+        // Preserve explicit explosive credit after delayed secondary explosions,
+        // including when another plugin labels an explosion as ENTITY_EXPLOSION.
+        boolean aftermath=lastDamage!=null
+                &&(CombatMath.environmentalCause(cause)
+                    ||cause==EntityDamageEvent.DamageCause.ENTITY_EXPLOSION);
+        if(config().getBoolean("combat.explosive-kill-credit.enabled",true)
+                &&hit.explosive() && aftermath
+                &&CombatMath.recent(now,hit.when(),
+                    config().getLong("combat.explosive-kill-credit.window-seconds",12)))
+            return attacker;
+        return null;
+    }
+    /** Record a validated true-damage rod hook so a low-health direct finish
+     * has a credited attacker before a health-set death can occur.
+     */
+    public void recordRodHit(Player attacker, Player victim) {
+        if(attacker==null || victim==null || attacker.equals(victim))return;
+        lastHit.put(victim.getUniqueId(),new Hit(attacker.getUniqueId(),
+                System.currentTimeMillis(),false));
     }
     public void clearVictim(UUID id) { lastHit.remove(id); }
 
