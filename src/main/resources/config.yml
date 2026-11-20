@@ -1,4 +1,4 @@
-# SpreeCore 1.8.8 - slightly more forgiving rod catches and Flame Rod TNT ignition.
+# SpreeCore 1.8.9 - timed global Spree Freeze, admin GUI and /spreeadmin freeze controls.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
