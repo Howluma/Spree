@@ -232,6 +232,12 @@ public final class SpreeCorePlugin extends JavaPlugin {
             getLogger().info("Migrated legacy 30-level killstreak cap: scoring now continues above 30; rewards still stop at 30.");
             changed = true;
         }
+        // 0.80 was the former built-in 20%-faster eating default.
+        // Preserve intentional custom multipliers other than the old default.
+        if (Math.abs(getConfig().getDouble("talents.quick-hands.consume-time-multiplier",0.9)-0.8)<1e-8) {
+            getConfig().set("talents.quick-hands.consume-time-multiplier",0.9);
+            changed = true;
+        }
         if (FateSigil.migrateOldRecipe(getConfig())) {
             getLogger().info("Updated the old default Fate Sigil recipe to Ominous Trial Keys, Netherite Ingots and a Heart of the Sea.");
             changed = true;
