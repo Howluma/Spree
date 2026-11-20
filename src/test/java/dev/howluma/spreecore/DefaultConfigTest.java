@@ -101,8 +101,13 @@ class DefaultConfigTest {
     @Test void quickHandsRodTalentAndEnvironmentalCreditDefaults() {
         var config=config();
         assertEquals(.90,config.getDouble("talents.quick-hands.consume-time-multiplier"),1e-9);
-        assertTrue(config.getBoolean("talents.barbed-hook.enabled"));
-        assertEquals(.5,config.getDouble("talents.barbed-hook.damage-hearts"),1e-9);
+        assertTrue(config.getBoolean("talents.flame-rod.enabled"));
+        assertTrue(config.getBoolean("talents.flame-rod.bobber-particles"));
+        assertTrue(config.getBoolean("talents.flame-rod.cast-sound"));
+        assertEquals(.35,config.getDouble("talents.flame-rod.contact-tolerance"),1e-9);
+        assertEquals(1,config.getInt("talents.flame-rod.max-ignitions-per-cast"));
+        assertEquals(80,config.getInt("talents.flame-rod.tnt-fuse-ticks"));
+        assertFalse(config.contains("talents.barbed-hook"));
         assertTrue(config.getBoolean("combat.pvp-environment-credit.enabled"));
         assertEquals(12,config.getInt("combat.pvp-environment-credit.window-seconds"));
     }
