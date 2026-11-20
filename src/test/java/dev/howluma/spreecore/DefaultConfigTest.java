@@ -98,6 +98,20 @@ class DefaultConfigTest {
             assertEquals(expected[i],c.getString("fate-sigil.recipe.slot-"+(i+1)));
         assertEquals(721051,c.getInt("resource-pack.models.fate-sigil"));
     }
+    @Test void personalKillAndDeathEffectsAreEnabledAndConfigurable() {
+        var c=config();
+        assertTrue(c.getBoolean("combat-feedback.enabled"));
+        assertTrue(c.getBoolean("combat-feedback.kill.enabled"));
+        assertTrue(c.getBoolean("combat-feedback.kill.sounds"));
+        assertTrue(c.getBoolean("combat-feedback.kill.particles"));
+        assertEquals(.8,c.getDouble("combat-feedback.kill.volume"),1e-9);
+        assertEquals(16,c.getInt("combat-feedback.kill.ring-points"));
+        assertFalse(c.getBoolean("combat-feedback.kill.only-rewarded"));
+        assertTrue(c.getBoolean("combat-feedback.death.enabled"));
+        assertTrue(c.getBoolean("combat-feedback.death.sounds"));
+        assertEquals(.75,c.getDouble("combat-feedback.death.volume"),1e-9);
+    }
+
     @Test void quickHandsRodTalentAndEnvironmentalCreditDefaults() {
         var config=config();
         assertEquals(.90,config.getDouble("talents.quick-hands.consume-time-multiplier"),1e-9);
