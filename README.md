@@ -1,3 +1,5 @@
+> **Latest binary update: SpreeCore 1.8.23 (November 22, 2026).** See [release notes](releases/1.8.23/README.md) for the legendary tooltip, Blood Butcher and 50-second Blood Rush changes. The latest downloadable JAR and resource pack are supplied separately; **main-branch source has not yet been fully reconciled to this binary.**
+
 # SpreeCore v1.7.1 — Spree SMP
 
 One native Java 21 plugin for Paper **1.21.11**, replacing the original killstreak, legendary weapon, forge, and event Skripts. The source code and CI builds are maintained at https://github.com/Howluma/Spree.
