@@ -1,4 +1,4 @@
-> **Latest distributed binary: SpreeCore 1.8.24 (November 22, 2026).** [Release notes](releases/1.8.24/README.md) cover restored legendary enchantment/attribute display, netherite-equivalent mainhand stats and durability, and clearer Bleeding lore. The repository's older Gradle main branch **is not yet a fully reproducible source for this binary**.
+> **Latest distributed binary: SpreeCore 1.8.25 (November 22, 2026).** [Release notes and source patch](releases/1.8.25/README.md) cover hidden-but-functional legendary enchantments, redundant item-name cleanup, retained combat stats, and no visual glint. The older main-branch source **is not yet a fully reproducible build** of this binary.
 
 # SpreeCore v1.7.1 — Spree SMP
 
