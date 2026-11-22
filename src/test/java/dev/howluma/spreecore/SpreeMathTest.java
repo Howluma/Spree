@@ -33,7 +33,8 @@ class SpreeMathTest {
         assertEquals(6, SpreeMath.killGain(29));
         assertEquals(7, SpreeMath.killGain(30));
         assertEquals(7, SpreeMath.killGain(34));
-        assertEquals(8, SpreeMath.killGain(35));
+        assertEquals(7, SpreeMath.killGain(35));
+        assertEquals(7, SpreeMath.killGain(1000000));
     }
     @Test void environmentalTokensUseTheSameRewardTiersAsPvPKills() {
         assertEquals(1, SpreeMath.killGain(0, 1, 5, 1));
@@ -55,7 +56,7 @@ class SpreeMathTest {
         assertEquals(7, gained);
         assertEquals(7, SpreeMath.applyKill(attackerOldStreak, gained, 30));
         assertEquals(15, SpreeMath.deathStreak(victimOldStreak));
-        // Positive streaks still respect the configured 30 cap.
+        // A legacy 30 score cap still clamps if supplied explicitly; new runtime uses a much higher limit.
         assertEquals(30, SpreeMath.applyKill(25, gained, 30));
     }
     @Test void minimumRewardRecoversFractured() {
@@ -79,6 +80,24 @@ class SpreeMathTest {
         assertEquals(22.0, SpreeMath.maxHealthPoints(2, 10, 0.5));
         assertEquals(23.0, SpreeMath.maxHealthPoints(3, 10, 0.5));
         assertEquals(50.0, SpreeMath.maxHealthPoints(30, 10, 0.5));
+        assertEquals(50.0, SpreeMath.maxHealthPoints(31, 10, 0.5));
+        assertEquals(50.0, SpreeMath.maxHealthPoints(1000000, 10, 0.5));
+    }
+    @Test void scoreCanGrowPastThirtyButRewardBenefitsDoNot() {
+        assertEquals(30, SpreeMath.benefitLevel(31));
+        assertEquals(30, SpreeMath.benefitLevel(500));
+        assertEquals(0, SpreeMath.benefitLevel(-1));
+        assertEquals(37, SpreeMath.applyKill(30, 7, 1_000_000_000));
+        assertEquals(42, SpreeMath.applyKill(35, 7, 1_000_000_000));
+        assertEquals(500, SpreeMath.clamp(500, 1_000_000_000));
+        assertEquals(7, SpreeMath.killGain(35));
+        assertEquals(7, SpreeMath.killGain(300));
+        assertEquals(150, SpreeMath.deathStreak(300));
+        assertEquals(1_000_000_000,
+                SpreeMath.applyKill(999_999_999, Integer.MAX_VALUE, 1_000_000_000));
+        assertEquals(1_000_000_000,
+                SpreeMath.applyKill(1_000_000_000, 10, 1_000_000_000));
+        assertEquals(7, SpreeMath.killGain(1_000_000_000));
     }
     @Test void maceRequiresLevelOneAndFracturedIsLocked() {
         assertFalse(SpreeMath.canUseMace(-1, 1));

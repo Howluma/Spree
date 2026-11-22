@@ -64,7 +64,7 @@ public final class PerkManager implements Listener {
 
     /** Allocate all previously reached levels on upgrade and when a milestone is crossed. */
     public List<Award> ensureRolls(PlayerDataStore.Profile profile) {
-        int achieved = Math.max(0, Math.min(1000, Math.max(profile.best, profile.streak)));
+        int achieved = SpreeMath.benefitLevel(Math.max(profile.best, profile.streak));
         List<Award> newAwards = new ArrayList<>();
         List<PerkType> options = new ArrayList<>();
         Map<PerkType, Integer> caps = new EnumMap<>(PerkType.class);
@@ -90,16 +90,56 @@ public final class PerkManager implements Listener {
 
     public int stacks(PlayerDataStore.Profile profile, PerkType type) {
         if (!enabled() || !allowed(type) || profile.streak <= 0) return 0;
-        return Math.min(cap(type), PerkMath.copies(profile.perkRolls, type, profile.streak));
+        return Math.min(cap(type), PerkMath.copies(profile.perkRolls, type, SpreeMath.benefitLevel(profile.streak)));
     }
     public double bonus(Player player, PerkType type) {
         double total = stacks(plugin.data().get(player), type) * perCopy(type);
         // Server-side hard limits prevent accidental extreme config values.
         // Entity reach maxes at +0.20 blocks; player scale cannot shrink
         // by more than 15%, even if an admin raises a copy limit.
-        double limit = type == PerkType.REACH ? .20 : type == PerkType.SCALE ? .15
-                : type == PerkType.CAPACITY ? 32 : .30;
-        return Math.min(limit, total);
+        return Math.min(hardBonusLimit(type), total);
+    }
+
+    /** Single source of truth for perk tooltips in player GUIs and the admin test picker. */
+    public String[] detailLore(PerkType type, PlayerDataStore.Profile profile) {
+        int active=stacks(profile,type);
+        int earned=PerkMath.copies(profile.perkRolls,type,SpreeMath.BENEFIT_CAP);
+        double per=perCopy(type);
+        double total=Math.min(hardBonusLimit(type),active*per);
+        List<String> lore=new ArrayList<>();
+        lore.add("&7Effect: &f"+type.effectDescription());
+        if(!type.effectNote().isBlank())lore.add("&8"+type.effectNote());
+        lore.add("&7Per copy: &b"+bonusDescription(type,per));
+        lore.add("&7Current bonus: &a"+bonusDescription(type,total));
+        lore.add("&7Copies: &f"+active+" active &8/ &f"+earned+" earned &8/ &f"+cap(type)+" max");
+        if(!enabled()||!allowed(type))lore.add("&cThis Perk is disabled in server settings");
+        else if(profile.streak<=0)lore.add("&8Inactive until positive killstreak");
+        return lore.toArray(String[]::new);
+    }
+
+    private static double hardBonusLimit(PerkType type) {
+        return type==PerkType.REACH?.20:type==PerkType.SCALE?.15:
+                type==PerkType.CAPACITY?32:.30;
+    }
+    private static String bonusDescription(PerkType type,double value) {
+        if(type==PerkType.CAPACITY)return "+"+format(value)+" items per stack";
+        if(type==PerkType.REACH)return "+"+format(value)+" blocks entity reach";
+        String amount=format(value*100)+"%";
+        return switch(type) {
+            case POWER -> "+"+amount+" hit/projectile damage";
+            case FORTITUDE -> "-"+amount+" incoming damage";
+            case AGILITY -> "+"+amount+" movement speed";
+            case DEXTERITY -> "+"+amount+" attack speed";
+            case RESTORATION -> "+"+amount+" healing received";
+            case STABILITY -> "+"+amount+" knockback resistance";
+            case ENDURANCE -> "-"+amount+" hunger exhaustion";
+            case EFFICIENCY -> "+"+amount+" mining speed";
+            case PRESERVATION -> "+"+amount+" item durability preserved";
+            case INSIGHT -> "+"+amount+" experience gained";
+            case SCALE -> "-"+amount+" size and hitbox";
+            case ALCHEMY -> "+"+amount+" beneficial potion duration";
+            default -> "+"+amount;
+        };
     }
 
     /** Current bonuses rendered as a separate, compact active-only dashboard item. */

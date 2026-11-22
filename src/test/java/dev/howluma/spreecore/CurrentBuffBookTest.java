@@ -20,5 +20,7 @@ class CurrentBuffBookTest {
         assertFalse(one.stream().anyMatch(s->s.contains("Weaving")));
         assertFalse(Arrays.asList(MenuManager.currentBuffLore(c,9)).stream().anyMatch(s->s.contains("Glowing")));
         assertTrue(Arrays.asList(MenuManager.currentBuffLore(c,10)).stream().anyMatch(s->s.contains("Hunt Glowing")));
+        assertArrayEquals(MenuManager.currentBuffLore(c, 30), MenuManager.currentBuffLore(c, 31));
+        assertArrayEquals(MenuManager.currentBuffLore(c, 30), MenuManager.currentBuffLore(c, 500));
     }
 }

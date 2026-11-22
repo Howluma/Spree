@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.entity.Player;
@@ -48,11 +49,54 @@ public final class FateSigil implements Listener {
                 && item.getItemMeta().getPersistentDataContainer().has(itemKey, PersistentDataType.BYTE);
     }
 
-    public Material ingredient(int index) {
+    static final List<String> LEGACY_RECIPE = List.of(
+            "AMETHYST_SHARD","DIAMOND","AMETHYST_SHARD",
+            "DIAMOND","NETHERITE_SCRAP","DIAMOND",
+            "AMETHYST_SHARD","DIAMOND","AMETHYST_SHARD");
+    // Shipped in v1.7.5. Upgrade only this exact pattern; custom grids remain intact.
+    static final List<String> PREVIOUS_RECIPE = List.of(
+            "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY",
+            "NETHERITE_INGOT","HEART_OF_THE_SEA","NETHERITE_INGOT",
+            "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY");
+    static final String SPREE_ITEM = "SPREE_ITEM";
+    static final List<String> DEFAULT_RECIPE = List.of(
+            "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY",
+            "NETHERITE_INGOT",SPREE_ITEM,"NETHERITE_INGOT",
+            "OMINOUS_TRIAL_KEY","NETHERITE_INGOT","OMINOUS_TRIAL_KEY");
+
+    /**
+     * Migrate only the exact old built-in recipe.
+     * Never overwrite any recipe that has been customized by an admin.
+     */
+    static boolean migrateOldRecipe(org.bukkit.configuration.file.FileConfiguration config) {
+        boolean legacy = recipeMatches(config, LEGACY_RECIPE);
+        boolean previous = recipeMatches(config, PREVIOUS_RECIPE);
+        if (!legacy && !previous) return false;
+        for(int i=0;i<9;i++)
+            config.set("fate-sigil.recipe.slot-"+(i+1),DEFAULT_RECIPE.get(i));
+        return true;
+    }
+
+    private static boolean recipeMatches(org.bukkit.configuration.file.FileConfiguration config,
+            List<String> recipe) {
+        for(int i=0;i<9;i++)
+            if(!recipe.get(i).equalsIgnoreCase(config.getString(
+                    "fate-sigil.recipe.slot-"+(i+1),""))) return false;
+        return true;
+    }
+
+    /** A special recipe token, not an ordinary Minecraft material. */
+    public boolean spreeIngredient(int index) {
+        return SPREE_ITEM.equalsIgnoreCase(ingredientName(index));
+    }
+    public String ingredientName(int index) {
         if (index<1||index>9) throw new IllegalArgumentException("Cell must be 1..9");
-        String fallback=switch(index){case 5 -> "NETHERITE_SCRAP";
-            case 1,3,7,9 -> "AMETHYST_SHARD";default -> "DIAMOND";};
-        String raw=plugin.getConfig().getString("fate-sigil.recipe.slot-"+index,fallback);
+        return plugin.getConfig().getString("fate-sigil.recipe.slot-"+index,
+                DEFAULT_RECIPE.get(index-1));
+    }
+    public Material ingredient(int index) {
+        String raw=ingredientName(index);
+        if(SPREE_ITEM.equalsIgnoreCase(raw)) return Material.HEART_OF_THE_SEA;
         Material result=raw==null?null:Material.matchMaterial(raw);
         return result==null||result.isAir()||!result.isItem()?Material.AIR:result;
     }
@@ -60,14 +104,18 @@ public final class FateSigil implements Listener {
         Bukkit.removeRecipe(recipeKey);
         if(!plugin.getConfig().getBoolean("fate-sigil.recipe.enabled",true))return;
         char[] grid=new char[9];
-        Map<Character,Material> ingredients=new LinkedHashMap<>();
+        Map<Character,RecipeChoice> ingredients=new LinkedHashMap<>();
         for(int i=0;i<9;i++){
             Material material=ingredient(i+1);
             if(material.isAir())grid[i]=' ';
             else {
                 char letter=(char)('A'+i);
                 grid[i]=letter;
-                ingredients.put(letter,material);
+                // ExactChoice checks the Spree item's PDC/lore/model. A plain
+                // Heart of the Sea, even if renamed, will never match this slot.
+                if(spreeIngredient(i+1))
+                    ingredients.put(letter,new RecipeChoice.ExactChoice(plugin.streaks().createSpreeItem(1)));
+                else ingredients.put(letter,new RecipeChoice.MaterialChoice(material));
             }
         }
         if(ingredients.isEmpty()){
@@ -78,6 +126,20 @@ public final class FateSigil implements Listener {
         recipe.shape(new String(grid,0,3),new String(grid,3,3),new String(grid,6,3));
         ingredients.forEach(recipe::setIngredient);
         if(!Bukkit.addRecipe(recipe))plugin.getLogger().warning("Fate Sigil recipe registration failed.");
+    }
+
+    /** Grant real, tagged Sigils, not cosmetic Echo Shards. */
+    public int give(Player player, int count) {
+        if (count < 1 || count > 64) throw new IllegalArgumentException("Give between 1 and 64 Sigils.");
+        ItemStack item = item();
+        item.setAmount(count);
+        Map<Integer,ItemStack> leftovers = player.getInventory().addItem(item);
+        int dropped = 0;
+        for (ItemStack extra : leftovers.values()) {
+            dropped += extra.getAmount();
+            player.getWorld().dropItemNaturally(player.getLocation(), extra);
+        }
+        return dropped;
     }
 
     public boolean has(Player player) {

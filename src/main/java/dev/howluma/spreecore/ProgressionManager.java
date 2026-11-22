@@ -1,5 +1,6 @@
 package dev.howluma.spreecore;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -26,7 +27,7 @@ public final class ProgressionManager {
         PlayerDataStore.Profile p = profile(player);
         if (p.streak <= 0) return false;
         for (var choice : chosen(p, kind).entrySet())
-            if (choice.getKey() <= p.streak && choice.getValue().equals(id)) return true;
+            if (choice.getKey() <= SpreeMath.benefitLevel(p.streak) && choice.getValue().equals(id)) return true;
         return false;
     }
     public boolean hasPrivilege(Player p, String id) {
@@ -38,12 +39,23 @@ public final class ProgressionManager {
     public boolean hasInfusion(Player p, String id) {
         return active(p, ProgressionCatalog.Kind.INFUSION, id);
     }
-    public boolean milestoneUnlocked(Player p, ProgressionCatalog.Kind kind, int level) {
-        return ProgressionCatalog.milestone(kind, level) && level <= profile(p).streak;
+    /**
+     * Earning an upgrade milestone is permanent; actual gameplay benefits still
+     * depend solely on the player's CURRENT killstreak.
+     */
+    static boolean historicallyEarned(ProgressionCatalog.Kind kind, int level, int streak, int best) {
+        return kind != null && level <= SpreeMath.BENEFIT_CAP
+                && ProgressionCatalog.milestone(kind, level) && Math.max(streak, best) >= level;
+    }
+    public boolean milestoneUnlocked(Player player, ProgressionCatalog.Kind kind, int level) {
+        PlayerDataStore.Profile p = profile(player);
+        return historicallyEarned(kind, level, p.streak, p.best)
+                || (level <= SpreeMath.BENEFIT_CAP && ProgressionCatalog.milestone(kind, level)
+                    && chosen(p, kind).containsKey(level));
     }
     public int available(Player p, ProgressionCatalog.Kind kind) {
         int count = 0;
-        for (int level : ProgressionCatalog.milestones(kind, plugin.streaks().cap()))
+        for (int level : ProgressionCatalog.milestones(kind, plugin.streaks().progressionCap()))
             if (milestoneUnlocked(p, kind, level) &&
                     !chosen(profile(p), kind).containsKey(level)) count++;
         return count;
@@ -54,7 +66,7 @@ public final class ProgressionManager {
         for (ProgressionCatalog.Kind kind : List.of(ProgressionCatalog.Kind.PRIVILEGE,
                 ProgressionCatalog.Kind.TALENT, ProgressionCatalog.Kind.INFUSION)) {
             int count = 0;
-            for (int level = Math.max(1, previous + 1); level <= current; level++)
+            for (int level = Math.max(1, previous + 1); level <= Math.min(SpreeMath.BENEFIT_CAP, current); level++)
                 if (ProgressionCatalog.milestone(kind, level)
                         && !chosen(profile(player), kind).containsKey(level)) count++;
             if (count > 0) messages.add("&b" + count + " " + kind.title);
@@ -73,13 +85,50 @@ public final class ProgressionManager {
     }
     public List<ProgressionCatalog.Option> availableOptions(Player player,
             ProgressionCatalog.Kind kind, int level, boolean replacing) {
+        return optionsFor(kind, chosen(profile(player), kind), level, replacing);
+    }
+    /** Pure option filtering shared by the GUI and regression tests. */
+    static List<ProgressionCatalog.Option> optionsFor(ProgressionCatalog.Kind kind,
+            Map<Integer,String> assigned, int level, boolean replacing) {
         if (kind == ProgressionCatalog.Kind.PERK) return List.of();
-        PlayerDataStore.Profile p = profile(player);
-        Set<String> taken = pickedExcept(p, kind, level);
-        String own = chosen(p, kind).get(level);
+        Set<String> taken = new HashSet<>();
+        for (var e : assigned.entrySet())
+            if (e.getKey() != level) taken.add(e.getValue());
+        String own = assigned.get(level);
+        // With all six Privileges/Infusions obtained, the player must still be
+        // allowed to reconfigure their order. Choosing a used option swaps slots.
         return ProgressionCatalog.options(kind).stream()
-                .filter(o -> !taken.contains(o.id()) && (!replacing || !o.id().equals(own)))
+                .filter(o -> replacing && (kind == ProgressionCatalog.Kind.PRIVILEGE
+                        || kind == ProgressionCatalog.Kind.INFUSION)
+                        ? !o.id().equals(own)
+                        : !taken.contains(o.id()) && !o.id().equals(own))
                 .toList();
+    }
+
+    /** Pure planning step: no Sigils are spent or choices changed on rejection. */
+    static record Reselection(String displacedId, int swapLevel) {}
+    static Reselection planReselection(Map<Integer,String> choices, int level, String replacement) {
+        String current = choices.get(level);
+        if (current == null || replacement == null || current.equals(replacement)) return null;
+        int found = -1;
+        for (var entry : choices.entrySet()) {
+            if (entry.getKey() != level && replacement.equals(entry.getValue())) {
+                found = entry.getKey();
+                break;
+            }
+        }
+        return new Reselection(current, found);
+    }
+    static void applyReselection(Map<Integer,String> choices, int level,
+            String replacement, Reselection plan) {
+        // Assignment is atomic on the main thread, and neither reward is lost.
+        if (plan.swapLevel() >= 0) choices.put(plan.swapLevel(), plan.displacedId());
+        choices.put(level, replacement);
+    }
+    public int assignedMilestone(Player player, ProgressionCatalog.Kind kind, String id) {
+        for (var entry : chosen(profile(player),kind).entrySet())
+            if (id.equals(entry.getValue())) return entry.getKey();
+        return -1;
     }
 
     private List<String> buildTalentOffers(PlayerDataStore.Profile p, int level, String old) {
@@ -124,17 +173,127 @@ public final class ProgressionManager {
             return new Result(false, "You need a Fate Sigil and an existing unlocked choice.");
         var option = ProgressionCatalog.find(kind, optionId);
         if (option == null) return new Result(false, "Unknown choice.");
-        if (pickedExcept(p, kind, level).contains(optionId) || (sigil && optionId.equals(existing)))
+        Reselection change = sigil && (kind == ProgressionCatalog.Kind.PRIVILEGE
+                || kind == ProgressionCatalog.Kind.INFUSION)
+                ? planReselection(choices, level, optionId) : null;
+        if (change == null && (pickedExcept(p, kind, level).contains(optionId)
+                || (sigil && optionId.equals(existing))))
             return new Result(false, "Choose a different available upgrade.");
         if (kind == ProgressionCatalog.Kind.TALENT && (!talentOffers(player, level).contains(optionId) || sigil))
             return new Result(false, "Choose one of the three saved Talent offers.");
+        // Validate everything before consuming; a failed or unchanged choice costs nothing.
         if (sigil && !plugin.fate().consume(player)) return new Result(false, "Fate Sigil missing.");
-        choices.put(level, optionId);
-        if (kind == ProgressionCatalog.Kind.TALENT) p.talentOffers.remove(level);
+        if (change != null) applyReselection(choices, level, optionId, change);
+        else choices.put(level, optionId);
+        if (kind == ProgressionCatalog.Kind.TALENT) {
+            p.talentOffers.remove(level);
+            p.retiredTalentMilestones.remove(level); // Free replacement of retired Industrious
+        }
         plugin.data().dirty();
         plugin.streaks().update(player);
+        if (kind == ProgressionCatalog.Kind.TALENT) plugin.talentFeedback().unlocked(player,optionId);
         if (kind == ProgressionCatalog.Kind.PRIVILEGE) plugin.privilegeRules().enforce(player);
+        if (change != null && change.swapLevel() >= 0) {
+            ProgressionCatalog.Option swapped = ProgressionCatalog.find(kind, change.displacedId());
+            return new Result(true, "Fate Sigil used: " + option.name() + " is now at level " + level
+                    + ", and " + (swapped == null ? "your previous choice" : swapped.name())
+                    + " moved to level " + change.swapLevel() + "!");
+        }
         return new Result(true, (sigil ? "Reselected " : "Unlocked ") + option.name() + "!");
+    }
+
+
+    /** Admin-only GUI editing, bypassing normal randomized offers but retaining milestone rules. */
+    public static boolean validAdminChoice(ProgressionCatalog.Kind kind, int level, int maximum, String optionId) {
+        if (kind == null || level > maximum || !ProgressionCatalog.milestone(kind, level)) return false;
+        return switch (kind) {
+            case TALENT -> ProgressionCatalog.find(kind, optionId) != null;
+            case PERK -> PerkType.fromId(optionId) != null;
+            default -> false;
+        };
+    }
+
+    public Result adminSet(UUID target, ProgressionCatalog.Kind kind, int level, String optionId) {
+        if (!validAdminChoice(kind, level, plugin.streaks().progressionCap(), optionId))
+            return new Result(false, "Invalid Talent/Perk or milestone.");
+        PlayerDataStore.Profile profile = plugin.data().get(target);
+        String chosenName;
+        if (kind == ProgressionCatalog.Kind.TALENT) {
+            for (var entry : profile.talentChoices.entrySet()) {
+                if (entry.getKey() != level && optionId.equals(entry.getValue()))
+                    return new Result(false, "That Talent is already assigned at level " + entry.getKey() + ".");
+            }
+            var talent = ProgressionCatalog.find(kind, optionId);
+            chosenName = talent.name();
+            profile.talentChoices.put(level, optionId);
+            profile.talentOffers.remove(level); // Invalidate an obsolete pre-assignment offer.
+            profile.retiredTalentMilestones.remove(level);
+        } else {
+            PerkType perk = PerkType.fromId(optionId);
+            if (!plugin.getConfig().getBoolean("perks.enabled", true)
+                    || !plugin.getConfig().getBoolean("perks." + perk.id + ".enabled", true))
+                return new Result(false, "This Perk is disabled in plugin settings.");
+            int maxCopies = Math.max(0, Math.min(8, plugin.getConfig().getInt(
+                    "perks." + perk.id + ".max-copies", perk.defaultMaxCopies)));
+            String old = profile.perkRolls.get(level);
+            if (!perk.id.equals(old)
+                    && PerkMath.copies(profile.perkRolls, perk, Integer.MAX_VALUE) >= maxCopies)
+                return new Result(false, "That Perk has reached its maximum " + maxCopies + " copies.");
+            chosenName = perk.display;
+            profile.perkRolls.put(level, perk.id);
+        }
+        plugin.data().dirty();
+        refreshAdminTarget(target);
+        if(kind==ProgressionCatalog.Kind.TALENT && level<=profile.streak) {
+            Player online=Bukkit.getPlayer(target);
+            if(online!=null&&!online.isDead())plugin.talentFeedback().unlocked(online,optionId);
+        }
+        plugin.data().save();
+        boolean active = level <= profile.streak;
+        return new Result(true, "Set " + chosenName + " at level " + level
+                + (active ? " (active now)." : " (saved; active when that streak is reached)."));
+    }
+
+    public Result adminClearTalent(UUID target, int level) {
+        if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.TALENT, level)
+                || level > plugin.streaks().progressionCap())
+            return new Result(false, "Invalid Talent milestone.");
+        PlayerDataStore.Profile profile = plugin.data().get(target);
+        if (profile.talentChoices.remove(level) == null)
+            return new Result(false, "No Talent assigned at that milestone.");
+        profile.talentOffers.remove(level);
+        plugin.data().dirty();
+        refreshAdminTarget(target);
+        plugin.data().save();
+        return new Result(true, "Cleared Talent at level " + level + ".");
+    }
+
+    public Result adminAutoRollPerk(UUID target, int level) {
+        if (!ProgressionCatalog.milestone(ProgressionCatalog.Kind.PERK, level)
+                || level > plugin.streaks().progressionCap())
+            return new Result(false, "Invalid Perk milestone.");
+        PlayerDataStore.Profile profile = plugin.data().get(target);
+        String original = profile.perkRolls.get(level);
+        if (original == null) return new Result(false, "No Perk assigned at that level.");
+        if (Math.max(profile.streak, profile.best) < level)
+            return new Result(false, "Automatic rolls require a previously reached milestone.");
+        profile.perkRolls.remove(level);
+        plugin.perks().ensureRolls(profile);
+        String chosen = profile.perkRolls.get(level);
+        if (chosen == null) {
+            profile.perkRolls.put(level, original);
+            return new Result(false, "No eligible Perk is available for an automatic roll.");
+        }
+        plugin.data().dirty();
+        refreshAdminTarget(target);
+        plugin.data().save();
+        return new Result(true, "Rolled " + PerkType.fromId(chosen).display + " for level " + level
+                + (chosen.equals(original) ? " (same result; try selecting one manually)." : "."));
+    }
+
+    private void refreshAdminTarget(UUID target) {
+        Player online = Bukkit.getPlayer(target);
+        if (online != null && !online.isDead()) plugin.streaks().update(online);
     }
 
     /** Spend exactly one Sigil and offer new Talent choices for an unlocked Talent. */

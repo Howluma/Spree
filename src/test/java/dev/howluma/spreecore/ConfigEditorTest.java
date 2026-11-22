@@ -14,8 +14,11 @@ class ConfigEditorTest {
         assertNull(ConfigEditor.validate("resource-pack.models.tundra", 721001));
         assertNotNull(ConfigEditor.validate("resource-pack.models.tundra", 20000000));
         assertNotNull(ConfigEditor.validate("general.max-killstreak", -1));
-        assertNull(ConfigEditor.validate("general.max-killstreak", 30));
-        assertNotNull(ConfigEditor.validate("general.max-killstreak", 1001));
+        assertNotNull(ConfigEditor.validate("general.max-killstreak", 30));
+        assertNull(ConfigEditor.validate("general.max-killstreak", 31));
+        assertNull(ConfigEditor.validate("general.max-killstreak", 1001));
+        assertNull(ConfigEditor.validate("general.max-killstreak", 1_000_000_000));
+        assertNotNull(ConfigEditor.validate("general.max-killstreak", 1_000_000_001L));
     }
     @Test void validatesCooldownsAndHealth() {
         assertNull(ConfigEditor.validate("legendary.weapons.hailstorm.cooldown-seconds", 30));
@@ -44,6 +47,8 @@ class ConfigEditorTest {
     @Test void recipeMaterialAndCountEditorsRejectInvalidInputs() {
         // Material.matchMaterial needs a running Paper registry; ingredient
         // validation is checked on a live staging server, not in pure JVM tests.
+        assertNull(ConfigEditor.validate("fate-sigil.recipe.slot-5", "SPREE_ITEM"));
+        assertNull(ConfigEditor.validate("fate-sigil.recipe.slot-5", "spree_item"));
         assertNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",16));
         assertNotNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",0));
         assertNotNull(ConfigEditor.validate("fate-sigil.recipe.result-amount",17));
@@ -52,6 +57,27 @@ class ConfigEditorTest {
         assertNotNull(ConfigEditor.validate("talents.combo-breaker.hits-required",0));
         assertNull(ConfigEditor.validate("talents.combo-breaker.hits-required",3));
     }
+    @Test void rodCollisionMarginsCanBeEditedSafelyInSpreeCoreSettings() {
+        assertNull(ConfigEditor.validate("rod-assist.player-extra-margin",.30));
+        assertNull(ConfigEditor.validate("rod-assist.item-extra-margin",.35));
+        assertNull(ConfigEditor.validate("rod-assist.primed-tnt-extra-margin",.40));
+        assertNotNull(ConfigEditor.validate("rod-assist.primed-tnt-extra-margin",.51));
+        assertNull(ConfigEditor.validate("rod-assist.player-extra-margin",0));
+        assertNull(ConfigEditor.validate("rod-assist.item-extra-margin",.50));
+        assertNotNull(ConfigEditor.validate("rod-assist.player-extra-margin",.51));
+        assertNotNull(ConfigEditor.validate("rod-assist.item-extra-margin",-.01));
+        assertNotNull(ConfigEditor.validate("rod-assist.max-sweep-blocks-per-tick",0.25));
+        assertNull(ConfigEditor.validate("rod-assist.max-sweep-blocks-per-tick",4.0));
+        assertNotNull(ConfigEditor.validate("rod-assist.max-sweep-blocks-per-tick",5.01));
+        assertNull(ConfigEditor.validate("talents.flame-rod.contact-tolerance",.50));
+        assertNull(ConfigEditor.validate("talents.flame-rod.contact-tolerance",.70));
+        assertNotNull(ConfigEditor.validate("talents.flame-rod.contact-tolerance",.71));
+        assertNotNull(ConfigEditor.validate("talents.flame-rod.contact-tolerance",0));
+        assertNull(ConfigEditor.validate("talents.flame-rod.player-fire-seconds",4));
+        assertNull(ConfigEditor.validate("talents.flame-rod.player-fire-seconds",15));
+        assertNotNull(ConfigEditor.validate("talents.flame-rod.player-fire-seconds",16));
+    }
+
     @Test void tierColorEditorRejectsInvalidOrMultiColorValues() {
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.5", "&a"));
         assertNull(ConfigEditor.validate("display.streak-indicators.tier-colors.10", "<#123ABC>"));

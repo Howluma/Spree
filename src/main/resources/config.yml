@@ -1,13 +1,54 @@
-# SpreeCore 1.7.1 - configurable gameplay workshop, mace slams and Fate Sigil recipes.
+# SpreeCore 1.8.13 - normal TNT now adds 10% damage per victim streak level.
 # Save changes automatically from the menu; manual edits use /spreeadmin reload.
 # Values labeled hearts use Minecraft HEARTS (two health points per heart).
 general:
   prefix: '&9&lSPREE &8| &f'
-  max-killstreak: 30
+  # Technical score ceiling (not a progression limit). Past level 30, the
+  # displayed killstreak, personal best and leaderboards keep increasing.
+  # Health, perks, talents, infusions, privileges and reward tiers stop at 30.
+  max-killstreak: 1000000000
   fractured-label: '&c&lFractured'
   actionbar-interval-ticks: 40
   save-interval-seconds: 120
   announce-joining-streak: 10
+
+# Fishing hook hitbox assist. Applies to ordinary rods AND Flame Rod Talents.
+# This enlarges the effective bobber-catching tolerance but does not change
+# actual player/item hitboxes, melee reach, rod damage or knockback.
+# Can also be edited in /spree > Admin Settings > Fishing Rod Hitbox Assist.
+rod-assist:
+  enabled: true
+  # Adds a small amount of reach around the target's true hitbox per side.
+  # Player width remains physically 0.6 blocks; only bobber catches are helped.
+  player-extra-margin: 0.30
+  item-extra-margin: 0.35
+  # Primed TNT entities can be pulled with fishing rods in vanilla.
+  # Give the burning TNT entity a modest extra catch margin too.
+  primed-tnt-extra-margin: 0.40
+  # Maximum distance sampled between bobber positions each tick.
+  max-sweep-blocks-per-tick: 4.0
+  respect-pvp-settings: true
+  respect-friendly-fire: true
+
+# Personal combat cues. They use vanilla sounds, so the complete resource pack
+# needs no new assets. Only the credited killer hears the kill chime;
+# only the dead player hears the descending death sting.
+combat-feedback:
+  enabled: true
+  kill:
+    enabled: true
+    sounds: true
+    particles: true
+    volume: 0.8
+    # Number of positions in each of the two blue dust rings (8..32).
+    ring-points: 16
+    # false = also celebrate a valid kill if anti-farming blocks the streak gain.
+    # true = only celebrate kills that actually award killstreak points.
+    only-rewarded: false
+  death:
+    enabled: true
+    sounds: true
+    volume: 0.75
 
 # Blue (&9) sword symbol matches menu headings; bold number colors change every five kills.
 # Overhead tags use scoreboard suffixes when the player is NOT already in a team.
@@ -33,13 +74,20 @@ display:
       '30': '&4' # 30+ dark red
 
 killstreak:
-  # Vanilla is 10 hearts. Each POSITIVE level grants precisely +0.5 heart.
+  # Every player life can apply exactly one loss, one death count, and one
+  # reward/drop. Useful for weird rapid TNT minecart/explosion death callbacks.
+  death-processing:
+    warn-duplicate-events: true
+    # Optional diagnostics for every death: cause, source entity and score.
+    # Useful when investigating another plugin/Skript changing killstreaks.
+    log-transitions: false
+  # Vanilla is 10 hearts. Only the first 30 positive levels grant +0.5 heart each.
   # Fractured (-1) is treated as 0 here: no health penalty.
   base-health-hearts: 10
   health-per-level-hearts: 0.5
   # The mace now requires a redeemed Mace Wielder Privilege.
   # PvP kill rewards scale with the VICTIM'S streak before death.
-  # 0-4 => +1; 5-9 => +2; 10-14 => +3; ... 25-29 => +6; 30 => +7.
+  # 0-4 => +1; 5-9 => +2; 10-14 => +3; ... 25-29 => +6; 30+ => +7.
   # Applies to qualifying melee, ranged, and player-credited explosive kills.
   # Environmental-death tokens award the SAME tier payout as player kills;
   # environmental death still halves the victim's current killstreak.
@@ -76,22 +124,25 @@ hunt:
     '25': '&9&lSPREE &8| &5{player} is most wanted! &7(25 killstreak)'
     '30': '&9&lSPREE &8| &4{player} has become legendary! &7(30 killstreak)'
 
-# Fate Sigil crafting and appearance: all nine slots editable in the
+# Fate Sigil crafting and appearance: Ominous Trial Keys on the corners,
+# Netherite Ingots on the four edges, and a genuine Spree consumable in the center.
+# SPREE_ITEM checks SpreeCore's internal item tag; a plain Heart of the Sea will NOT work.
+# All nine slots remain editable in the
 # /spree > Admin Center > Balance Workshop > Fate Sigil Recipe panel.
 fate-sigil:
   display-name: '&9&lFate Sigil'
   recipe:
     enabled: true
     result-amount: 1
-    slot-1: AMETHYST_SHARD
-    slot-2: DIAMOND
-    slot-3: AMETHYST_SHARD
-    slot-4: DIAMOND
-    slot-5: NETHERITE_SCRAP
-    slot-6: DIAMOND
-    slot-7: AMETHYST_SHARD
-    slot-8: DIAMOND
-    slot-9: AMETHYST_SHARD
+    slot-1: OMINOUS_TRIAL_KEY
+    slot-2: NETHERITE_INGOT
+    slot-3: OMINOUS_TRIAL_KEY
+    slot-4: NETHERITE_INGOT
+    slot-5: SPREE_ITEM
+    slot-6: NETHERITE_INGOT
+    slot-7: OMINOUS_TRIAL_KEY
+    slot-8: NETHERITE_INGOT
+    slot-9: OMINOUS_TRIAL_KEY
 
 # These item limits are visible in the operator settings GUI.
 privileges:
@@ -104,6 +155,17 @@ privileges:
 
 # Configurable Talent values. Each subsection has its own settings screen.
 talents:
+  # Owner hears a distinct cue, sees a short particle burst, and receives an
+  # action-bar label when a Talent actually procs. Cooldown alerts are sent only
+  # once, when the Talent becomes usable again; never every heartbeat.
+  feedback:
+    enabled: true
+    sounds: true
+    particles: true
+    actionbar: true
+    ready-notifications: true
+    ready-chat: true
+    passive-interval-ms: 2500
   defense:
     shared-cooldown-seconds: 10
   executioner:
@@ -158,7 +220,26 @@ talents:
   expanded-reserves:
     extra-items: 64
   quick-hands:
-    consume-time-multiplier: 0.80
+    # 0.90 = consume food and potions in 10% less time.
+    consume-time-multiplier: 0.90
+  flame-rod:
+    enabled: true
+    # Held fishing rods temporarily get Flame I, reverting when dropped or traded.
+    # The bobber visually burns and emits flame particles while the cast is active.
+    bobber-particles: true
+    cast-sound: true
+    # Slightly expanded bobber-to-TNT contact zone (0.50 blocks outside TNT).
+    # Only Flame Rod casts can ignite TNT; block protection rules still apply.
+    contact-tolerance: 0.50
+    max-ignitions-per-cast: 1
+    tnt-fuse-ticks: 80
+    # Hooking an enemy player with a flaming bobber ignites them for 4 seconds.
+    # This causes normal vanilla fire damage, not direct fishing-rod damage.
+    # PvP-disabled worlds, friendly-fire rules and cancelled combustion events are respected.
+    ignite-players: true
+    player-fire-seconds: 4.0
+    player-fire-particles: true
+    player-fire-sound: true
   streak-insurance:
     cooldown-seconds: 600
     protected-levels: 2
@@ -300,19 +381,45 @@ legendary:
       launch-hits: 6
       launch-damage-per-hit-hearts: 0.75
 
-# These options are visible and editable in /spree settings > Combat Balancing.
-# Multipliers apply to the unmitigated base damage, before armor/enchantments.
+# Editable under /spree settings > Combat Balancing.
+# Mace adds 5 percentage points, normal TNT adds 10 percentage points per VICTIM killstreak (not attacker's).
+# Mace/TNT bonuses apply before armor; minecart caps apply AFTER armor.
+# Fractured (-1) counts as zero. Scaling is not capped at level 30.
 combat:
   mace:
     enabled: true
     player-damage-multiplier: 0.75
+    # Adds 5 percentage points per victim level: at level 5 the mace
+    # changes from 75% vanilla damage to 100% vanilla damage.
+    bonus-damage-per-victim-streak: 0.05
     # Only actual, unblocked smash damage starts the cooldown.
     # Normal mace swings, misses, and blocked attacks do not start it.
     slam-cooldown-seconds: 60
     mastery-slam-cooldown-seconds: 30
+    # Vanilla shaded hotbar overlay after a real mace smash. Normal hits remain usable.
+    cooldown-overlay: true
+    # Extra blue shockwave at impact visible to nearby players.
+    impact-particles: true
+    impact-sound: true
   tnt:
     enabled: true
     igniter-self-damage-multiplier: 0.50
+    # Normal TNT damage rises by 10% per streak level of the player hit.
+    # The igniter's self-damage multiplier still applies separately.
+    bonus-damage-per-victim-streak: 0.10
+  tnt-minecart:
+    enabled: true
+    # Caps are measured in HEARTS of final damage, after armor mitigation.
+    # 0 streak = 7 hearts; +0.5 heart per victim streak level.
+    # Does not increase minecart explosions that are already below the cap.
+    base-cap-hearts: 7.0
+    cap-increase-per-victim-streak-hearts: 0.5
+  # Player combat credit also carries through short follow-up environmental deaths
+  # (fall, lava, fire, void, drowning, suffocation, etc.). Those deaths reward
+  # the credited killer and NEVER spawn an environmental-death Spree Token.
+  pvp-environment-credit:
+    enabled: true
+    window-seconds: 12
   explosive-kill-credit:
     enabled: true
     window-seconds: 12

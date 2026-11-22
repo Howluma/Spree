@@ -3,6 +3,11 @@ package dev.howluma.spreecore;
 /** Pure, deterministic rules so critical streak calculations can be unit tested. */
 public final class SpreeMath {
     private SpreeMath() {}
+    /** Only the first 30 levels grant benefits; visible streaks may go higher. */
+    public static final int BENEFIT_CAP = 30;
+    public static int benefitLevel(int streak) {
+        return Math.max(0, Math.min(BENEFIT_CAP, streak));
+    }
     public static int clamp(int streak, int limit) { return Math.max(-1, Math.min(limit, streak)); }
     /**
      * PvP kill reward from the victim's PRE-DEATH streak.
@@ -19,7 +24,7 @@ public final class SpreeMath {
         int initial = Math.max(1, base);
         int interval = Math.max(1, levelsPerTier);
         int additional = Math.max(0, extraPerTier);
-        long total = (long) initial + ((long) Math.max(0, victimStreak) / interval) * additional;
+        long total = (long) initial + ((long) benefitLevel(victimStreak) / interval) * additional;
         return (int) Math.min(Integer.MAX_VALUE, total);
     }
      public static int deathStreak(int oldStreak) {
@@ -33,7 +38,7 @@ public final class SpreeMath {
      * The upper bound keeps the Minecraft max-health attribute in a valid range.
      */
     public static double maxHealthPoints(int streak, double baseHearts, double perLevelHearts) {
-        double hearts = baseHearts + Math.max(0, streak) * perLevelHearts;
+        double hearts = baseHearts + benefitLevel(streak) * perLevelHearts;
         return Math.min(1024.0, Math.max(2.0, hearts * 2.0));
     }
     /** The vanilla mace works only after the first positive killstreak level. */
@@ -47,6 +52,6 @@ public final class SpreeMath {
         return streak - amount;
     }
     public static int applyKill(int current, int gain, int cap) {
-        return Math.min(cap, Math.max(0, current) + Math.max(0, gain));
+        return (int) Math.min(Math.max(0, cap), Math.max(0L, (long) current) + Math.max(0L, (long) gain));
     }
 }
