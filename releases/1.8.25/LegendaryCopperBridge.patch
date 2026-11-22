@@ -1,0 +1,106 @@
+--- a/LegendaryCopperBridge.java
++++ b/LegendaryCopperBridge.java
+@@ -116,10 +116,15 @@
+         if (LEGENDARIES.contains(id)) {
+             try {
+                 call(meta, "setDisplayName", new Class<?>[]{String.class},boldName(id.toUpperCase(Locale.ROOT)));
+-                // v1.8.22/23 concealed vanilla modifiers and enchantments. Remove
+-                // those old flags on the *same* meta (also for items already owned).
+-                revealItemDetails(meta);
+-            } catch(ReflectiveOperationException e) {warn("show legendary metadata",e);}
++                // Keep the bold custom display name but remove a separate
++                // ITEM_NAME data component, if an older release set one.
++                // The underlying vanilla material's translation key is not editable
++                // through this field, but should never create a second lore line.
++                if (Boolean.TRUE.equals(call0(meta,"hasItemName"))) {
++                    call(meta,"setItemName",new Class<?>[]{String.class},(Object)null);
++                }
++                configureLegendaryTooltip(meta);
++            } catch(ReflectiveOperationException e) {warn("configure legendary tooltip",e);}
+         }
+         try {
+             String style = switch (id) {
+@@ -165,25 +170,37 @@
+         } catch (ReflectiveOperationException ex) { warn("netherite durability and enchantability",ex); }
+     }
+ 
+-    private static void revealItemDetails(Object meta) throws ReflectiveOperationException {
++    /**
++     * Show the custom display name + lore + netherite combat statistics.
++     * Keep enchantments *functioning* while hiding their tooltip text; never
++     * hide the entire tooltip or disable the real enchantment modifiers.
++     */
++    private static void configureLegendaryTooltip(Object meta) throws ReflectiveOperationException {
+         Class<?> flag=cls("org.bukkit.inventory.ItemFlag");
+-        // Only remove visibility restrictions we previously introduced; never
+-        // strip an enchantment or the custom tooltip frame's styling.
+-        for(String name:List.of("HIDE_ATTRIBUTES","HIDE_ENCHANTS","HIDE_ADDITIONAL_TOOLTIP")) {
+-            try {
+-                Object f=getField("org.bukkit.inventory.ItemFlag",name);
+-                Object flags=call0(meta,"getItemFlags");
+-                if(flags instanceof Set<?> set && set.contains(f)) {
+-                    Object array=java.lang.reflect.Array.newInstance(flag,1);
+-                    java.lang.reflect.Array.set(array,0,f);
+-                    call(meta,"removeItemFlags",new Class<?>[]{array.getClass()},array);
+-                }
+-            } catch(NoSuchFieldException ignored) {
+-                // Removed flag in a future Minecraft release: nothing to reveal.
++        Class<?> flagsArray=java.lang.reflect.Array.newInstance(flag,0).getClass();
++        Object flags=call0(meta,"getItemFlags");
++        if(flags instanceof Set<?> set) {
++            // 1.8.24 accidentally unhid enchantments. Restore HIDE_ENCHANTS.
++            // Keep attribute lines visible so attack damage/speed can be read.
++            Object hideEnchants=getField("org.bukkit.inventory.ItemFlag","HIDE_ENCHANTS");
++            if(!set.contains(hideEnchants)) {
++                Object array=java.lang.reflect.Array.newInstance(flag,1);
++                java.lang.reflect.Array.set(array,0,hideEnchants);
++                call(meta,"addItemFlags",new Class<?>[]{flagsArray},array);
++            }
++            for(String name:List.of("HIDE_ATTRIBUTES","HIDE_ADDITIONAL_TOOLTIP")) {
++                try {
++                    Object f=getField("org.bukkit.inventory.ItemFlag",name);
++                    if(set.contains(f)) {
++                        Object array=java.lang.reflect.Array.newInstance(flag,1);
++                        java.lang.reflect.Array.set(array,0,f);
++                        call(meta,"removeItemFlags",new Class<?>[]{flagsArray},array);
++                    }
++                } catch(NoSuchFieldException ignored) { /* optional/deprecated flag */ }
+             }
+         }
+         try {call(meta,"setHideTooltip",new Class<?>[]{boolean.class},false);}
+-        catch(NoSuchMethodException ignored) { /* older compatible server API */ }
++        catch(NoSuchMethodException ignored) { /* older compatible API */ }
+     }
+ 
+     private static boolean attributeMatches(Object meta,Object att,String expectedKey,double expectedAmount)
+@@ -203,17 +220,25 @@
+         } catch(NoSuchMethodException oldApi) {return true;}
+     }
+ 
+-    /** Detect stale v1.8.23 flags/stats without sending an inventory update each tick. */
++    /** Detect outdated tooltip visibility and weapon components once per inventory refresh. */
+     public static boolean needsRepair(Object meta,Object type) {
+         if(meta==null||type==null)return false;
+         String id=String.valueOf(type).toLowerCase(Locale.ROOT);
+         if(!LEGENDARIES.contains(id))return false;
+         try {
+             Object flags=call0(meta,"getItemFlags");
+-            if(flags instanceof Set<?> fs)for(String forbidden:List.of("HIDE_ATTRIBUTES","HIDE_ENCHANTS","HIDE_ADDITIONAL_TOOLTIP")){
+-                try {if(fs.contains(getField("org.bukkit.inventory.ItemFlag",forbidden)))return true;}
+-                catch(NoSuchFieldException ignored){}
+-            }
++            if(flags instanceof Set<?> fs) {
++                for(String forbidden:List.of("HIDE_ATTRIBUTES","HIDE_ADDITIONAL_TOOLTIP")) {
++                    try {if(fs.contains(getField("org.bukkit.inventory.ItemFlag",forbidden)))return true;}
++                    catch(NoSuchFieldException ignored) { /* deprecated flag absent */ }
++                }
++                // Bukkit may discard HIDE_ENCHANTS when the item has no
++                // enchantments yet. Only require persistence when enchanted,
++                // avoiding infinite inventory rewrites on plain legendaries.
++                if(Boolean.TRUE.equals(call0(meta,"hasEnchants"))
++                    && !fs.contains(getField("org.bukkit.inventory.ItemFlag","HIDE_ENCHANTS")))return true;
++            }
++            if(Boolean.TRUE.equals(call0(meta,"hasItemName")))return true;
+             try {if(Boolean.TRUE.equals(call0(meta,"isHideTooltip")))return true;}
+             catch(NoSuchMethodException ignored){}
+             if(!Boolean.FALSE.equals(call0(meta,"getEnchantmentGlintOverride")))return true;
