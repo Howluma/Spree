@@ -1,4 +1,4 @@
-> **Latest binary update: SpreeCore 1.8.23 (November 22, 2026).** See [release notes](releases/1.8.23/README.md) for the legendary tooltip, Blood Butcher and 50-second Blood Rush changes. The latest downloadable JAR and resource pack are supplied separately; **main-branch source has not yet been fully reconciled to this binary.**
+> **Latest distributed binary: SpreeCore 1.8.24 (November 22, 2026).** [Release notes](releases/1.8.24/README.md) cover restored legendary enchantment/attribute display, netherite-equivalent mainhand stats and durability, and clearer Bleeding lore. The repository's older Gradle main branch **is not yet a fully reproducible source for this binary**.
 
 # SpreeCore v1.7.1 — Spree SMP
 
