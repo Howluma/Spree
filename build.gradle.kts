@@ -33,3 +33,15 @@ tasks.test {
 tasks.jar {
     archiveFileName.set("SpreeCore-${project.version}.jar")
 }
+
+// Isolated verification branch: bundle the resolved real Paper API and dependencies
+// for compiling the 1.8.68 patch against the existing 1.8.67 binary.
+val paperLibraries by tasks.registering(Zip::class) {
+    archiveFileName.set("paper-libraries.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("libs"))
+    from(configurations.testRuntimeClasspath)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+tasks.build {
+    dependsOn(paperLibraries)
+}
